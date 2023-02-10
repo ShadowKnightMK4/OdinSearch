@@ -2,18 +2,59 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 
-namespace FileInventoryEngine
+namespace OdinSearchEngine
 {
     /// <summary>
     /// Indicate what will be searched for.
     /// </summary>
     public class SearchTarget
     {
+
+
+
+        public List<Regex> ConvertFileNameToRegEx()
+        {
+            return ConvertFileNameToRegEx(this);
+        }
+        /// <summary>cc
+        /// Convert The passed SearchTarget file names to a matching RegEx list
+        /// </summary>
+        /// <param name="Target">which one to work on</param>
+        /// <returns>returns a list of RegEx instances to match the possible file names in the target</returns>
+        public static List<Regex> ConvertFileNameToRegEx(SearchTarget Target)
+        {
+            var ret = new List<Regex>();
+            foreach (string s in Target.FileName)
+            {
+                string pattern;
+
+                pattern = "^" + Regex.Escape(s) + "$";
+                pattern = pattern.Replace("\\*", ".*").Replace("\\?", ".");
+                if (pattern == "^.*$")  // this is the match anything regexpression.  returning a clear regex list disables the compare that will always be true
+                {
+                    ret.Clear();
+                    return ret;
+                }
+                if (!Target.FileNameMatching.HasFlag(MatchStyleString.CaseImportant))
+                {
+                    ret.Add(new Regex(pattern, RegexOptions.Singleline));
+                }
+                else
+                {
+                    ret.Add(new Regex(pattern, RegexOptions.Singleline | RegexOptions.IgnoreCase));
+                }
+
+            }
+
+            return ret;
+        }
+
         /// <summary>
         /// Protoype for the additonal check
         /// </summary>
-        /// <param name="CheckMe">file system oibject to check</param>
+        /// <param name="CheckMe">file system object to check</param>
         /// <returns>Delegate returns true if the match is ok and false if it is not.</returns>
         public delegate bool CustomizedCheck(FileSystemInfo CheckMe);
         /// <summary>
@@ -83,13 +124,14 @@ namespace FileInventoryEngine
             /// </summary>
             MatchAny = 1,
             /// <summary>
-            /// Match all in the list. Invert means all entries must match or the search values.
+            /// Match all in the list. Invert means NO entries must match or the search values.
             /// </summary>
             MatchAll = 2,
             /// <summary>
             /// binary '!' on the match i.e. must NOT match.
             /// </summary>
             Invert = 4,
+            [Obsolete]
             /// <summary>
             /// This must be sucessfully match (or invert match) or the search fails.
             /// </summary>
