@@ -20,9 +20,13 @@ namespace UnitTest
         [TestInitialize]
         public void Init()
         {
+            if (!Directory.Exists("V:\\DevDB"))
+            {
+                Directory.CreateDirectory("V:\\DevDB");
+            }
             try
             {
-                Demo = new OdinSearch_OutputConsumerSql(Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Testdb.mdf"));
+                Demo = new OdinSearch_OutputConsumerSql(string.Empty);
             }
             catch (SqlException e)
             {
@@ -30,18 +34,44 @@ namespace UnitTest
             }
         }
 
+        
+        [TestMethod]
+        public void LocalDB_CreateDatabaseOk()
+        {
+            Assert.IsNotNull(Demo);
+            var connect = Demo.GetSqlConnect();
+
+            if (!OdinSearch_OutputConsumerSql_CommandHandler.CreateSqlDatabase(connect, "TestDB2"))
+            {
+                Assert.Fail("Failed to create databaseok");
+            }
+
+            if (!OdinSearch_OutputConsumerSql_CommandHandler.GetSqlDatabaseList(connect).Contains("TestDB2"))
+            {
+                Assert.Fail("Failed to insert DB ok");
+            }
+        }
         [TestMethod]
         public void LocalDB_ConnectOk()
         {
             // init() test actualy connects. THis tests for Demo != null and the LocalConnectOk_Catche = null
 
-            Assert.IsNotNull(Demo);
+            
             if (LocalConnectOk_Catche != null)
             {
                 Assert.Fail("SQL Exception on connect: " + LocalConnectOk_Catche.Message);
             }
+            Assert.IsNotNull(Demo);
+        }
 
+        [TestMethod]
+        public void LocalDB_Test2()
+        {
+            Assert.IsNotNull(Demo);
 
+            SqlConnection sql = Demo.GetSqlConnect();
+         
+            
         }
     }
 }

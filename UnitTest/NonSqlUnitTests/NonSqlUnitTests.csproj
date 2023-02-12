@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FileInventoryEngine\OdinSearchEngine.csproj" />
+    <ProjectReference Include="..\..\FileInventoryEngine\OdinSearchEngine.csproj" />
   </ItemGroup>
 
 </Project>

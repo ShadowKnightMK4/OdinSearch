@@ -19,6 +19,22 @@ namespace OdinSearchEngine
     public class SearchAnchor
     {
         /// <summary>
+        /// Make an instance
+        /// </summary>
+        /// <param name="other"></param>
+        /// <param name="DiscardRoot"></param>
+        public SearchAnchor(SearchAnchor other, bool DiscardRoot)
+        {
+            if (!DiscardRoot)
+            {
+               roots.AddRange(other.roots);
+            }
+            
+            this.EnumSubFolders = other.EnumSubFolders;
+        }
+
+        
+        /// <summary>
         /// Either make an instance of this without any entries in the root or if WantLocalDrives is true, all local online drives
         /// </summary>
         /// <param name="WantLocalDrives"></param>
@@ -180,5 +196,21 @@ namespace OdinSearchEngine
         /// Each root location will end up getting a seperate worker thread searching with the parameters.
         /// </summary>
         public readonly List<DirectoryInfo> roots = new List<DirectoryInfo>();
+
+        /// <summary>
+        /// return an error of duplicate <see cref="SearchAnchor"/>s where each searchanchor has once of the roots
+        /// </summary>
+        /// <returns></returns>
+        public SearchAnchor[] GetSplitRoots()
+        {
+            SearchAnchor[] ret = new SearchAnchor[roots.Count];
+            for (int step = 0; step < ret.Length;step++)
+            {
+                ret[step] = new SearchAnchor(this, true);
+                ret[step].roots.Add(roots[step]);
+            }
+
+            return ret;
+        }
     }
 }

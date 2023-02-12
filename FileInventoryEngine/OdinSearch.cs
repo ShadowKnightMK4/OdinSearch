@@ -6,10 +6,14 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Collections.ObjectModel;
+using System.Runtime.CompilerServices;
 
 namespace OdinSearchEngine
 {
     
+    /// <summary>
+    /// Search the local system for files/folders 
+    /// </summary>
     public class OdinSearch
     {
         /// <summary>
@@ -32,6 +36,9 @@ namespace OdinSearchEngine
             public CancellationTokenSource Token;
         }
 
+        /// <summary>
+        /// This class is used for storing both a <see cref="SearchTarget"/> with a predone <see cref="Regex"/> list containing the regex to match file
+        /// </summary>
         internal class SearchTargetPreDoneRegEx
         {
             public SearchTargetPreDoneRegEx(SearchTarget SearchTarget)
@@ -42,6 +49,9 @@ namespace OdinSearchEngine
             public SearchTarget SearchTarget;
             public List<Regex> PreDoneRegEx;
         }
+        /// <summary>
+        /// This class is passed to the worker thread as an argument
+        /// </summary>
         internal class WorkerThreadArgs
         {
             /// <summary>
@@ -57,11 +67,15 @@ namespace OdinSearchEngine
             /// </summary>
             public CancellationToken Token;
             /// <summary>
-            /// Used in the worker thread.  This is how it will send messages and results outside of it.
+            /// Used in the worker thread.  This is how it will send messages and results outside of its thread.
             /// </summary>
             public OdinSearch_OutputConsumerBase Coms;
         }
+        /// <summary>
+        /// for future: 
+        /// </summary>
         readonly object TargetLock = new object();
+
         /// <summary>
         /// Locked when sending a match to the output
         /// </summary>
@@ -121,9 +135,25 @@ namespace OdinSearchEngine
 
         #endregion
 
-        #region Code with Cealing with threads
+        #region Code with Dealing with threads
 
-
+        public int WorkerThreadCount { get { return WorkerThreads.Count; } }
+        /// <summary>
+        /// Set to false if you want to run the risk of worker threads calling your output class at the same time.
+        /// Should be ok to set to false if you only have one anchor point
+        /// </summary>
+        public bool ThreadSynchResults
+        {
+            get
+            {
+                return ThreadSynchResultsBacking;
+            }
+            set
+            {
+                ThreadSynchResultsBacking = value;
+            }
+        }
+        protected bool ThreadSynchResultsBacking;
         /// <summary>
         /// Call Thread.Join() for all worker threads spawned in the list
         /// </summary>
@@ -138,15 +168,18 @@ namespace OdinSearchEngine
         { 
             get
             {
+                int running_count = 0;
                 bool ret = false;
-                WorkerThreads.ForEach(p => { 
-                            if (ret == true)
-                          if (p.Thread.ThreadState.HasFlag(ThreadState.Running))
-                          {
-                                ret = true;
-                                
-                          }
-                        });
+
+                for (int step = 0; step < WorkerThreads.Count; step++)
+                {
+                    if (WorkerThreads[step].Thread.ThreadState == (ThreadState.Running))
+                    {
+                        running_count++;
+                        break;
+                    }
+                }
+                ret = (running_count > 0);
                 return ret;
             }
         }
@@ -321,10 +354,32 @@ namespace OdinSearchEngine
 
                         if (FolderList.Count > 0)
                         {
+                            // should an exception happen during getting folder/file names, this is set
+                            bool ErrorPrune = false;
                             DirectoryInfo CurrentLoc = FolderList.Dequeue();
-                            var Files = CurrentLoc.GetFiles();
-                            var Folders = CurrentLoc.GetDirectories();
+                            FileInfo[] Files = null;
+                            DirectoryInfo[] Folders = null;
+                            try
+                            {
+                                Files = CurrentLoc.GetFiles();
+                                Folders = CurrentLoc.GetDirectories();
+                            }
+                            catch (IOException e)
+                            {
+                                TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason: " + e.Message);
+                                TrueArgs.Coms.Blocked(CurrentLoc.ToString());
+                                ErrorPrune = true;
+                            }
+                            catch (UnauthorizedAccessException e)
+                            {
+                                TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason Access Denied");
+                                TrueArgs.Coms.Blocked(CurrentLoc.ToString());
+                                ErrorPrune = true;
+                            }
 
+
+
+                            if (!ErrorPrune)
 
                             foreach (SearchTargetPreDoneRegEx Target in TargetWithRegEx)
                             {
@@ -351,7 +406,17 @@ namespace OdinSearchEngine
                                         bool isMatched = MatchThis(Target, Possible);
                                         if (isMatched)
                                         {
-                                            TrueArgs.Coms.Match(Possible);
+                                            if (!ThreadSynchResults)
+                                            {
+                                                TrueArgs.Coms.Match(Possible);
+                                            }
+                                            else
+                                            {
+                                                lock (ResultsLock)
+                                                {
+                                                    TrueArgs.Coms.Match(Possible);
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -365,7 +430,17 @@ namespace OdinSearchEngine
                                         bool isMatched = MatchThis(Target, Possible);
                                         if (isMatched)
                                         {
-                                            TrueArgs.Coms.Match(Possible);
+                                            if (!ThreadSynchResults)
+                                            {
+                                                TrueArgs.Coms.Match(Possible);
+                                            }
+                                            else
+                                            {
+                                                lock (ResultsLock)
+                                                {
+                                                    TrueArgs.Coms.Match(Possible);
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -373,6 +448,7 @@ namespace OdinSearchEngine
 
                             if (TrueArgs.StartFrom.EnumSubFolders)
                             {
+                                if (!ErrorPrune)
                                 foreach (DirectoryInfo Folder in Folders)
                                 {
                                     FolderList.Enqueue(Folder);
@@ -407,10 +483,34 @@ namespace OdinSearchEngine
                 }
                 else
                 {
+
                     foreach (SearchAnchor Anchor in Anchors)
+                    {
+                        var AnchorList = Anchor.GetSplitRoots();
+                        foreach (SearchAnchor SmallAnchor in AnchorList)
+                        {
+                            WorkerThreadArgs Args = new();
+                            Args.StartFrom = SmallAnchor;
+                            Args.Targets.AddRange(Targets);
+                            Args.Coms = Coms;
+
+                            WorkerThreadWithCancelToken Worker = new WorkerThreadWithCancelToken();
+                            Worker.Thread = new Thread(() => ThreadWorkerProc(Args));
+                            Worker.Token = new CancellationTokenSource();
+
+                            Args.Token = Worker.Token.Token;
+
+
+                            WorkerThreads.Add(Worker);
+                        }
+                    }
+                    /*
+
+                        foreach (SearchAnchor Anchor in Anchors)
                     {
                         WorkerThreadArgs Args = new();
                         Args.StartFrom = Anchor;
+                        
                         Args.Targets.AddRange(Targets);
                         Args.Coms = Coms;
 
@@ -424,7 +524,7 @@ namespace OdinSearchEngine
 
                         WorkerThreads.Add(Worker);
                     }
-
+                    */
                     foreach (WorkerThreadWithCancelToken t in WorkerThreads)
                     {
                         t.Thread.Start();

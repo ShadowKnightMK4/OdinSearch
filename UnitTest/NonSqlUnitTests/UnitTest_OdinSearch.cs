@@ -52,6 +52,27 @@ namespace UnitTest
             }
         }
 
+        [TestMethod]
+        public void OdinSearch_Does_AnchorList_Equal_ThreadCount()
+        {
+            OdinSearch_Output_UnitTesting_class Coms = new OdinSearch_Output_UnitTesting_class();
+            Assert.IsNotNull(Demo);
+            Demo.Reset();
+
+            var TestAnchor = new SearchAnchor();
+            var TestSerach = new SearchTarget();
+
+            Demo.AddSearchAnchor(TestAnchor);
+            Demo.AddSearchTarget(TestSerach);
+
+            TestSerach.FileName.Add("*");
+
+            Demo.Search(Coms);
+
+            Assert.AreEqual(TestAnchor.roots.Count, Demo.WorkerThreadCount);
+
+            
+        }
 
         [TestMethod]
         public void OdinSearch_Can_SearchForWindowsFolder()
