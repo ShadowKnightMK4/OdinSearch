@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace UnitTest
 {
     [TestClass]
-    public class UnitTest_OdinSearch
+    public class UnitTest_OdinSearchBasics
     {
         OdinSearch Demo = null;
         [TestInitialize]

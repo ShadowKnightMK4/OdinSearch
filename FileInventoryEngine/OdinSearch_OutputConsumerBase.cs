@@ -52,6 +52,7 @@ namespace OdinSearchEngine
         /// For Future. Set if you want the WasNotMatched called for each time. This does NOTHING Currently.
         /// </summary>
         public bool EnableNotMatchCall = false;
+
         public UInt128 TimesMatchCalled = 0;
         public UInt128 TimesNoMatchCalled = 0;
         public UInt128 TimesBlockCalled = 0;

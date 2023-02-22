@@ -198,10 +198,10 @@ namespace OdinSearchEngine
         public readonly List<DirectoryInfo> roots = new List<DirectoryInfo>();
 
         /// <summary>
-        /// return an error of duplicate <see cref="SearchAnchor"/>s where each searchanchor has once of the roots
+        /// return an arry of duplicate <see cref="SearchAnchor"/>s where each searchanchor has once of the roots
         /// </summary>
         /// <returns></returns>
-        public SearchAnchor[] GetSplitRoots()
+        public SearchAnchor[] SplitRoots()
         {
             SearchAnchor[] ret = new SearchAnchor[roots.Count];
             for (int step = 0; step < ret.Length;step++)

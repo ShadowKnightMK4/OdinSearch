@@ -60,6 +60,7 @@ namespace UnitTest
                 }
             }
         }
+        [TestCategory("Simple Anchor")]
 
         /// <summary>
         /// Does the constructor leave root list alone if created with false
@@ -73,6 +74,7 @@ namespace UnitTest
             
         }
 
+        [TestCategory("Simple Anchor")]
         /// <summary>
         /// Does the constructor populate the root list with all ready drives if true (same test for the default constructor for DefaultSearchAnchor_DoesItGetAllOnlineDrives_noremovable())
         /// </summary>
@@ -82,6 +84,7 @@ namespace UnitTest
             SearchAnchor_BuildRoot_comparer(Demo, true);
         }
 
+        [TestCategory("Simple Anchor")]
         /// <summary>
         /// Do we have a list off all noremovable drives that are ready.  There's also a catch to ensure we don't fail if a drive is removable or if the cd/dvd drive is empty
         /// </summary>
@@ -94,6 +97,7 @@ namespace UnitTest
 
         }
 
+        [TestCategory("Simple Anchor")]
         /// <summary>
         /// does <see cref="SearchAnchor.AddAnchor(string)"/> drop dupes
         /// </summary>
@@ -112,6 +116,7 @@ namespace UnitTest
             Assert.AreEqual(rootsize, Demo.roots.Count);
         }
 
+        [TestCategory("Simple Anchor")]
         [TestMethod]
         public void SearchANchor_Adding_newlocation_Doesitwork_StringAnchor()
         {
@@ -124,6 +129,7 @@ namespace UnitTest
             Assert.IsTrue(Demo.roots[0].FullName.Equals(DemoLocation), "Did not add DemoLocation \" " + DemoLocation + "\" to root list ok");
         }
 
+        [TestCategory("Simple Anchor")]
         /// <summary>
         /// does <see cref="SearchAnchor.AddAnchor(string)"/> it add something that was not there already
         /// </summary>
