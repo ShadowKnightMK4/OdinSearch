@@ -1,6 +1,6 @@
 # FileInventory
 
-This is to build myself a better local file search engine that is customizable.  The OdinSearchEngine project containg the actual code.  
+This is to build myself a better local file search engine that is customizable.  The OdinSearchEngine project within this solution containg the actual code.  
 
 
 Building a better local file search engine.  Repo/Project name subject to change
