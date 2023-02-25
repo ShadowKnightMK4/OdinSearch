@@ -94,7 +94,7 @@ namespace OdinSearchEngine
         public int WorkerThreadCount { get { return WorkerThreads.Count; } }
 
         /// <summary>
-        /// Call Thread.Join() for all worker threads spawned in the list
+        /// Call Thread.Join() for all worker threads spawned in the list. Your code will functionally be awaiting until it is done
         /// </summary>
         public void WorkerThreadJoin()
         {

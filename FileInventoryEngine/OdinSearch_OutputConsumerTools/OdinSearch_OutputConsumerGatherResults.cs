@@ -5,12 +5,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OdinSearchEngine
+namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
     /// <summary>
     /// For when you just need to get the results of a search and want to look at them later.
     /// </summary>
-    public class OdinSearch_OutputConsumerGatherResults: OdinSearch_OutputConsumerBase
+    public class OdinSearch_OutputConsumerGatherResults : OdinSearch_OutputConsumerBase
     {
         public readonly List<FileSystemInfo> Results = new();
         public readonly List<string> BlockedResults = new();

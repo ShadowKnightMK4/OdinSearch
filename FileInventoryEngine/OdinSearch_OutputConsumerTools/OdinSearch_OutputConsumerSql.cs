@@ -8,7 +8,7 @@ using System.Data.SqlClient;
 using System.Net.Http.Headers;
 using System.Reflection.Metadata.Ecma335;
 
-namespace OdinSearchEngine
+namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
     /// <summary>
     /// Used for running the sql commands
@@ -18,7 +18,7 @@ namespace OdinSearchEngine
         /// <summary>
         /// This is thrown by the routines in <see cref="OdinSearch_OutputConsumerSql_CommandHandler"/> when namecheck fails
         /// </summary>
-        public class NameCheckException: FormatException
+        public class NameCheckException : FormatException
         {
             public const string DefaultNameMessage = "The identifer is invalid:  ";
             public NameCheckException(string message) : base(message)
@@ -38,7 +38,7 @@ namespace OdinSearchEngine
             var BadChar = Path.GetInvalidFileNameChars();
             if (name == null) return false;
             if (name.Contains((char)0)) return false;
-            
+
             if (name.Length == 0)
             {
                 return false;
@@ -72,7 +72,7 @@ namespace OdinSearchEngine
             {
                 while (results.Read())
                 {
-                    
+
                 }
             }
 
@@ -86,7 +86,7 @@ namespace OdinSearchEngine
         public static bool CreateSqlDatabase(SqlConnection sql, string name)
         {
             SqlCommand command = new SqlCommand("CREATE DATABASE ", sql);
-            
+
             if (!NameCheck(name))
             {
                 throw new NameCheckException(NameCheckException.DefaultNameMessage + name);
@@ -95,9 +95,9 @@ namespace OdinSearchEngine
 
             var arg = command.CreateParameter();
             arg.ParameterName = "name";
-            arg.Value = (object)name;
+            arg.Value = name;
             arg.DbType = System.Data.DbType.String;
-            
+
 
             command.Parameters.Add(arg);
             command.CommandText += arg.Value;
@@ -108,24 +108,24 @@ namespace OdinSearchEngine
     /// <summary>
     ///  Takes search results and outputs them to an sql db to look over later.
     /// </summary>
-    public class OdinSearch_OutputConsumerSql: OdinSearch_OutputConsumerBase
+    public class OdinSearch_OutputConsumerSql : OdinSearch_OutputConsumerBase
     {
         private string BuildStorageLoc(string StorageLoc)
         {
-            string ret=null;
+            string ret = null;
 
             var useme = new SqlConnectionStringBuilder();
             {
                 useme.ApplicationIntent = ApplicationIntent.ReadWrite;
                 useme.DataSource = @"(localDb)\MSSQLLocalDB";
-                                useme.IntegratedSecurity = true;
-                
+                useme.IntegratedSecurity = true;
+
                 useme.ApplicationName = "OdinSearch UnitTest";
                 useme.AttachDBFilename = StorageLoc;
                 useme.Encrypt = false;
                 ret = useme.ToString();
                 //ret = "Server=(LocalDB)\\MSSQLLocalDB;Integrated Security=true;AttachDBFileName=\"" + StorageLoc+ "\"" + ";database=\"TestDB\"";
-             //ret = @"Server = (localdb)\MSSQLLocalDB; Integrated Security = true;AttachDbFilename=|DataDirectory|" + "\"" + StorageLoc+ "\"";
+                //ret = @"Server = (localdb)\MSSQLLocalDB; Integrated Security = true;AttachDbFilename=|DataDirectory|" + "\"" + StorageLoc+ "\"";
             }
             return ret;
         }
@@ -142,10 +142,10 @@ namespace OdinSearchEngine
             LocalConnectionSql.ConnectionString = BuildStorageLoc(StorageLoc);
             LocalConnectionSql.Open();
 
-            
+
         }
 
-        
+
         SqlConnection LocalConnectionSql;
 
         [Obsolete("Intented only for debug. Runtime/no debug should use the wrappers once defined")]
@@ -169,7 +169,7 @@ namespace OdinSearchEngine
 
         public override void WasNotMatched(FileSystemInfo info)
         {
-            
+
         }
 
         public override void Messaging(string Message)

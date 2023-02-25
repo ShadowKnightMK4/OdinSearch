@@ -5,19 +5,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OdinSearchEngine
+namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
 
     /// <summary>
     /// Serves as an example.  Matches are sent to stdout,  blocks are send to stderr
     /// </summary>
-    public class OdinSearch_OutputSimpleConsole: OdinSearch_OutputConsumerBase
+    public class OdinSearch_OutputSimpleConsole : OdinSearch_OutputConsumerBase
     {
         TextWriter stdout, stderr;
         public OdinSearch_OutputSimpleConsole()
         {
             stdout = Console.Out;
-            stderr = Console.Error; 
+            stderr = Console.Error;
         }
 
         public override void WasNotMatched(FileSystemInfo info)
@@ -46,7 +46,7 @@ namespace OdinSearchEngine
     /// <summary>
     /// The OdinSearch class posts results and when it can't access something to a class of this type.  
     /// </summary>
-    public abstract class OdinSearch_OutputConsumerBase: IDisposable
+    public abstract class OdinSearch_OutputConsumerBase : IDisposable
     {
         /// <summary>
         /// For Future. Set if you want the WasNotMatched called for each time. This does NOTHING Currently.
@@ -91,7 +91,7 @@ namespace OdinSearchEngine
         /// <param name="Message"></param>
         public virtual void Messaging(string Message)
         {
-            TimesMessageCalled++;  
+            TimesMessageCalled++;
         }
 
         /// <summary>
@@ -99,7 +99,7 @@ namespace OdinSearchEngine
         /// </summary>
         public virtual void Dispose()
         {
-            
+
         }
     }
 }

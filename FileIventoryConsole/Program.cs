@@ -2,6 +2,9 @@
 using OdinSearchEngine;
 using System.IO;
 using System.Threading;
+using System.Runtime.CompilerServices;
+using FileInventoryConsole;
+
 namespace FileIventoryConsole
 {
     class Program
@@ -9,6 +12,7 @@ namespace FileIventoryConsole
 
         static void Main(string[] args)
         {
+            ArgumentsHandling.Usage();
             SearchTarget ProgramFiles = new SearchTarget();
             SearchAnchor LocalStorage = new SearchAnchor();
             ProgramFiles.FileName.Add("*");

@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using OdinSearchEngine;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 
 namespace NonSqlUnitTests
 {
