@@ -173,6 +173,13 @@ namespace UnitTest
             Assert.IsNotNull(CanWeFolder);
         }
 
+        [TestMethod]
+        public void GetSha512_self()
+        {
+            Assert.IsNotNull(CanWeFile);
+            Assert.IsNotNull(CanWeFile.GetSha512());
+        }
+
 
     }
 }

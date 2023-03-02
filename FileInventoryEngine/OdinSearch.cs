@@ -7,10 +7,11 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 
 namespace OdinSearchEngine
 {
-    
+
     /// <summary>
     /// Search the local system for files/folders 
     /// </summary>
@@ -77,13 +78,13 @@ namespace OdinSearchEngine
         readonly object TargetLock = new object();
 
         /// <summary>
-        /// Locked when sending a match to the output
+        /// Locked when sending a match to the output aka one <see cref="OdinSearch_OutputConsumerBase"/> derived class and only if <see cref="ThreadSynchResults"/> is true
         /// </summary>
         readonly object ResultsLock = new object();
 
         #region Worker Thread stuff
         /// <summary>
-        /// During the search, this contains all worker thread copies
+        /// During the search, this contains all worker thread instances we've spone off.
         /// </summary>
         List<WorkerThreadWithCancelToken> WorkerThreads = new List<WorkerThreadWithCancelToken>();
 
@@ -116,7 +117,7 @@ namespace OdinSearchEngine
                         break;
                     }
                 }
-                return (running_count > 0);
+                return running_count > 0;
             }
         }
 
@@ -422,7 +423,7 @@ namespace OdinSearchEngine
                                 TrueArgs.Coms.Blocked(CurrentLoc.ToString());
                                 ErrorPrune = true;
                             }
-                            catch (UnauthorizedAccessException e)
+                            catch (UnauthorizedAccessException)
                             {
                                 TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason Access Denied");
                                 TrueArgs.Coms.Blocked(CurrentLoc.ToString());

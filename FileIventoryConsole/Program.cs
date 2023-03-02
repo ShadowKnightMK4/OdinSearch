@@ -1,5 +1,6 @@
 ﻿using System;
 using OdinSearchEngine;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 using System.IO;
 using System.Threading;
 using System.Runtime.CompilerServices;
@@ -12,7 +13,7 @@ namespace FileIventoryConsole
 
         static void Main(string[] args)
         {
-            ArgumentsHandling.Usage();
+
             SearchTarget ProgramFiles = new SearchTarget();
             SearchAnchor LocalStorage = new SearchAnchor();
             ProgramFiles.FileName.Add("*");
