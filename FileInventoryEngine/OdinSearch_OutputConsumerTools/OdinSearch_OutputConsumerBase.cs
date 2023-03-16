@@ -44,7 +44,8 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <exception cref="NotImplementedException">Throws this</exception>
         public virtual void WasNotMatched(FileSystemInfo info)
         {
-            TimesNoMatchCalled++;
+            if (TimesNoMatchCalled != UInt128.MaxValue)
+                TimesNoMatchCalled++;
         }
 
         /// <summary>
@@ -53,6 +54,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <param name="info"></param>
         public virtual void Match(FileSystemInfo info)
         {
+            if (TimesMatchCalled != UInt128.MaxValue)
             TimesMatchCalled++;
         }
 
@@ -62,7 +64,8 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <param name="Blocked"></param>
         public virtual void Blocked(string Blocked)
         {
-            TimesBlockCalled++;
+            if (TimesBlockCalled != UInt128.MaxValue)
+                TimesBlockCalled++;
         }
 
         /// <summary>
@@ -71,11 +74,12 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <param name="Message"></param>
         public virtual void Messaging(string Message)
         {
-            TimesMessageCalled++;
+            if (TimesMessageCalled!= UInt128.MaxValue)
+                TimesMessageCalled++;
         }
 
         /// <summary>
-        /// FUTURE: Search calls this when all threads searching are done
+        /// FUTURE: Search calls this when all threads searching are done. Base just sets variable <see cref="SearchOver"/> to true
         /// </summary>
         public virtual void AllDone()
         {
