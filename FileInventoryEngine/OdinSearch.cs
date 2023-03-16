@@ -436,6 +436,15 @@ namespace OdinSearchEngine
                 }
             }
 
+            if (SearchTarget.SearchTarget.CreationAnchorCheck2 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            {
+                bool result = DateCheck(SearchTarget.SearchTarget.CreationAnchorCheck2, SearchTarget.SearchTarget.CreationAnchor, Info.CreationTime);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
 
 
             /*

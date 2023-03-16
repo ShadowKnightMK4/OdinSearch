@@ -73,6 +73,10 @@ namespace OdinSearchEngine
         /// Check against <see cref="FileSystemInfo.CreationTime"/>
         /// </summary>
         public DateTime CreationAnchor;
+        /// <summary>
+        /// 2nd Check against <see cref="FileSystemInfo.CreationTime"/>
+        /// </summary>
+        public DateTime CreationAnchor2;
 
         /// <summary>
         /// Check against <see cref="FileSystemInfo.LastAccessTime"/>
@@ -80,18 +84,49 @@ namespace OdinSearchEngine
         public DateTime AccessAnchor;
 
         /// <summary>
+        /// 2nd Check against <see cref="FileSystemInfo.LastAccessTime"/>
+        /// </summary>
+        public DateTime AccessAnchor2;
+
+        /// <summary>
         /// Check against <see cref="FileSystemInfo.LastWriteTime"/>
         /// </summary>
         public DateTime WriteAnchor;
-        
+
+        /// <summary>
+        /// 2nd Check against <see cref="FileSystemInfo.LastWriteTime"/>
+        /// </summary>
+
+        public DateTime WriteAnchor2;
+
         /// <summary>
         /// Indicate what do do with <see cref="CreationAnchor"/>
         /// </summary>
         public DateTimeMatching CreationAnchorCheck1 = DateTimeMatching.Disable;
+        /// <summary>
+        /// Indicate what do do with <see cref="CreationAnchor2"/>
+        /// </summary>
+        public DateTimeMatching CreationAnchorCheck2 = DateTimeMatching.Disable;
 
+        /// <summary>
+        /// Indicate what do do with <see cref="AccessAnchor"/>
+        /// </summary>
         public DateTimeMatching AccessAnchorCheck1 = DateTimeMatching.Disable;
+        /// <summary>
+        /// Indicate what do do with <see cref="AccessAnchor2"/>
+        /// </summary>
+        public DateTimeMatching AccessAnchorCheck2 = DateTimeMatching.Disable;
 
+        /// <summary>
+        /// Indicate what do do with <see cref="WriteAnchor"/>
+        /// </summary>
         public DateTimeMatching WriteAnchorCheck1 = DateTimeMatching.Disable;
+
+
+        /// <summary>
+        /// Indicate what do do with <see cref="WriteAnchor"/>
+        /// </summary>
+        public DateTimeMatching WriteAnchorCheck2 = DateTimeMatching.Disable;
 
         /// <summary>
         /// A REGEX express that will be compared againt the <see cref="FileInfoExtract.Name"/>
