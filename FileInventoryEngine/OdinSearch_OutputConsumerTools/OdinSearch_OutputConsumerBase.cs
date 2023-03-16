@@ -11,7 +11,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
     
 
     /// <summary>
-    /// The OdinSearch class Search Threads use this class to end output/communications to your code.
+    /// The OdinSearch class Search Threads use this class to send output/communications to your code.
     /// </summary>
     public abstract class OdinSearch_OutputConsumerBase : IDisposable
     {
@@ -19,10 +19,23 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// For Future. Set if you want the WasNotMatched called for each time. This does NOTHING Currently.
         /// </summary>
         public bool EnableNotMatchCall = false;
-
+        public bool SearchOver = false;
+        /// <summary>
+        /// Base routine increments this by 1 on each call
+        /// </summary>
         public UInt128 TimesMatchCalled = 0;
+        /// <summary>
+        /// Base routine increments this by 1 on each call
+        /// </summary>
         public UInt128 TimesNoMatchCalled = 0;
+        /// <summary>
+        /// Base routine increments this by 1 on each call
+        /// </summary>
         public UInt128 TimesBlockCalled = 0;
+        /// <summary>
+        /// Base routine increments this by 1 on each call
+        /// </summary>
+
         public UInt128 TimesMessageCalled = 0;
         /// <summary>
         /// For Future: OdinSearch does not call this.
@@ -62,7 +75,14 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         }
 
         /// <summary>
-        /// Default class needs not dispose 
+        /// FUTURE: Search calls this when all threads searching are done
+        /// </summary>
+        public virtual void AllDone()
+        {
+            SearchOver = true;
+        }
+        /// <summary>
+        /// Default class needs not dispose.  
         /// </summary>
         public virtual void Dispose()
         {

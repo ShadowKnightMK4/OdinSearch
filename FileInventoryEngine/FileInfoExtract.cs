@@ -23,6 +23,38 @@ namespace OdinSearchEngine
         }
 
         /// <summary>
+        /// Creation Time
+        /// </summary>
+        public DateTime CreationTime
+        {
+            get
+            {
+                return Content.CreationTime;
+            }
+        }
+
+        /// <summary>
+        /// Last time file/folder was accessed
+        /// </summary>
+        public DateTime AccessTime
+        {
+            get
+            {
+                return Content.LastAccessTime;
+            }
+        }
+
+        /// <summary>
+        /// Last time the file/folder written too
+        /// </summary>
+        public DateTime LastWriteTime
+        {
+            get
+            {
+                return Content.LastWriteTime;
+            }
+        }
+        /// <summary>
         /// Gets the fullname of the directory or file
         /// </summary>
         public string FullName

@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using OdinSearchEngine;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
+using System.Threading;
 
 namespace NonSqlUnitTests
 {
@@ -68,6 +69,58 @@ namespace NonSqlUnitTests
             MakeFolder(folder3, "");
         }
 
+        string test2_original;
+        /// <summary>
+        /// Copy the first file we match in C: windows
+        /// </summary>
+        void test2_populate()
+        {
+            
+            string targ = TestFolderFullLocation;
+            //string copysource = Path.Combine(Environment.GetEnvironmentVariable("%WINDIR%"),"\\");
+            MakeFolder(targ, "test2");
+            test2_original = Path.Combine(targ, "test2", "bob.tmp");
+            MakeFile(string.Empty, test2_original, FileAttributes.Temporary);
+          
+        }
+        [TestCategory("AVD: Finding under controlled scenerios")]
+        [TestMethod]
+        public void File_recently_created_file_no_older_than_1_day_TEST2()
+        {
+            OdinSearch_OutputConsumerGatherResults testresults = new OdinSearch_OutputConsumerGatherResults();
+            Demo.KillSearch();
+            Demo.ClearSearchTargetList();
+            Demo.ClearSearchAnchorList();
+
+            SearchAnchor start = new SearchAnchor(false);
+            start.AddAnchor(Path.Combine(TestFolderFullLocation, "test2"));
+            SearchTarget lookfor = new SearchTarget();
+            lookfor.FileName.Add(Path.GetFileName(test2_original));
+            lookfor.CreationAnchorCheck1 = SearchTarget.DateTimeMatching.NoEarlierThanThis;
+            lookfor.CreationAnchor = DateTime.Now;
+            Thread.Sleep(1000);
+            lookfor.CreationAnchor = lookfor.CreationAnchor.AddSeconds(10);
+
+            Demo.AddSearchAnchor(start);
+            Demo.AddSearchTarget(lookfor);
+
+            Demo.Search(testresults);
+            Demo.WorkerThreadJoin();
+
+            Assert.IsTrue(testresults.Results.Count == 0);
+            Demo.KillSearch();
+
+            testresults.Results.Clear();
+
+
+            Demo.Search(testresults);
+            Demo.WorkerThreadJoin();
+
+            lookfor.CreationAnchorCheck1 = SearchTarget.DateTimeMatching.Disable;
+
+            
+
+        }
         [TestCategory("AVD: Finding under controlled scenerios")]
         [TestMethod]
         public void Find_3_folders_no_special_needs__TEST1()
@@ -105,6 +158,7 @@ namespace NonSqlUnitTests
         void populuate_for_tests()
         {
             test1_populate();
+            test2_populate();
         }
 
 
@@ -120,7 +174,10 @@ namespace NonSqlUnitTests
 
             Demo = new OdinSearch();
 
-
+            /* some tests are wanting to poss 'impossible' values such as looking for a file creeated no earlier than 2 seconds from now (test2)
+             *  Not Disabling this, means those tests fail
+             */
+            Demo.SkipSanityCheck = true;
             populuate_for_tests();
         }
 
@@ -132,8 +189,10 @@ namespace NonSqlUnitTests
         [TestCleanup]
         public void Cleanup()
         {
+            
             if (Directory.Exists(TestFolderFullLocation))
             {
+                
                 Directory.Delete(TestFolderFullLocation, true);
             }
         }

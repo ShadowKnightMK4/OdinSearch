@@ -17,6 +17,8 @@ namespace OdinSearchEngine
     /// </summary>
     public class OdinSearch
     {
+
+        
         /// <summary>
         /// reset before we started searching
         /// </summary>
@@ -221,6 +223,10 @@ namespace OdinSearchEngine
         }
 
         /// <summary>
+        /// If True, SanityCheck that looks for impossible combinations must pass before starting the search
+        /// </summary>
+        public bool SkipSanityCheck = true;
+        /// <summary>
         /// Compares if the specified thing to look for matches this possible file system item
         /// </summary>
         /// <param name="SearchTarget">A class containing both the <see cref="SearchTarget"/> and the predone <see cref="Regex"/> stuff</param>
@@ -229,9 +235,44 @@ namespace OdinSearchEngine
 
         bool MatchThis(SearchTargetPreDoneRegEx SearchTarget, FileSystemInfo Info)
         {
+
+            
+
             bool FinalMatch= true;
             bool MatchedOne = false;
             bool MatchedFailedOne = false;
+
+            bool DateCheck(SearchTarget.DateTimeMatching HowToCompare, DateTime SearchTargetCompare, DateTime FileInfoCompare)
+            {
+                if (HowToCompare != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+                {
+                    switch (HowToCompare)
+                    {
+                        case OdinSearchEngine.SearchTarget.DateTimeMatching.NoEarlierThanThis:
+                            {
+                                if (Info.CreationTime.CompareTo(SearchTarget.SearchTarget.CreationAnchor) < 0)
+                                {
+                                    //FinalMatch = false;// goto exit
+                                    return false;
+                                }
+                                break;
+                            }
+                        case OdinSearchEngine.SearchTarget.DateTimeMatching.NoLaterThanThis:
+                            {
+                                if (Info.CreationTime.CompareTo(DateTime.MinValue) < 0)
+                                {
+                                    //FinalMatch = false;// goto exit;
+                                    return false;
+                                }
+                                break;
+                            }
+                        case OdinSearchEngine.SearchTarget.DateTimeMatching.Disable:
+                        default:
+                            break;
+                    }
+                }
+                return true;
+            }
 
             if (SearchTarget == null)
             {
@@ -343,7 +384,88 @@ namespace OdinSearchEngine
 
                 }
             }
+
             
+            if (SearchTarget.SearchTarget.AccessAnchorCheck1 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            {
+                bool result = DateCheck(SearchTarget.SearchTarget.AccessAnchorCheck1, SearchTarget.SearchTarget.AccessAnchor, Info.LastAccessTime);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+            if (SearchTarget.SearchTarget.AccessAnchorCheck2 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            {
+                bool result = DateCheck(SearchTarget.SearchTarget.AccessAnchorCheck2, SearchTarget.SearchTarget.AccessAnchor, Info.LastAccessTime);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+            if (SearchTarget.SearchTarget.WriteAnchorCheck1 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            {
+                bool result = DateCheck(SearchTarget.SearchTarget.WriteAnchorCheck1, SearchTarget.SearchTarget.CreationAnchor, Info.LastWriteTime);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+            if (SearchTarget.SearchTarget.WriteAnchorCheck2 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            {
+                bool result = DateCheck(SearchTarget.SearchTarget.WriteAnchorCheck2, SearchTarget.SearchTarget.CreationAnchor, Info.LastWriteTime);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+            if (SearchTarget.SearchTarget.CreationAnchorCheck1 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            {
+                bool result = DateCheck(SearchTarget.SearchTarget.CreationAnchorCheck1, SearchTarget.SearchTarget.CreationAnchor, Info.CreationTime);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+
+
+            /*
+            if (SearchTarget.SearchTarget.CreationAnchorCheck != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            {
+                switch (SearchTarget.SearchTarget.CreationAnchorCheck)
+                {
+                    case OdinSearchEngine.SearchTarget.DateTimeMatching.NoEarlierThanThis:
+                        {
+                            if (Info.CreationTime.CompareTo(SearchTarget.SearchTarget.CreationAnchor) < 0) 
+                            { 
+                                FinalMatch = false; goto exit;
+                            }
+                            break;
+                        }
+                    case OdinSearchEngine.SearchTarget.DateTimeMatching.NoLaterThanThis:
+                        {
+                            if (Info.CreationTime.CompareTo(DateTime.MinValue) < 0)
+                            {
+                                FinalMatch = false; goto exit;
+                            }
+                            break;
+                        }
+                    case OdinSearchEngine.SearchTarget.DateTimeMatching.Disable:
+                    default:
+                        break;
+                }
+            }
+            */
+
             MatchedOne = false;
             MatchedFailedOne = false;
             exit:
@@ -397,7 +519,8 @@ namespace OdinSearchEngine
                         // add root[0] to the queue to pull from
                         FolderList.Enqueue(TrueArgs.StartFrom.roots[0]);
 
-                        // label is used as a starting point to loop back to for looking at subfolders
+                        // label is used as a starting point to loop back to for looking at subfolders when we get
+                        // looping
                     Reset:
 
                         
@@ -410,7 +533,7 @@ namespace OdinSearchEngine
 
                             // files in the CurrentLoc
                             FileInfo[] Files = null;
-                            // folders in the CurrentLc
+                            // folders in the CurrentLoc
                             DirectoryInfo[] Folders = null;
                             try
                             {

@@ -13,12 +13,16 @@ namespace OdinSearchEngine
     {
 
 
-
+        /// <summary>
+        /// Call <see cref="ConvertFileNameToRegEx(SearchTarget)"/> and specific this
+        /// </summary>
+        /// <remarks>same as calling <see cref="SearchTarget.ConvertFileNameToRegEx"/> and passing this</remarks>
+        /// <returns>returns a list of RegEx instances to match the possible file names in the target</returns>
         public List<Regex> ConvertFileNameToRegEx()
         {
             return ConvertFileNameToRegEx(this);
         }
-        /// <summary>cc
+        /// <summary>
         /// Convert The passed SearchTarget file names to a matching RegEx list
         /// </summary>
         /// <param name="Target">which one to work on</param>
@@ -32,7 +36,7 @@ namespace OdinSearchEngine
 
                 pattern = "^" + Regex.Escape(s) + "$";
                 pattern = pattern.Replace("\\*", ".*").Replace("\\?", ".");
-                if (pattern == "^.*$")  // this is the match anything regexpression.  returning a clear regex list disables the compare that will always be true
+                if (pattern == "^.*$")  // this is the match anything regexpression for.  returning a clear regex list disables the compare that will always be true
                 {
                     ret.Clear();
                     return ret;
@@ -64,6 +68,31 @@ namespace OdinSearchEngine
         {
             
         }
+
+        /// <summary>
+        /// Check against <see cref="FileSystemInfo.CreationTime"/>
+        /// </summary>
+        public DateTime CreationAnchor;
+
+        /// <summary>
+        /// Check against <see cref="FileSystemInfo.LastAccessTime"/>
+        /// </summary>
+        public DateTime AccessAnchor;
+
+        /// <summary>
+        /// Check against <see cref="FileSystemInfo.LastWriteTime"/>
+        /// </summary>
+        public DateTime WriteAnchor;
+        
+        /// <summary>
+        /// Indicate what do do with <see cref="CreationAnchor"/>
+        /// </summary>
+        public DateTimeMatching CreationAnchorCheck1 = DateTimeMatching.Disable;
+
+        public DateTimeMatching AccessAnchorCheck1 = DateTimeMatching.Disable;
+
+        public DateTimeMatching WriteAnchorCheck1 = DateTimeMatching.Disable;
+
         /// <summary>
         /// A REGEX express that will be compared againt the <see cref="FileInfoExtract.Name"/>
         /// </summary>
@@ -117,6 +146,21 @@ namespace OdinSearchEngine
 
         public readonly List<CustomizedCheck> AdditionalChecks2 = new List<CustomizedCheck>();
         public MatchStyleString AdditionalChecks2Matching = MatchStyleString.MatchAny | MatchStyleString.Invert;
+
+        /// <summary>
+        /// Tell the search what do do with the same times specified
+        /// </summary>
+        public enum DateTimeMatching
+        {
+            // DO NOT CHECK
+            Disable = 0,
+            /// <summary>
+            /// Match Fails if datetime is earlier than specificed time
+            /// </summary>
+            NoEarlierThanThis = 1,
+            // Match Files if datetime is later than this
+            NoLaterThanThis = 2,
+        }
         public enum MatchStyleString
         {
             /// <summary>
