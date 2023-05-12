@@ -381,8 +381,8 @@ namespace OdinSearchEngine
                 {
                     for (int step = 0; step < roots.Count; step++)
                     {
-                        var a = roots[step];
-                        var b = other.roots[step];
+                        var a = roots[step].ToString();
+                        var b = other.roots[step].ToString();
                         if (a != b)
                         {
                             
@@ -390,14 +390,16 @@ namespace OdinSearchEngine
                         }
                     }
                 }
+                else
+                {
+                    return false;
+                }
                 if (EnumSubFoldersValue != other.EnumSubFoldersValue) return false;
                 return true;
             }
 
             return false;
-            return other is not null &&
-                   EnumSubFolders == other.EnumSubFolders &&
-                   EqualityComparer<List<DirectoryInfo>>.Default.Equals(roots, other.roots);
+          
         }
 
         public override int GetHashCode()
