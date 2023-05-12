@@ -91,8 +91,8 @@ namespace FileInventoryConsole
         /// </summary>
         public static void Usage()
         {
-            
-            SearchAnchor test=  new SearchAnchor(,)
+
+            SearchAnchor test = new SearchAnchor();
             using (var text = Assembly.GetCallingAssembly().GetManifestResourceStream(Assembly.GetCallingAssembly().GetName().Name  + ".Resources.UsageText.txt"))
             {
                 byte[] data =new byte[text.Length];

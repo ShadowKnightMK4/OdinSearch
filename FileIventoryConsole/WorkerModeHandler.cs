@@ -18,7 +18,7 @@ namespace FileInventoryConsole
      
         public static void ReadInput()
         {
-            if (Console.In.as)
+            
         }
     }
 }
