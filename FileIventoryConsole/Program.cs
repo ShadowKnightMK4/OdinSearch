@@ -16,10 +16,7 @@ namespace FileIventoryConsole
         static bool WorkerMode = false;
         static void Main(string[] args)
         {
-            if (args[0].ToLower() == "/WORKER")
-            {
-                WorkerMode = true;
-            }
+            ArgHandling.ParseArguments(args);
 
             SearchTarget ProgramFiles = new SearchTarget();
             SearchAnchor LocalStorage = new SearchAnchor();

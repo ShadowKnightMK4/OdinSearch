@@ -83,6 +83,7 @@ namespace NonSqlUnitTests
             MakeFile(string.Empty, test2_original, FileAttributes.Temporary);
           
         }
+
         [TestCategory("AVD: Finding under controlled scenerios")]
         [TestMethod]
         public void File_recently_created_file_no_older_than_1_day_TEST2()

@@ -129,6 +129,19 @@ namespace UnitTest
             Assert.IsTrue(Demo.roots[0].FullName.Equals(DemoLocation), "Did not add DemoLocation \" " + DemoLocation + "\" to root list ok");
         }
 
+        [TestCategory("XML Anchor Handling")]
+        [TestMethod]
+        public void SearchAnchor_ConvertToXmlAndBack()
+        {
+             SearchAnchor Demo = new SearchAnchor();
+            
+            string xml = Demo.ToXml();
+
+            SearchAnchor Demo2 = SearchAnchor.CreateFromXmlString(xml);
+
+            Assert.IsTrue(Demo2 == Demo);
+        }
+
         [TestCategory("Simple Anchor")]
         /// <summary>
         /// does <see cref="SearchAnchor.AddAnchor(string)"/> it add something that was not there already

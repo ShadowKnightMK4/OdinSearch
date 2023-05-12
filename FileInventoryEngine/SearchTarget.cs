@@ -57,8 +57,13 @@ namespace OdinSearchEngine
             return ret;
         }
 
-        
-        
+        public static SearchTarget CreateFromXml(string v)
+        {
+            throw new NotImplementedException();
+        }
+
+
+
         /// <summary>
         /// Make an instance of this class where it matches existing files
         /// </summary>

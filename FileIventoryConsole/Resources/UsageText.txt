@@ -1,20 +1,4 @@
 ﻿This placeholder text is displayed for the help info for the console app.
 
 
-FileIventory {Mode}
-
-
-{Mode} is one these below and they each have their own arguments
-
--Scanner
-		look for matching files
--CmdLaunch
-		Give a command with '*' and a source list of strings to apply to each file.
--Backup
-		Asks for BACKUP_PRIV,  Scans files.  If archive is not set and the equivelent Sha512 in not found in the output
--Restore
-		
-
-/OUT_TEXT=X
-	Screen
-	
+%1 -SearchTargetXML="" -SearchTargetXML="",  -SearchAnchor="", -SearchAnchor=""	
