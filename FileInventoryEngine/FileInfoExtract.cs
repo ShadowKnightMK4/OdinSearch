@@ -76,6 +76,7 @@ namespace OdinSearchEngine
             }
         }
 
+        [OdinSearchSqlSkipAttrib]
         /// <summary>
         /// Return how big it is in bytes (0 for Directory)
         /// </summary>
@@ -122,6 +123,7 @@ namespace OdinSearchEngine
             }
         }
 
+        [OdinSearchSqlSkipAttrib]
         /// <summary>
         /// Return how big it is in kilobytes (0 for Directory)
         /// </summary>
@@ -137,7 +139,7 @@ namespace OdinSearchEngine
                 return ret;
             }
         }
-
+        [OdinSearchSqlSkipAttrib]
         public long SizeMB
         {
             get
@@ -150,7 +152,7 @@ namespace OdinSearchEngine
                 return ret;
             }
         }
-
+        [OdinSearchSqlSkipAttrib]
         public long SizeGB
         {
             get
@@ -164,6 +166,7 @@ namespace OdinSearchEngine
             }
         }
 
+        [OdinSqlPreFab_TypeGen("bit", OverrideName ="FileExists")]
         public bool Exists
         {
             get
@@ -197,6 +200,7 @@ namespace OdinSearchEngine
         }
 
 
+        
 
         /// <summary>
         /// Allocate resourcs to compute hash for file. If Folder, always returns null

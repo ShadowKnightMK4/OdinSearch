@@ -242,13 +242,13 @@ namespace OdinSearchEngine
             bool MatchedOne = false;
             bool MatchedFailedOne = false;
 
-            bool DateCheck(SearchTarget.DateTimeMatching HowToCompare, DateTime SearchTargetCompare, DateTime FileInfoCompare)
+            bool DateCheck(SearchTarget.MatchStyleDateTime HowToCompare, DateTime SearchTargetCompare, DateTime FileInfoCompare)
             {
-                if (HowToCompare != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+                if (HowToCompare != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
                 {
                     switch (HowToCompare)
                     {
-                        case OdinSearchEngine.SearchTarget.DateTimeMatching.NoEarlierThanThis:
+                        case OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoEarlierThanThis:
                             {
                                 if (Info.CreationTime.CompareTo(SearchTarget.SearchTarget.CreationAnchor) < 0)
                                 {
@@ -257,7 +257,7 @@ namespace OdinSearchEngine
                                 }
                                 break;
                             }
-                        case OdinSearchEngine.SearchTarget.DateTimeMatching.NoLaterThanThis:
+                        case OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoLaterThanThis:
                             {
                                 if (Info.CreationTime.CompareTo(DateTime.MinValue) < 0)
                                 {
@@ -266,7 +266,7 @@ namespace OdinSearchEngine
                                 }
                                 break;
                             }
-                        case OdinSearchEngine.SearchTarget.DateTimeMatching.Disable:
+                        case OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable:
                         default:
                             break;
                     }
@@ -386,7 +386,7 @@ namespace OdinSearchEngine
             }
 
             
-            if (SearchTarget.SearchTarget.AccessAnchorCheck1 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            if (SearchTarget.SearchTarget.AccessAnchorCheck1 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.AccessAnchorCheck1, SearchTarget.SearchTarget.AccessAnchor, Info.LastAccessTime);
                 if (!result)
@@ -396,7 +396,7 @@ namespace OdinSearchEngine
                 }
             }
 
-            if (SearchTarget.SearchTarget.AccessAnchorCheck2 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            if (SearchTarget.SearchTarget.AccessAnchorCheck2 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.AccessAnchorCheck2, SearchTarget.SearchTarget.AccessAnchor, Info.LastAccessTime);
                 if (!result)
@@ -406,7 +406,7 @@ namespace OdinSearchEngine
                 }
             }
 
-            if (SearchTarget.SearchTarget.WriteAnchorCheck1 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            if (SearchTarget.SearchTarget.WriteAnchorCheck1 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.WriteAnchorCheck1, SearchTarget.SearchTarget.CreationAnchor, Info.LastWriteTime);
                 if (!result)
@@ -416,7 +416,7 @@ namespace OdinSearchEngine
                 }
             }
 
-            if (SearchTarget.SearchTarget.WriteAnchorCheck2 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            if (SearchTarget.SearchTarget.WriteAnchorCheck2 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.WriteAnchorCheck2, SearchTarget.SearchTarget.CreationAnchor, Info.LastWriteTime);
                 if (!result)
@@ -426,7 +426,7 @@ namespace OdinSearchEngine
                 }
             }
 
-            if (SearchTarget.SearchTarget.CreationAnchorCheck1 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            if (SearchTarget.SearchTarget.CreationAnchorCheck1 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.CreationAnchorCheck1, SearchTarget.SearchTarget.CreationAnchor, Info.CreationTime);
                 if (!result)
@@ -436,7 +436,7 @@ namespace OdinSearchEngine
                 }
             }
 
-            if (SearchTarget.SearchTarget.CreationAnchorCheck2 != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            if (SearchTarget.SearchTarget.CreationAnchorCheck2 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.CreationAnchorCheck2, SearchTarget.SearchTarget.CreationAnchor, Info.CreationTime);
                 if (!result)

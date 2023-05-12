@@ -96,7 +96,7 @@ namespace NonSqlUnitTests
             start.AddAnchor(Path.Combine(TestFolderFullLocation, "test2"));
             SearchTarget lookfor = new SearchTarget();
             lookfor.FileName.Add(Path.GetFileName(test2_original));
-            lookfor.CreationAnchorCheck1 = SearchTarget.DateTimeMatching.NoEarlierThanThis;
+            lookfor.CreationAnchorCheck1 = SearchTarget.MatchStyleDateTime.NoEarlierThanThis;
             lookfor.CreationAnchor = DateTime.Now;
             Thread.Sleep(1000);
             lookfor.CreationAnchor = lookfor.CreationAnchor.AddSeconds(10);
@@ -116,7 +116,7 @@ namespace NonSqlUnitTests
             Demo.Search(testresults);
             Demo.WorkerThreadJoin();
 
-            lookfor.CreationAnchorCheck1 = SearchTarget.DateTimeMatching.Disable;
+            lookfor.CreationAnchorCheck1 = SearchTarget.MatchStyleDateTime.Disable;
 
             
 

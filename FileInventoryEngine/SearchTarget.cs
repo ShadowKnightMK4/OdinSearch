@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Serialization;
 
 namespace OdinSearchEngine
 {
+    public delegate bool CustomizedCheck(FileSystemInfo CheckMe);
     /// <summary>
     /// Indicate what will be searched for.
     /// </summary>
@@ -55,12 +57,8 @@ namespace OdinSearchEngine
             return ret;
         }
 
-        /// <summary>
-        /// Protoype for the additonal check
-        /// </summary>
-        /// <param name="CheckMe">file system object to check</param>
-        /// <returns>Delegate returns true if the match is ok and false if it is not.</returns>
-        public delegate bool CustomizedCheck(FileSystemInfo CheckMe);
+        
+        
         /// <summary>
         /// Make an instance of this class where it matches existing files
         /// </summary>
@@ -102,31 +100,31 @@ namespace OdinSearchEngine
         /// <summary>
         /// Indicate what do do with <see cref="CreationAnchor"/>
         /// </summary>
-        public DateTimeMatching CreationAnchorCheck1 = DateTimeMatching.Disable;
+        public MatchStyleDateTime CreationAnchorCheck1 = MatchStyleDateTime.Disable;
         /// <summary>
         /// Indicate what do do with <see cref="CreationAnchor2"/>
         /// </summary>
-        public DateTimeMatching CreationAnchorCheck2 = DateTimeMatching.Disable;
+        public MatchStyleDateTime CreationAnchorCheck2 = MatchStyleDateTime.Disable;
 
         /// <summary>
         /// Indicate what do do with <see cref="AccessAnchor"/>
         /// </summary>
-        public DateTimeMatching AccessAnchorCheck1 = DateTimeMatching.Disable;
+        public MatchStyleDateTime AccessAnchorCheck1 = MatchStyleDateTime.Disable;
         /// <summary>
         /// Indicate what do do with <see cref="AccessAnchor2"/>
         /// </summary>
-        public DateTimeMatching AccessAnchorCheck2 = DateTimeMatching.Disable;
+        public MatchStyleDateTime AccessAnchorCheck2 = MatchStyleDateTime.Disable;
 
         /// <summary>
         /// Indicate what do do with <see cref="WriteAnchor"/>
         /// </summary>
-        public DateTimeMatching WriteAnchorCheck1 = DateTimeMatching.Disable;
+        public MatchStyleDateTime WriteAnchorCheck1 = MatchStyleDateTime.Disable;
 
 
         /// <summary>
         /// Indicate what do do with <see cref="WriteAnchor"/>
         /// </summary>
-        public DateTimeMatching WriteAnchorCheck2 = DateTimeMatching.Disable;
+        public MatchStyleDateTime WriteAnchorCheck2 = MatchStyleDateTime.Disable;
 
         /// <summary>
         /// A REGEX express that will be compared againt the <see cref="FileInfoExtract.Name"/>
@@ -174,18 +172,19 @@ namespace OdinSearchEngine
         /// Additional checks are points one can add for additional checks / x
         /// </summary>
 
+        /*
         public readonly List<CustomizedCheck> AdditionalChecks1 = new List<CustomizedCheck>();
         public MatchStyleString AdditionalChecks1Matching = MatchStyleString.MatchAny;
 
 
 
         public readonly List<CustomizedCheck> AdditionalChecks2 = new List<CustomizedCheck>();
-        public MatchStyleString AdditionalChecks2Matching = MatchStyleString.MatchAny | MatchStyleString.Invert;
+        public MatchStyleString AdditionalChecks2Matching = MatchStyleString.MatchAny | MatchStyleString.Invert;*/
 
         /// <summary>
         /// Tell the search what do do with the same times specified
         /// </summary>
-        public enum DateTimeMatching
+        public enum MatchStyleDateTime
         {
             // DO NOT CHECK
             Disable = 0,
@@ -196,6 +195,10 @@ namespace OdinSearchEngine
             // Match Files if datetime is later than this
             NoLaterThanThis = 2,
         }
+
+        /// <summary>
+        /// Tell the search what to do with the string based search input
+        /// </summary>
         public enum MatchStyleString
         {
             /// <summary>
@@ -210,11 +213,11 @@ namespace OdinSearchEngine
             /// binary '!' on the match i.e. must NOT match.
             /// </summary>
             Invert = 4,
-            [Obsolete]
+            [Obsolete("Not Implemented")]
             /// <summary>
             /// This must be sucessfully match (or invert match) or the search fails.
             /// </summary>
-            Critical = 8,
+            UnusedCritical = 8,
             /// <summary>
             /// Disable this matching.. 
             /// </summary>

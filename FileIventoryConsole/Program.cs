@@ -5,14 +5,21 @@ using System.IO;
 using System.Threading;
 using System.Runtime.CompilerServices;
 using FileInventoryConsole;
+using System.Data.Sql;
+using System.Text;
+using System.Reflection;
 
 namespace FileIventoryConsole
-{
-    class Program
+{   
+    static class Program
     {
-
+        static bool WorkerMode = false;
         static void Main(string[] args)
         {
+            if (args[0].ToLower() == "/WORKER")
+            {
+                WorkerMode = true;
+            }
 
             SearchTarget ProgramFiles = new SearchTarget();
             SearchAnchor LocalStorage = new SearchAnchor();

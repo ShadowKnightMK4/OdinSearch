@@ -19,10 +19,10 @@ namespace OdinSearchEngine
     public class SearchAnchor
     {
         /// <summary>
-        /// Make an instance
+        /// Make an instance based on an existing other isntance
         /// </summary>
-        /// <param name="other"></param>
-        /// <param name="DiscardRoot"></param>
+        /// <param name="other">Another SearchAnchor</param>
+        /// <param name="DiscardRoot">if true, we discard the default root for the new instance before adding the other one.</param>
         public SearchAnchor(SearchAnchor other, bool DiscardRoot)
         {
             if (!DiscardRoot)
@@ -37,7 +37,7 @@ namespace OdinSearchEngine
         /// <summary>
         /// Either make an instance of this without any entries in the root or if WantLocalDrives is true, all local online drives
         /// </summary>
-        /// <param name="WantLocalDrives"></param>
+       /// <param name="WantLocalDrives">If true, we get a list of all local mounted drives and add if they're noted as ready in in the System</param>
         public SearchAnchor(bool WantLocalDrives)
         {
             if (WantLocalDrives)
@@ -57,7 +57,7 @@ namespace OdinSearchEngine
         /// <summary>
         /// Make instance with this as the location start.  
         /// </summary>
-        /// <param name="AnchorLocation"></param>
+        /// <param name="AnchorLocation">start location</param>
         /// <exception cref="IOException">This can be thrown if the passed location is offline/not ready.</exception>
         public SearchAnchor(string AnchorLocation)
         {
@@ -117,7 +117,7 @@ namespace OdinSearchEngine
         /// <summary>
         /// Add this location to the root locations to search
         /// </summary>
-        /// <param name="location">location to add</param>
+        /// <param name="location">location to add. </param>
         /// <returns>returns true if it was added ok.</returns>
         /// <exception cref="IOException">can be thrown if the location is not ready or bu</exception>
         /// <exception cref="ArgumentNullException">Thrown if location is null</exception>
@@ -198,9 +198,9 @@ namespace OdinSearchEngine
         public readonly List<DirectoryInfo> roots = new List<DirectoryInfo>();
 
         /// <summary>
-        /// return an arry of duplicate <see cref="SearchAnchor"/>s where each searchanchor has once of the roots
+        /// Create an array of duplicate <see cref="SearchAnchor"/>s where each SearchAnchor has once of the roots
         /// </summary>
-        /// <returns></returns>
+        /// <returns>an array where search SearchAnchor Entry in it contains just one root and the settings for SearchAnchor they were created from</returns>
         public SearchAnchor[] SplitRoots()
         {
             SearchAnchor[] ret = new SearchAnchor[roots.Count];
