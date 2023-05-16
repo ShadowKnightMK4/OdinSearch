@@ -7,32 +7,33 @@ using System.IO;
 using System.Data.SqlClient;
 using System.Net.Http.Headers;
 using System.Reflection.Metadata.Ecma335;
-
+using System.Text.Json;
+using Microsoft.VisualBasic;
 
 namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
     /// <summary>
     /// Used for running the sql commands.
     /// </summary>
-    public static class OdinSearchSql
+    public static class OdinSearchSqlActions
     {
      
         /// <summary>
         /// Test if valid sql identifier
         /// </summary>
         /// <param name="name"></param>
-        /// <remarks>Calls internal routine <see cref="OdinSqlPreFabs.AssertSqlIdentifier(string)"/></remarks>
+        /// <remarks>Calls internal routine <see cref="OdinSearchSqlPreFabs.AssertSqlIdentifier(string)"/></remarks>
         /// <exception cref="ArgumentException">Is thrown if test fails</exception>
         /// <exception cref="ArgumentNullException">Is thrown if argument is null</exception>
         public static void NameCheck(string name)
         {
-            OdinSqlPreFabs.AssertSqlIdentifier(name);
+            OdinSearchSqlPreFabs.AssertSqlIdentifier(name);
               
         }
 
         public static void DeleteTable(SqlConnection sql, string tableName)
         {
-            SqlCommand cmd = new SqlCommand(OdinSqlPreFabs.BuildDeleteTableString(tableName, true), sql);
+            SqlCommand cmd = new SqlCommand(OdinSearchSqlPreFabs.BuildDeleteTableString(tableName, true), sql);
             cmd.ExecuteNonQuery();
         }
         
@@ -45,7 +46,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         {
             List<string> tableList = new List<string>();
 
-            SqlCommand cmd  = new SqlCommand(OdinSqlPreFabs.BuildGetUserTableList(), sql);
+            SqlCommand cmd  = new SqlCommand(OdinSearchSqlPreFabs.BuildGetUserTableList(), sql);
 
             using (var Reader = cmd.ExecuteReader())
             {
@@ -58,8 +59,8 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 
         public static bool SelectDatabase(SqlConnection sql, string name)
         {
-            OdinSqlPreFabs.AssertSqlIdentifier(name);
-            SqlCommand cmd = new SqlCommand(OdinSqlPreFabs.BuildUseDatabase(name) , sql);
+            OdinSearchSqlPreFabs.AssertSqlIdentifier(name);
+            SqlCommand cmd = new SqlCommand(OdinSearchSqlPreFabs.BuildUseDatabase(name) , sql);
             cmd.ExecuteNonQuery();
             return true;
         }
@@ -71,7 +72,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <remarks>If there's no defined way to convert <see cref="OdinSqlPreFab_TypeGen"/>, this will throw <see cref="NotImplementedException()"/> with the offending type if the default settings don't have an answer</remarks>
         public static string ConvertClassToSqlRecord(Type t)
         {
-            return OdinSqlPreFabs.ClassToSQLRecord(t);
+            return OdinSearchSqlPreFabs.ClassToSQLRecord(t);
         }
 
         /// <summary>
@@ -103,7 +104,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             List<string> dbnames = new List<string>();
 
             SqlDataReader results;
-            SqlCommand cmd = new SqlCommand(OdinSqlPreFabs.BuildGetDatabaseList(), sql);
+            SqlCommand cmd = new SqlCommand(OdinSearchSqlPreFabs.BuildGetDatabaseList(), sql);
 
             using (results = cmd.ExecuteReader())
             {
@@ -117,6 +118,16 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             return dbnames.ToArray();
         }
 
+        public static bool CreateDataBaseIfNotExisting(SqlConnection sql, string name)
+        {
+            string[] list = GetSqlDatabaseList(sql);
+            if (list.Contains(Path.GetFileNameWithoutExtension(name)) == false)
+            {
+                return CreateSqlDatabase(sql, name);
+            }
+            return false;
+        }
+
         /// <summary>
         /// Delete the passed Database from the system. You may need to delete the file aftwards
         /// </summary>
@@ -125,7 +136,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <returns></returns>
         public static bool DeleteSqlDataBase(SqlConnection sql, string name)
         {
-            string cmd = OdinSqlPreFabs.BuildDeleteDatabaseString(Path.GetFileNameWithoutExtension(name), false) ;
+            string cmd = OdinSearchSqlPreFabs.BuildDeleteDatabaseString(Path.GetFileNameWithoutExtension(name), false) ;
             SqlCommand command = new SqlCommand(cmd, sql);
 
             command.ExecuteNonQuery();
@@ -135,12 +146,12 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// Create database for the connect
         /// </summary>
         /// <param name="sql">connection to use</param>
-        /// <param name="name">Name of the database.  Must pass <see cref="OdinSqlPreFabs.AssertSqlIdentifier(string)"/></param>
+        /// <param name="name">Name of the database.  Must pass <see cref="OdinSearchSqlPreFabs.AssertSqlIdentifier(string)"/></param>
         /// <returns></returns>
         public static bool CreateSqlDatabase(SqlConnection sql, string name)
         {
             //string cmd = OdinSqlPreFabs.CreateDatabaseString(Path.GetFileNameWithoutExtension(name), OdinSqlPreFabs.DatabaseContainment.Discard, name, true, Path.GetDirectoryName(name));
-            string cmd2 = OdinSqlPreFabs.BuildCreateDatabaseString(Path.GetFileNameWithoutExtension(name), OdinSqlPreFabs.DatabaseContainment.Discard, name, null, null, null, null);
+            string cmd2 = OdinSearchSqlPreFabs.BuildCreateDatabaseString(Path.GetFileNameWithoutExtension(name), OdinSearchSqlPreFabs.DatabaseContainment.Discard, name, null, null, null, null);
             SqlCommand command = new SqlCommand(cmd2, sql);
 
 
@@ -149,13 +160,44 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             return true;
         }
     }
+
+    /// <summary>
+    /// Prepresents a table created in the sql databasse to hold the info
+    /// </summary>
+    internal class SearchResultsSqlTable
+    {
+        public DateTime SearchExecuted;
+        public string HostComputerName;
+        public string HostComputerIp;
+        public Int128 Matches;
+        public Int128 Blocked;
+    }
     /// <summary>
     ///  Takes search results and outputs them to an sql db to look over later.
     /// </summary>
     public class OdinSearch_OutputConsumerSql : OdinSearch_OutputConsumerBase
     {
         
-        private string BuildStorageLoc(string StorageLoc)
+        private bool PopulateNewSearchDatabase()
+        {
+           if(! OdinSearchSqlActions.CreateTableFromType(connection, "SearchResults", typeof(SearchResultsSqlTable)))
+            {
+                return false;
+            }
+            if (!OdinSearchSqlActions.CreateTableFromType(connection, "MatchResults", typeof(FileSystemInfo)))
+            {
+                return false;
+            }
+            return true;
+        }
+    
+        
+        private bool CreateOrSelectDatabase(string location)
+        {
+            return OdinSearchSqlActions.CreateDataBaseIfNotExisting(connection, location);
+        }
+        
+        private string BuildConnectionString(string StorageLoc)
         {/*
             string ret = null;
             --Next, create the database and specify the file path
@@ -191,40 +233,72 @@ connection.Open();
         }
 
 
+        public OdinSearch_OutputConsumerSql(SqlConnection localConnectionSql)
+        {
+            connection = localConnectionSql;
+            localConnectionSql.Open();
+        }
+
         public OdinSearch_OutputConsumerSql(SqlConnectionStringBuilder Connect)
         {
-            LocalConnectionSql = new SqlConnection(Connect.ToString());
-            LocalConnectionSql.Open();
+            connection = new SqlConnection(Connect.ToString());
+            connection.Open();
         }
-        public OdinSearch_OutputConsumerSql(string StorageLoc)
+        public OdinSearch_OutputConsumerSql(string SqlConnectionString)
         {
-            LocalConnectionSql = new SqlConnection();
-            LocalConnectionSql.ConnectionString = BuildStorageLoc(StorageLoc);
-            LocalConnectionSql.Open();
+            connection = new SqlConnection();
+            connection.ConnectionString = BuildConnectionString(SqlConnectionString);
+            connection.Open();
+        }
 
+        
+        public OdinSearch_OutputConsumerSql(SqlConnection Connection, string StorageLocation)
+        {
+            connection = Connection;
+            connection.Open();
 
+            OdinSearchSqlActions.CreateSqlDatabase(connection, StorageLocation);
+        }
+        public OdinSearch_OutputConsumerSql(string ConnectionString, string StorageLocation)
+        {
+            connection = new SqlConnection();
+            connection.ConnectionString = BuildConnectionString(string.Empty);
+            if (ConnectionString == string.Empty)
+            {
+                
+                
+            }
+            else
+            {
+
+            }
+            connection.Open();
+            if (!OdinSearchSqlActions.CreateDataBaseIfNotExisting(connection, StorageLocation))
+            {
+                OdinSearchSqlActions.SelectDatabase(connection, StorageLocation);
+            }
         }
 
 
-        SqlConnection LocalConnectionSql;
+        SqlConnection connection;
 
         [Obsolete("Intented only for debug. Runtime/no debug should use the wrappers once defined")]
         public SqlConnection GetSqlConnect()
         {
-            return LocalConnectionSql;
+            return connection;
         }
 
         public override void Dispose()
         {
-            LocalConnectionSql.Dispose();
+            connection.Dispose();
         }
         public override void Blocked(string Blocked)
         {
-            throw new NotImplementedException();
+            
         }
         public override void Match(FileSystemInfo info)
         {
-            throw new NotImplementedException();
+            
         }
 
         public override void WasNotMatched(FileSystemInfo info)
@@ -234,7 +308,7 @@ connection.Open();
 
         public override void Messaging(string Message)
         {
-            throw new NotImplementedException();
+            
         }
     }
 }

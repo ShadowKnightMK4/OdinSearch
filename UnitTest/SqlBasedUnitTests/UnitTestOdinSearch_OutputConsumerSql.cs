@@ -27,32 +27,32 @@ namespace UnitTest
             string TestDB = Path.GetFileNameWithoutExtension(TestFileName);
             string TestTable = "B" + DateTime.Now.Ticks.ToString();
             // create the temp database
-            if (!OdinSearchSql.CreateSqlDatabase(connect, TestFileName))
+            if (!OdinSearchSqlActions.CreateSqlDatabase(connect, TestFileName))
             {
                 Assert.Fail("Failed to create databaseok");
             }
             // create a table based on type
 
-            if (!OdinSearchSql.CreateTableFromType(connect, TestTable, typeof(FileInfoExtract)))
+            if (!OdinSearchSqlActions.CreateTableFromType(connect, TestTable, typeof(FileInfoExtract)))
             {
                 Assert.Fail("Failed to database table and record ok");
             }
 
             // select the temp database
-            OdinSearchSql.SelectDatabase(connect, TestDB);
+            OdinSearchSqlActions.SelectDatabase(connect, TestDB);
             
             // does it contain a TestTab;e
-            Assert.IsTrue(OdinSearchSql.GetTableList(connect).Contains(TestTable));
+            Assert.IsTrue(OdinSearchSqlActions.GetTableList(connect).Contains(TestTable));
 
             // if so delete it
-            OdinSearchSql.DeleteTable(connect, TestTable);
+            OdinSearchSqlActions.DeleteTable(connect, TestTable);
 
             // did delete work
-            Assert.IsFalse(OdinSearchSql.GetTableList(connect).Contains(TestTable));
+            Assert.IsFalse(OdinSearchSqlActions.GetTableList(connect).Contains(TestTable));
 
 
             // Finally delete the database
-            if (!OdinSearchSql.DeleteSqlDataBase(connect, TestFileName))
+            if (!OdinSearchSqlActions.DeleteSqlDataBase(connect, TestFileName))
             {
                 Assert.Fail("Failed to delete databaseok");
             }
@@ -66,7 +66,7 @@ namespace UnitTest
         public void CS_Class_To_SqlRecord_manuel_check()
         {
             string result;
-            result = OdinSearchSql.ConvertClassToSqlRecord(typeof(OdinSearchEngine.FileInfoExtract));
+            result = OdinSearchSqlActions.ConvertClassToSqlRecord(typeof(OdinSearchEngine.FileInfoExtract));
 
 
             return;
@@ -94,19 +94,19 @@ namespace UnitTest
             var connect = Demo.GetSqlConnect();
             string TestName = "C:\\Dummy\\A" + DateTime.Now.Ticks.ToString() + ".MD45";
 
-            if (!OdinSearchSql.CreateSqlDatabase(connect, TestName))
+            if (!OdinSearchSqlActions.CreateSqlDatabase(connect, TestName))
             {
                 Assert.Fail("Failed to create databaseok");
             }
 
-            Assert.IsTrue(OdinSearchSql.GetSqlDatabaseList(connect).Contains(Path.GetFileNameWithoutExtension(TestName)));
+            Assert.IsTrue(OdinSearchSqlActions.GetSqlDatabaseList(connect).Contains(Path.GetFileNameWithoutExtension(TestName)));
 
-            if (!OdinSearchSql.DeleteSqlDataBase(connect, TestName))
+            if (!OdinSearchSqlActions.DeleteSqlDataBase(connect, TestName))
             {
                 Assert.Fail("Failed to delete databaseok");
             }
 
-            Assert.IsFalse(OdinSearchSql.GetSqlDatabaseList(connect).Contains(Path.GetFileNameWithoutExtension(TestName)));
+            Assert.IsFalse(OdinSearchSqlActions.GetSqlDatabaseList(connect).Contains(Path.GetFileNameWithoutExtension(TestName)));
         }
         
         [TestMethod]

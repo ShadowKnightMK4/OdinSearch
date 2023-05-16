@@ -15,6 +15,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
     /// </summary>
     public abstract class OdinSearch_OutputConsumerBase : IDisposable
     {
+        public bool Disposed { get; protected set; }
         /// <summary>
         /// For Future. Set if you want the WasNotMatched called for each time. This does NOTHING Currently.
         /// </summary>
@@ -79,6 +80,16 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         }
 
         /// <summary>
+        /// Called once for each thread when the search is started by OdinSearch. It's called shortly before each thread starts
+        /// </summary>
+        /// <param name="Start">DateTime of call</param>
+        /// <returns>Your routine should return true to continue being called for the rest of the threads or false if just a single notify is enough</returns>
+        public virtual bool SearchBegin(DateTime Start)
+        {
+            return false;
+        }
+
+        /// <summary>
         /// FUTURE: Search calls this when all threads searching are done. Base just sets variable <see cref="SearchOver"/> to true
         /// </summary>
         public virtual void AllDone()
@@ -90,7 +101,8 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// </summary>
         public virtual void Dispose()
         {
-
+            GC.SuppressFinalize(this);
+            Disposed = true;
         }
     }
 }

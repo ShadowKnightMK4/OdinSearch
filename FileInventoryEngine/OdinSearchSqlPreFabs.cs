@@ -17,7 +17,7 @@ namespace OdinSearchEngine
     /// <summary>
     /// Contains the Sql stuff that the engine uses to deal sql databases.
     /// </summary>
-    internal static class OdinSqlPreFabs
+    internal static class OdinSearchSqlPreFabs
     {
         public static string CSToSqlType(PropertyInfo t)
         {

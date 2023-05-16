@@ -17,10 +17,9 @@ namespace OdinSearchEngine
     /// </summary>
     public class OdinSearch
     {
-
-        
+       
         /// <summary>
-        /// reset before we started searching
+        /// Reset to functionally a new blank instance
         /// </summary>
         public void Reset()
         {
@@ -37,6 +36,7 @@ namespace OdinSearchEngine
         {
             public Thread Thread;
             public CancellationTokenSource Token;
+            public WorkerThreadArgs Args;
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace OdinSearchEngine
             /// </summary>
             public CancellationToken Token;
             /// <summary>
-            /// Used in the worker thread.  This is how it will send messages and results outside of its thread.
+            /// Used in the worker thread.  This is how said thread will send messages and results outside of its world.
             /// </summary>
             public OdinSearch_OutputConsumerBase Coms;
         }
@@ -132,20 +132,36 @@ namespace OdinSearchEngine
         /// </summary>
         readonly List<SearchTarget> Targets = new List<SearchTarget>();
 
+        /// <summary>
+        /// Add a new thing to look for
+        /// </summary>
+        /// <param name="target"></param>
         public void AddSearchTarget(SearchTarget target)
         {
             Targets.Add(target);
         }
 
+        /// <summary>
+        /// Clear the Search target list
+        /// </summary>
         public void ClearSearchTargetList()
         {
             Targets.Clear();
         }
+        /// <summary>
+        /// Fetch the current list of SearchTargets as an array.
+        /// </summary>
+        /// <returns>returns copy of the SearchTarget list as an array</returns>
         public SearchTarget[] GetSearchTargetsAsArray()
         {
             return Targets.ToArray();
         }
 
+
+        /// <summary>
+        /// Return a read only copy of the SearchTargetList
+        /// </summary>
+        /// <returns>Returns the Search Target list in ready only form</returns>
         public ReadOnlyCollection<SearchTarget> GetSearchTargetsReadOnly()
         {
             return Targets.AsReadOnly();
@@ -157,21 +173,37 @@ namespace OdinSearchEngine
         /// </summary>
         readonly List<SearchAnchor> Anchors = new List<SearchAnchor>();
 
+        /// <summary>
+        /// Add a new SearchAnchor
+        /// </summary>
+        /// <param name="Anchor">the new starting point to begin looking for files</param>
         public void AddSearchAnchor(SearchAnchor Anchor)
         {
             Anchors.Add(Anchor);
         }
 
+        /// <summary>
+        /// Clear the SearchAnchor List
+        /// </summary>
         public void ClearSearchAnchorList()
         {
             Anchors.Clear();
         }
 
+
+        /// <summary>
+        /// Fetch the current list of SearchAnchors as an array.
+        /// </summary>
+        /// <returns>returns copy of the SearchAnchors list as an array</returns>
         public SearchAnchor[] GetSearchAnchorsAsArray()
         {
             return Anchors.ToArray();
         }
 
+        /// <summary>
+        /// Add a new SearchAnchor
+        /// </summary>
+        /// <returns>Returns the Anchor list in ready only form</returns>
         public ReadOnlyCollection<SearchAnchor> GetSearchAnchorReadOnly()
         {
             return Anchors.AsReadOnly();
@@ -197,6 +229,9 @@ namespace OdinSearchEngine
         }
         protected bool ThreadSynchResultsBacking = true;
 
+        /// <summary>
+        /// Politely ask the worker threads to end and remove them from our list
+        /// </summary>
         public void KillSearch()
         {
             if (WorkerThreads.Count != 0)
@@ -232,12 +267,8 @@ namespace OdinSearchEngine
         /// <param name="SearchTarget">A class containing both the <see cref="SearchTarget"/> and the predone <see cref="Regex"/> stuff</param>
         /// <param name="Info">look for this</param>
         /// <returns>true if matchs and false if not.</returns>
-
         bool MatchThis(SearchTargetPreDoneRegEx SearchTarget, FileSystemInfo Info)
         {
-
-            
-
             bool FinalMatch= true;
             bool MatchedOne = false;
             bool MatchedFailedOne = false;
@@ -274,6 +305,7 @@ namespace OdinSearchEngine
                 return true;
             }
 
+            // ensure both the SearchTarget and what we're comparing against are not null
             if (SearchTarget == null)
             {
                 throw new ArgumentNullException(nameof(SearchTarget));
@@ -287,7 +319,9 @@ namespace OdinSearchEngine
             // if the filename check has not been disabled
             if (!SearchTarget.SearchTarget.FileNameMatching.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.Skip))
             {
-                // special case in <the Convert to RegEx routine.  Empty list means we've matched all
+                /* This is a pecial case in <the Convert to RegEx routine.
+                 * Empty list means we're functionally matching ALL file name combinations
+                 */
                 if (SearchTarget.PreDoneRegEx.Count == 0)
                 {
                     MatchedOne = true;
@@ -501,8 +535,55 @@ namespace OdinSearchEngine
         {
             return MatchThis(SearchTarget, Info as FileSystemInfo);
         }
+
+
         /// <summary>
-        /// Unpack the WorkerThreadArgs and go to work
+        /// Spawn the routine <see cref="WatchdogFireAllDoneWorkerThead(WorkerThreadArgs)"/> in a new thread
+        /// </summary>
+        /// <param name="Args">Arguments to the worker threads. Coms is used.</param>
+        void WatchdogFireAllDoneSpawner(WorkerThreadArgs Args)
+        {
+            Thread SpawnThis = new Thread(p => { WatchdogFireAllDoneWorkerThead(Args); });
+            SpawnThis.Name = "Scanner Watchdog AllDone() Fire";
+            SpawnThis.Start();
+        }
+        /// <summary>
+        /// This checks the threads in the list, if all finished, fires off a call  all Done in the first thread
+        /// </summary>
+        /// <param name="Args"></param>
+        void WatchdogFireAllDoneWorkerThead(WorkerThreadArgs Args)
+        {
+            if (Args == null)
+                throw new ArgumentNullException(nameof(Args));
+            else
+            {
+                while (true)
+                {
+                    bool StillRunning = false;
+                    foreach (var thread in WorkerThreads)
+                    {
+                        if (thread.Thread.ThreadState == ThreadState.Running)
+                        {
+                            StillRunning = true;
+                            break;
+                        }
+                    }
+
+                    if (!StillRunning && (WorkerThreadCount > 0))
+                    {
+                        WorkerThreads[0].Args.Coms.AllDone();
+                        
+                        return;
+                    }
+                    else
+                    {
+                        Thread.Sleep(200);
+                    }
+                }
+            }
+        }
+        /// <summary>
+        /// Unpack the WorkerThreadArgs and go to work. Not intended to to called without having done by its own thread
         /// </summary>
         /// <param name="Args"></param>
         void ThreadWorkerProc(object Args)
@@ -510,7 +591,8 @@ namespace OdinSearchEngine
             Queue<DirectoryInfo> FolderList= new Queue<DirectoryInfo>();
             List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
             WorkerThreadArgs TrueArgs = Args as WorkerThreadArgs;
-
+            Thread.CurrentThread.Name = TrueArgs.StartFrom.roots[0].ToString() + " Scanner";
+            
             
             
            if (TrueArgs != null ) 
@@ -670,13 +752,14 @@ namespace OdinSearchEngine
                 }
                 else
                 {
-
+                    WorkerThreadArgs Args=null;
                     foreach (SearchAnchor Anchor in Anchors)
                     {
                         var AnchorList = Anchor.SplitRoots();
+                        
                         foreach (SearchAnchor SmallAnchor in AnchorList)
                         {
-                            WorkerThreadArgs Args = new();
+                            Args = new();
                             Args.StartFrom = SmallAnchor;
                             Args.Targets.AddRange(Targets);
                             Args.Coms = Coms;
@@ -684,7 +767,7 @@ namespace OdinSearchEngine
                             WorkerThreadWithCancelToken Worker = new WorkerThreadWithCancelToken();
                             Worker.Thread = new Thread(() => ThreadWorkerProc(Args));
                             Worker.Token = new CancellationTokenSource();
-
+                            Worker.Args = Args;
                             Args.Token = Worker.Token.Token;
 
 
@@ -712,8 +795,14 @@ namespace OdinSearchEngine
                         WorkerThreads.Add(Worker);
                     }
                     */
+                    WatchdogFireAllDoneSpawner(Args);
+                    bool DoNotNotifyRest = false;
                     foreach (WorkerThreadWithCancelToken t in WorkerThreads)
                     {
+                        if (!DoNotNotifyRest)
+                        {
+                            DoNotNotifyRest = t.Args.Coms.SearchBegin(DateTime.Now);
+                        }
                         t.Thread.Start();
                     }
                 }

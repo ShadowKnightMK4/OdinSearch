@@ -16,8 +16,7 @@ namespace FileIventoryConsole
         static bool WorkerMode = false;
         static void Main(string[] args)
         {
-            ArgHandling.ParseArguments(args);
-
+            
             SearchTarget ProgramFiles = new SearchTarget();
             SearchAnchor LocalStorage = new SearchAnchor();
             ProgramFiles.FileName.Add("*");
@@ -28,7 +27,9 @@ namespace FileIventoryConsole
             runme.AddSearchAnchor(LocalStorage);
             runme.AddSearchTarget(ProgramFiles);
 
-            var results = new OdinSearch_OutputSimpleConsole();
+            var results = new OdinSearch_OutputConsumerSql(string.Empty, "C:\\Dummy\\SearchInfo32.md5");
+            
+
             runme.Search(results);
             while (runme.HasActiveSearchThreads)
             {

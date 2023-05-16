@@ -76,6 +76,39 @@ namespace UnitTest
         }
 
         [TestMethod]
+        public void OdinSearch_WasAllDoneCalled()
+        {
+            OdinSearch_Output_UnitTesting_class coms = new();
+            Assert.IsNotNull(Demo);
+            Demo.Reset();
+            var TestAnchor = new SearchAnchor(false);
+            var TestSearch = new SearchTarget();
+
+            Demo.AddSearchAnchor(TestAnchor);
+            Demo.AddSearchTarget(TestSearch);
+            TestAnchor.AddAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Windows));
+            TestSearch.FileName.Add("*");
+            Demo.Search(coms);
+            Demo.WorkerThreadJoin();
+
+            if (coms.SearchOver == false)
+            {
+                Assert.Fail("The Search sucseedef but the SearchOver flag was not set. Check if watchdog thread spawned and if it set it ok");
+            }
+            else
+            {
+                if (coms.SearchOver == true)
+                {
+                    if (Demo.HasActiveSearchThreads == true)
+                    {
+                        Assert.Fail("Watchdog thread fired too early");
+                    }
+                }
+            }
+
+        }
+
+        [TestMethod]
         public void OdinSearch_Can_SearchForWindowsFolder()
         {
             OdinSearch_Output_UnitTesting_class coms = new OdinSearch_Output_UnitTesting_class();

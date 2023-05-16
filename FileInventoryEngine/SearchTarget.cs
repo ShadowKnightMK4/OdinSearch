@@ -38,7 +38,11 @@ namespace OdinSearchEngine
 
                 pattern = "^" + Regex.Escape(s) + "$";
                 pattern = pattern.Replace("\\*", ".*").Replace("\\?", ".");
-                if (pattern == "^.*$")  // this is the match anything regexpression for.  returning a clear regex list disables the compare that will always be true
+                /* this is the match anything regexpression for.
+                 * This is hard coded to returning a clear regex list. The code that does the searching treats
+                 * it as disabling the file name compare since any file name will match
+                 * */
+                if (pattern == "^.*$") 
                 {
                     ret.Clear();
                     return ret;
@@ -222,7 +226,7 @@ namespace OdinSearchEngine
             /// <summary>
             /// This must be sucessfully match (or invert match) or the search fails.
             /// </summary>
-            UnusedCritical = 8,
+            ReservedUnusedCritical = 8,
             /// <summary>
             /// Disable this matching.. 
             /// </summary>
