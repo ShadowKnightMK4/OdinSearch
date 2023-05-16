@@ -26,6 +26,9 @@ namespace OdinSearchEngine
             KillSearch();
             ClearSearchAnchorList();
             ClearSearchTargetList();
+            
+            SkipSanityCheck = true;
+            this.ThreadSynchResultsBacking = false;
         }
         
 
