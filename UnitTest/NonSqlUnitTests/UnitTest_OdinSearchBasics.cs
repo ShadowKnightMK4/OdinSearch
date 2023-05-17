@@ -12,9 +12,6 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollector.InProcDataCo
 
 namespace UnitTest
 {
-    /// <summary>
-    /// This class ensures we can spawn the search, get data from it and that it can start ok. 
-    /// </summary>
     [TestClass]
     public class UnitTest_OdinSearchBasics
     {
@@ -57,9 +54,6 @@ namespace UnitTest
             }
         }
 
-        /// <summary>
-        /// Does the number of folder locations in the Anchor list passed become 1 thread per folder?
-        /// </summary>
         [TestMethod]
         public void OdinSearch_Does_AnchorList_Equal_ThreadCount()
         {
@@ -124,9 +118,6 @@ namespace UnitTest
         }
 
 
-        /// <summary>
-        /// Testing to ensure exceptions are thrown when joining the worker thread list before it starts
-        /// </summary>
         [TestMethod]
         public void OdinSearch_DoesSearchGuardWork()
         {
@@ -139,7 +130,7 @@ namespace UnitTest
 
             Demo.AddSearchAnchor(TestAnchor);
             Demo.AddSearchTarget(TestSearch);
-            TestSearch.FileName.Add(SearchTarget.MatchAnyFile);
+            TestSearch.FileName.Add("*");
 
             try
             {
@@ -161,10 +152,6 @@ namespace UnitTest
             }
 
         }
-
-        /// <summary>
-        /// Does the <see cref="OdinSearch_OutputConsumerBase.AllDone"/> fire ok when not enuming folders?
-        /// </summary>
         [TestMethod]
         public void OdinSearch_WasAllDoneCalled_DONOTEnumSubFolders()
         {
@@ -172,12 +159,7 @@ namespace UnitTest
                 "Search OK. Search Over flag was not set. Check Watchdog thread",
                 "Watchdog thread fired too early", -1);
         }
-
-        /// <summary>
-        /// Does the <see cref="OdinSearch_OutputConsumerBase.AllDone"/> fire ok when enuming folders?
-        /// </summary>
-
-        
+        [TestMethod]
         public void OdinSearch_WasAllDoneCalled_EnumSubFolders()
         {
             common_WasAllDone(true,
@@ -187,17 +169,14 @@ namespace UnitTest
              );
         }
 
-
-        /// <summary>
-        /// Can we locate C:\\Windows.
-        /// </summary>
         [TestMethod]
         public void OdinSearch_Can_SearchForWindowsFolder()
         {
             OdinSearch_Output_UnitTesting_class coms = new OdinSearch_Output_UnitTesting_class();
             Assert.IsNotNull(Demo);
             Demo.Reset();
-            
+
+
             var TestAnchor = new SearchAnchor(false);
             
 
