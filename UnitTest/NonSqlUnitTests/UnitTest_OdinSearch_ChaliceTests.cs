@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using OdinSearchEngine;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 using System.Threading;
+using System.Diagnostics;
 
 namespace NonSqlUnitTests
 {
@@ -84,6 +85,21 @@ namespace NonSqlUnitTests
           
         }
 
+        void test3_populate()
+        {
+            string targ = TestFolderFullLocation;
+            string file1 = Path.Combine(targ, "test3", "nonamematchme.dat");
+            string file2 = Path.Combine(targ, "test3", "nonamematchme2.dat");
+            string file3 = Path.Combine(targ, "test3", "nonameDONTmatch.dat");
+            string file4 = Path.Combine(targ, "test3","nonameDONTmatch2.dat");
+            MakeFolder(targ, "test3");
+            MakeFile(string.Empty,file1 , FileAttributes.Archive);
+            MakeFile(string.Empty, file2, FileAttributes.Archive);
+            MakeFile(string.Empty, file3, FileAttributes.Archive | FileAttributes.Hidden);
+            MakeFile(string.Empty, file4, FileAttributes.Archive | FileAttributes.Hidden);
+
+        }
+
         [TestCategory("AVD: Finding under controlled scenerios")]
         [TestMethod]
         public void File_recently_created_file_no_older_than_1_day_TEST2()
@@ -122,6 +138,34 @@ namespace NonSqlUnitTests
             
 
         }
+
+        [TestCategory("AVD: Finding under controlled scenerios")]
+        [TestMethod]
+        public void FileFilesMatching_ArchiveButNotHidden__TEST3()
+        {
+            OdinSearch_OutputConsumerGatherResults testresults = new OdinSearch_OutputConsumerGatherResults();
+            Demo.KillSearch();
+            Demo.ClearSearchAnchorList();
+            Demo.ClearSearchTargetList();
+
+            SearchAnchor start = new SearchAnchor(false);
+            start.AddAnchor(Path.Combine(TestFolderFullLocation, "test3"));
+            SearchTarget lookfor = new SearchTarget();
+            lookfor.AttributeMatching1 = FileAttributes.Archive;
+            lookfor.AttributeMatching2 = FileAttributes.Hidden;
+            lookfor.AttribMatching1Style = SearchTarget.MatchStyleString.MatchAll;
+            lookfor.AttribMatching2Style = SearchTarget.MatchStyleString.MatchAll | SearchTarget.MatchStyleString.Invert;
+            lookfor.FileNameMatching = SearchTarget.MatchStyleString.Skip;
+
+            Demo.AddSearchAnchor(start);
+            Demo.AddSearchTarget(lookfor);
+
+            Demo.Search(testresults);
+            Demo.WorkerThreadJoin();
+
+            Assert.IsTrue(testresults.Results.Count == 2);
+
+        }
         [TestCategory("AVD: Finding under controlled scenerios")]
         [TestMethod]
         public void Find_3_folders_no_special_needs__TEST1()
@@ -131,7 +175,7 @@ namespace NonSqlUnitTests
             Demo.ClearSearchAnchorList();
             Demo.ClearSearchTargetList();
 
-            SearchAnchor start = new SearchAnchor();
+            SearchAnchor start = new SearchAnchor(false);
             start.AddAnchor(Path.Combine(TestFolderFullLocation, "test1"));
             SearchTarget lookfor = new SearchTarget();
             lookfor.FileName.Add("folder*");
@@ -160,6 +204,7 @@ namespace NonSqlUnitTests
         {
             test1_populate();
             test2_populate();
+            test3_populate();
         }
 
 
@@ -176,7 +221,7 @@ namespace NonSqlUnitTests
             Demo = new OdinSearch();
 
             /* some tests are wanting to poss 'impossible' values such as looking for a file creeated no earlier than 2 seconds from now (test2)
-             *  Not Disabling this, means those tests fail
+             *  Not Disabling this, means those tests may fail
              */
             Demo.SkipSanityCheck = true;
             populuate_for_tests();
