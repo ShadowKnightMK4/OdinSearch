@@ -9,7 +9,7 @@ using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 using System.Runtime.Intrinsics.X86;
-
+using static OdinSearchEngine.SearchTarget;
 namespace OdinSearchEngine
 {
 
@@ -354,7 +354,43 @@ namespace OdinSearchEngine
                 }
                 return true;
             }
+            bool AttribCheck(SearchTarget.MatchStyleString HowToCompare, FileAttributes SearchTargetCompare, FileAttributes FileInfoCompare)
+            {
+                bool CompareMe = false;
+                
+                // treat check if true if no attributeres were specified or normal was
+                if  ( (HowToCompare == MatchStyleString.Skip) || ( (SearchTargetCompare == FileAttributes.Normal) || (SearchTargetCompare == 0)))
+                {
+                    return true;
+                }
+                else
+                {
+                    if (HowToCompare.HasFlag(MatchStyleString.MatchAll))
+                    {
+                        if ((SearchTargetCompare & FileInfoCompare) == (SearchTargetCompare))
+                        {
+                            CompareMe = true;
+                        }
+                    }
+                    else
+                    {
+                        if (HowToCompare.HasFlag(MatchStyleString.MatchAny))
+                        {
+                            if ((SearchTargetCompare & FileInfoCompare) != 0)
+                            {
+                                CompareMe = true;
+                            }
+                        }
+                    }
 
+
+                    if (HowToCompare.HasFlag(MatchStyleString.Invert))
+                    {
+                        CompareMe = (CompareMe != true);
+                    }
+                    return CompareMe;
+                }
+            }
             // ensure both the SearchTarget and what we're comparing against are not null
             if (SearchTarget == null)
             {
@@ -365,6 +401,25 @@ namespace OdinSearchEngine
                 throw new ArgumentNullException(nameof(Info));
             }
 
+            if ( (SearchTarget.SearchTarget.AttributeMatching1 != FileAttributes.Normal ) && (SearchTarget.SearchTarget.AttributeMatching1 != 0))
+            {
+                bool result = AttribCheck(SearchTarget.SearchTarget.AttribMatching1Style, SearchTarget.SearchTarget.AttributeMatching1, Info.Attributes);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+            if ((SearchTarget.SearchTarget.AttributeMatching2 != FileAttributes.Normal) && (SearchTarget.SearchTarget.AttributeMatching2 != 0))
+            {
+                bool result = AttribCheck(SearchTarget.SearchTarget.AttribMatching1Style, SearchTarget.SearchTarget.AttributeMatching1, Info.Attributes);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
 
             // if the filename check has not been disabled
             if (!SearchTarget.SearchTarget.FileNameMatching.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.Skip))
@@ -440,36 +495,9 @@ namespace OdinSearchEngine
 
             MatchedOne = false;
             MatchedFailedOne = false;
-            if (!SearchTarget.SearchTarget.AttribMatching1Style.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.Skip))
-            {
-                if ((SearchTarget.SearchTarget.AttributeMatching1.HasFlag(FileAttributes.Normal) != true) && 
-                   (SearchTarget.SearchTarget.AttributeMatching1 != 0))
-                {
-                    if (SearchTarget.SearchTarget.AttribMatching1Style.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.MatchAll))
-                    {
-                        if (SearchTarget.SearchTarget.AttributeMatching1 == Info.Attributes)
-                        {
-                            if ((SearchTarget.SearchTarget.AttribMatching1Style.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.Invert)))
-                            {
-                                FinalMatch = false;
-                                goto exit;
-                            }
-                        }
-                    }
 
-                    if (SearchTarget.SearchTarget.AttribMatching1Style.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.MatchAny))
-                    {
-                        if ( (SearchTarget.SearchTarget.AttributeMatching1 & Info.Attributes) == 0)
-                        {
-                            FinalMatch = false;
-                            goto exit;
-                        }
-                    }
 
-                }
-            }
 
-            
             if (SearchTarget.SearchTarget.AccessAnchorCheck1 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.AccessAnchorCheck1, SearchTarget.SearchTarget.AccessAnchor, Info.LastAccessTime);

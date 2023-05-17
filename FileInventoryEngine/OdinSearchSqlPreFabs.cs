@@ -449,7 +449,7 @@ namespace OdinSearchEngine
             return ret.ToString();
         }
 
-        [Obsolete("Use BuildCreateDatabaseString() instead. It'll still work but does not support the extra stuff")]
+        [Obsolete("Use BuildCreateDatabaseString() instead. This will still work but does not support the extra stuff")]
                                                 
         /// <summary>
         /// Construct a Create Database string with specifed stuff

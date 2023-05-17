@@ -20,6 +20,9 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// For Future. Set if you want the WasNotMatched called for each time. This does NOTHING Currently.
         /// </summary>
         public bool EnableNotMatchCall = false;
+        /// <summary>
+        /// This is set by the <see cref="AllDone"/> to be true when called.
+        /// </summary>
         public bool SearchOver = false;
         /// <summary>
         /// Base routine increments this by 1 on each call
@@ -90,14 +93,14 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         }
 
         /// <summary>
-        /// FUTURE: Search calls this when all threads searching are done. Base just sets variable <see cref="SearchOver"/> to true
+        /// OdinSearch calls this when all threads searching are done. Base just sets variable <see cref="SearchOver"/> to true
         /// </summary>
         public virtual void AllDone()
         {
             SearchOver = true;
         }
         /// <summary>
-        /// Default class needs not dispose.  
+        /// Default class needs not dispose. This is here subclasses if needed
         /// </summary>
         public virtual void Dispose()
         {
