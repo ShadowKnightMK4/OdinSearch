@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollector.InProcDataCollector;
 
 namespace UnitTest
 {
@@ -75,25 +76,33 @@ namespace UnitTest
             
         }
 
-        [TestMethod]
-        public void OdinSearch_WasAllDoneCalled()
+
+        // belongs to too tests. We test if We fire the watchdog call 
+        void common_WasAllDone(bool EnumFolders, string assert1, string assert2, int timeout)
         {
             OdinSearch_Output_UnitTesting_class coms = new();
+
+            var Demo = new OdinSearch();
             Assert.IsNotNull(Demo);
-            Demo.Reset();
             var TestAnchor = new SearchAnchor(false);
             var TestSearch = new SearchTarget();
 
             Demo.AddSearchAnchor(TestAnchor);
             Demo.AddSearchTarget(TestSearch);
             TestAnchor.AddAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Windows));
+            TestAnchor.EnumSubFolders = EnumFolders;
             TestSearch.FileName.Add("*");
             Demo.Search(coms);
-            Demo.WorkerThreadJoin();
+            if (timeout == -1)
+            {
+                Demo.WorkerThreadJoin();
+            }
+  
+            
 
             if (coms.SearchOver == false)
             {
-                Assert.Fail("The Search sucseedef but the SearchOver flag was not set. Check if watchdog thread spawned and if it set it ok");
+                Assert.Fail(assert1);
             }
             else
             {
@@ -101,11 +110,63 @@ namespace UnitTest
                 {
                     if (Demo.HasActiveSearchThreads == true)
                     {
-                        Assert.Fail("Watchdog thread fired too early");
+                        Assert.Fail(assert2);
                     }
                 }
             }
 
+        }
+
+
+        [TestMethod]
+        public void OdinSearch_DoesSearchGuardWork()
+        {
+            OdinSearch_Output_UnitTesting_class coms = new OdinSearch_Output_UnitTesting_class();
+            Assert.IsNotNull(Demo);
+            Demo.Reset();
+
+            var TestAnchor = new SearchAnchor(true);
+            var TestSearch = new SearchTarget();
+
+            Demo.AddSearchAnchor(TestAnchor);
+            Demo.AddSearchTarget(TestSearch);
+            TestSearch.FileName.Add("*");
+
+            try
+            {
+                Demo.WorkerThreadJoin();
+            }
+            catch (InvalidOperationException)
+            {
+                // its ok
+                Demo.Search(coms);
+
+                
+                {
+                    Demo.WorkerThreadJoin();
+                    if (coms.SearchOver == false)
+                    {
+                        Assert.Fail("WorkerThreadJoin() failed to wait until search was over");
+                    }
+                }
+            }
+
+        }
+        [TestMethod]
+        public void OdinSearch_WasAllDoneCalled_DONOTEnumSubFolders()
+        {
+            common_WasAllDone(false,
+                "Search OK. Search Over flag was not set. Check Watchdog thread",
+                "Watchdog thread fired too early", -1);
+        }
+        [TestMethod]
+        public void OdinSearch_WasAllDoneCalled_EnumSubFolders()
+        {
+            common_WasAllDone(true,
+             "The Search sucseedef but the SearchOver flag was not set. " +
+             "Check if watchdog thread spawned and if it set it ok",
+             "Watchdog thread fired too early", 1000
+             );
         }
 
         [TestMethod]
