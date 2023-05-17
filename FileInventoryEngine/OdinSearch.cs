@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
+using System.Runtime.Intrinsics.X86;
 
 namespace OdinSearchEngine
 {
@@ -17,7 +18,28 @@ namespace OdinSearchEngine
     /// </summary>
     public class OdinSearch
     {
-       
+        #region ExceptionMessages
+        /// <summary>
+        /// <see cref="InvalidOperationException"/> message when <see cref="WorkerThreadJoin"/> is called with an empty worker thread list.
+        /// </summary>
+        const string JoinEmptyWorkerThreadListExceptionMessage = "Error: Can't Join Worker Threads. Reason: No Known Threads in list.";
+        /// <summary>
+        /// <see cref="InvalidOperationException"/> message when <see cref="WorkerThreadJoin"/> is called before calling <see cref="Search(OdinSearch_OutputConsumerBase)"/>. Search sets the <see cref="SearchCalled"/> bool to true when it's called
+        /// </summary>
+        const string JoinNonEmptyWorkerThreadListBeforeCallingSearch = "Error: Attempt to Join Worker Threads before beginning search.";
+        /// <summary>
+        /// <see cref="InvalidOperationException"/> message when <see cref="Search(OdinSearch_OutputConsumerBase)"> is called and there are no Anchors in the <see cref="Anchors"/> list
+        /// </summary>
+        const string NonEmptyAnchorListEmptySplitRoots = "Ensure at list one Anchor in the list has a folder starting point.";
+        /// <summary>
+        /// <see cref = "InvalidOperationException" /> message when <see cref="Search(OdinSearch_OutputConsumerBase)"/> is called and its call to <see cref="SearchAnchor.SplitRoots"/> retursn an empty list.  
+        /// </summary>
+        const string EmptyAnchorList = "Specify where to start search.";
+        /// <summary>
+        /// <see cref = "InvalidOperationException" /> message when <see cref="Search(OdinSearch_OutputConsumerBase)"/> is called while a search is active i.e. when the worker thread list is not empty
+        /// </summary>
+        const string CantStartNewSearchWhileSearching = "Search in Progress. Workerthread != 0";
+        #endregion
         /// <summary>
         /// Reset to functionally a new blank instance
         /// </summary>
@@ -28,7 +50,8 @@ namespace OdinSearchEngine
             ClearSearchTargetList();
             
             SkipSanityCheck = true;
-            this.ThreadSynchResultsBacking = false;
+            ThreadSynchResultsBacking = false;
+            SearchCalled = false;
         }
         
 
@@ -77,10 +100,12 @@ namespace OdinSearchEngine
             /// </summary>
             public OdinSearch_OutputConsumerBase Coms;
         }
+
+
         /// <summary>
-        /// for future: 
+        /// Used to guard against a thread exception in <see cref="WorkerThreadJoin"/> if it is called begin <see cref="Search(OdinSearch_OutputConsumerBase)"/>. Search sets this to true and <see cref="WorkerThreadJoin"/> will refuse to work if not
         /// </summary>
-        readonly object TargetLock = new object();
+        bool SearchCalled = false;
 
         /// <summary>
         /// Locked when sending a match to the output aka one <see cref="OdinSearch_OutputConsumerBase"/> derived class and only if <see cref="ThreadSynchResults"/> is true
@@ -102,9 +127,28 @@ namespace OdinSearchEngine
         /// <summary>
         /// Call Thread.Join() for all worker threads spawned in the list. Your code will functionally be awaiting until it is done
         /// </summary>
+        /// <exception cref="ThreadStart">Can potentially trigger if a thread has not started yet.</exception>
+        /// <exception cref=">"
+        /// <remarks></remarks>
         public void WorkerThreadJoin()
         {
-            WorkerThreads.ForEach(p => { p.Thread.Join(); });
+            if (WorkerThreads.Count == 0)
+            {
+                throw new InvalidOperationException(JoinEmptyWorkerThreadListExceptionMessage);
+            }
+            if (SearchCalled == false)
+            {
+                throw new InvalidOperationException(JoinNonEmptyWorkerThreadListBeforeCallingSearch);
+            }
+            // This is here to also guard against premature starting
+            Thread.Sleep(200);
+            WorkerThreads.ForEach(
+                p => {
+                    if (p.Thread.ThreadState == ThreadState.Running)
+                    {
+                        p.Thread.Join();
+                    }
+                });
         }
         /// <summary>
         /// get if any of the worker threads are alive and running still.
@@ -113,6 +157,9 @@ namespace OdinSearchEngine
         {
             get
             {
+                if (WorkerThreads.Count == 0)
+                    return false;
+
                 int running_count = 0;
                 for (int step = 0; step < WorkerThreads.Count; step++)
                 {
@@ -551,7 +598,7 @@ namespace OdinSearchEngine
             SpawnThis.Start();
         }
         /// <summary>
-        /// This checks the threads in the list, if all finished, fires off a call  all Done in the first thread
+        /// This checks the threads in the list, if all finished, fires off a call to the <see cref="OdinSearch_OutputConsumerBase.AllDone"/> routine before reseting the <see cref="SearchCalled"/> flag and clearing the worker thread list
         /// </summary>
         /// <param name="Args"></param>
         void WatchdogFireAllDoneWorkerThead(WorkerThreadArgs Args)
@@ -560,28 +607,15 @@ namespace OdinSearchEngine
                 throw new ArgumentNullException(nameof(Args));
             else
             {
-                while (true)
+                if (WorkerThreads.Count > 0)
                 {
-                    bool StillRunning = false;
-                    foreach (var thread in WorkerThreads)
-                    {
-                        if (thread.Thread.ThreadState == ThreadState.Running)
-                        {
-                            StillRunning = true;
-                            break;
-                        }
-                    }
-
-                    if (!StillRunning && (WorkerThreadCount > 0))
+                    WorkerThreadJoin();
+                    if (WorkerThreads.Count > 0)
                     {
                         WorkerThreads[0].Args.Coms.AllDone();
-                        
-                        return;
                     }
-                    else
-                    {
-                        Thread.Sleep(200);
-                    }
+                    SearchCalled = false;
+                    WorkerThreads.Clear();
                 }
             }
         }
@@ -743,6 +777,10 @@ namespace OdinSearchEngine
         /// <exception cref="ArgumentNullException">Is thrown if the Coms argument is null</exception>
         public void Search(OdinSearch_OutputConsumerBase Coms)
         {
+            if (Anchors.Count <= 0)
+            {
+                throw new InvalidOperationException(EmptyAnchorList);
+            }
             if (Coms == null)
             {
                 throw new ArgumentNullException(nameof(Coms));
@@ -751,7 +789,7 @@ namespace OdinSearchEngine
             {
                 if (WorkerThreads.Count != 0)
                 {
-                    throw new InvalidOperationException("Search in Progress. Workerthread != 0");
+                    throw new InvalidOperationException(CantStartNewSearchWhileSearching);
                 }
                 else
                 {
@@ -759,7 +797,10 @@ namespace OdinSearchEngine
                     foreach (SearchAnchor Anchor in Anchors)
                     {
                         var AnchorList = Anchor.SplitRoots();
-                        
+                        if (AnchorList.Length== 0)
+                        {
+                            throw new InvalidOperationException(NonEmptyAnchorListEmptySplitRoots);
+                        }
                         foreach (SearchAnchor SmallAnchor in AnchorList)
                         {
                             Args = new();
@@ -798,7 +839,7 @@ namespace OdinSearchEngine
                         WorkerThreads.Add(Worker);
                     }
                     */
-                    WatchdogFireAllDoneSpawner(Args);
+                    
                     bool DoNotNotifyRest = false;
                     foreach (WorkerThreadWithCancelToken t in WorkerThreads)
                     {
@@ -808,6 +849,8 @@ namespace OdinSearchEngine
                         }
                         t.Thread.Start();
                     }
+                    SearchCalled = true;
+                    WatchdogFireAllDoneSpawner(Args);
                 }
             }
         }
