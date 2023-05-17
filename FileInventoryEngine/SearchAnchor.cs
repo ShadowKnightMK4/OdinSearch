@@ -243,7 +243,7 @@ namespace OdinSearchEngine
         /// <summary>
         /// Converts the this SearchAnchor to xml and saves it to a stream
         /// </summary>
-        /// <param name="output"></param>
+        /// <param name="output">Saves the xml to rebuild this <see cref="SearchAnchor"/> back via <see cref="CreateFromXmlString(string)"/></param>
         public void SaveXml(Stream output)
         {
             // build the parts
@@ -275,7 +275,7 @@ namespace OdinSearchEngine
         /// <summary>
         /// Converts the this SearchAnchor to xml and returns as a string
         /// </summary>
-        /// <returns></returns>
+        /// <returns>using <see cref="SaveXml(Stream)"/> to save to a <see cref="MemoryStream"/> before reading it back as a string</returns>
         public string ToXml()
         {
 

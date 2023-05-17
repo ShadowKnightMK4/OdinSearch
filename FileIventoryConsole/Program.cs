@@ -16,7 +16,8 @@ namespace FileIventoryConsole
         static bool WorkerMode = false;
         static void Main(string[] args)
         {
-            
+            Console.WriteLine("You got a version of this project that is intended to be tested via its UnitTests. Run the UnitTests");
+            return;
             SearchTarget ProgramFiles = new SearchTarget();
             SearchAnchor LocalStorage = new SearchAnchor();
             ProgramFiles.FileName.Add("*");
