@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace UnitTest
 {
     /// <summary>
-    /// The Search
+    /// The Search for testing the code to ensure it works and does not go up in flames
     /// </summary>
     [TestClass]
     public class UnitTests_SearchAnchor

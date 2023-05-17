@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml;
 using System.Xml.Serialization;
 
 namespace OdinSearchEngine
@@ -61,6 +62,30 @@ namespace OdinSearchEngine
             return ret;
         }
 
+
+        public void SaveXml(Stream output)
+        {
+            XmlDocument ret = new XmlDocument();
+            XmlElement BaseTag = ret.CreateElement("OdinSearchTarget");
+
+            XmlElement AccessAnchor1Tag = ret.CreateElement("AccessAnchor1");
+            XmlElement AccessAnchor2Tag = ret.CreateElement("AccessAnchor2");
+            XmlElement AccessAnchorHandle1 = ret.CreateElement("AccessAnchor1");
+
+        }
+        public string ToXml()
+        {
+            using (MemoryStream output = new MemoryStream())
+            {
+                SaveXml(output);
+                output.Position = 0;
+                byte[] buffer = new byte[output.Length];
+
+                output.Read(buffer, 0, buffer.Length);
+                string str = Encoding.UTF8.GetString(buffer);
+                return str;
+            }
+        }
         public static SearchTarget CreateFromXml(string v)
         {
             throw new NotImplementedException();
@@ -73,7 +98,7 @@ namespace OdinSearchEngine
         /// </summary>
         public SearchTarget()
         {
-            
+
         }
 
         /// <summary>
