@@ -10,7 +10,7 @@ using OdinSearchEngine;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 using System.Threading;
 using System.Diagnostics;
-
+using static OdinSearchEngine.SearchTarget;
 namespace NonSqlUnitTests
 {
     /// <summary>
@@ -97,7 +97,22 @@ namespace NonSqlUnitTests
             MakeFile(string.Empty, file2, FileAttributes.Archive);
             MakeFile(string.Empty, file3, FileAttributes.Archive | FileAttributes.Hidden);
             MakeFile(string.Empty, file4, FileAttributes.Archive | FileAttributes.Hidden);
+        }
 
+        string test4_readonly_flag_filename = null;
+        void test4_populate()
+        {
+            string targ = TestFolderFullLocation;
+            string file1 = Path.Combine(targ, "test4", "DontMatchMe.dat");
+            string file2 = Path.Combine(targ, "test4", "DontMatchMeToo.dat");
+            string file3 = Path.Combine(targ, "test4", "AlsomostMatchButNo.dat");
+            string file4 = Path.Combine(targ, "test4", "MatchThis.dat");
+            MakeFolder(targ, "test4");
+            MakeFile(string.Empty, file1, FileAttributes.Archive);
+            MakeFile(string.Empty, file2, FileAttributes.Archive);
+            MakeFile(string.Empty, file3, FileAttributes.Archive | FileAttributes.Hidden | FileAttributes.ReadOnly);
+            MakeFile(string.Empty, file4, FileAttributes.Archive | FileAttributes.Hidden);
+            test4_readonly_flag_filename = file3;
         }
 
         [TestCategory("AVD: Finding under controlled scenerios")]
@@ -139,9 +154,38 @@ namespace NonSqlUnitTests
 
         }
 
+
         [TestCategory("AVD: Finding under controlled scenerios")]
         [TestMethod]
-        public void FileFilesMatching_ArchiveButNotHidden__TEST3()
+        public void FindFilesMatching_ArchiveButNotHidden__EXACTING__TEST4()
+        {
+            OdinSearch_OutputConsumerGatherResults testresults = new OdinSearch_OutputConsumerGatherResults();
+            Demo.KillSearch();
+            Demo.ClearSearchAnchorList();
+            Demo.ClearSearchTargetList();
+
+            SearchAnchor start = new SearchAnchor(false);
+            start.AddAnchor(Path.Combine(TestFolderFullLocation, "test4"));
+            SearchTarget lookfor = new SearchTarget();
+            lookfor.AttributeMatching1 = FileAttributes.Archive| FileAttributes.Hidden;
+            lookfor.AttribMatching1Style = MatchStyleFileAttributes.MatchAll | MatchStyleFileAttributes.Exacting;
+            lookfor.AttribMatching2Style = MatchStyleFileAttributes.Skip;
+
+
+            lookfor.FileNameMatching = MatchStyleString.Skip;
+
+            Demo.AddSearchAnchor(start);
+            Demo.AddSearchTarget(lookfor);
+
+            Demo.Search(testresults);
+            Demo.WorkerThreadJoin();
+
+            Assert.IsTrue(testresults.Results.Count == 1);
+
+        }
+        [TestCategory("AVD: Finding under controlled scenerios")]
+        [TestMethod]
+        public void FindFilesMatching_ArchiveButNotHidden__NotExactingTEST3()
         {
             OdinSearch_OutputConsumerGatherResults testresults = new OdinSearch_OutputConsumerGatherResults();
             Demo.KillSearch();
@@ -153,9 +197,9 @@ namespace NonSqlUnitTests
             SearchTarget lookfor = new SearchTarget();
             lookfor.AttributeMatching1 = FileAttributes.Archive;
             lookfor.AttributeMatching2 = FileAttributes.Hidden;
-            lookfor.AttribMatching1Style = SearchTarget.MatchStyleString.MatchAll;
-            lookfor.AttribMatching2Style = SearchTarget.MatchStyleString.MatchAll | SearchTarget.MatchStyleString.Invert;
-            lookfor.FileNameMatching = SearchTarget.MatchStyleString.Skip;
+            lookfor.AttribMatching1Style = MatchStyleFileAttributes.MatchAll;
+            lookfor.AttribMatching2Style = MatchStyleFileAttributes.MatchAll | MatchStyleFileAttributes.Invert;
+            lookfor.FileNameMatching = MatchStyleString.Skip;
 
             Demo.AddSearchAnchor(start);
             Demo.AddSearchTarget(lookfor);
@@ -200,11 +244,12 @@ namespace NonSqlUnitTests
         /*
          * We create/copy stuff into the folder pointed to by TestFolderFullLocaiton based on known stats.
          */
-        void populuate_for_tests()
+        void populate_for_tests()
         {
             test1_populate();
             test2_populate();
             test3_populate();
+            test4_populate();
         }
 
 
@@ -224,7 +269,7 @@ namespace NonSqlUnitTests
              *  Not Disabling this, means those tests may fail
              */
             Demo.SkipSanityCheck = true;
-            populuate_for_tests();
+            populate_for_tests();
         }
 
 
@@ -238,7 +283,10 @@ namespace NonSqlUnitTests
             
             if (Directory.Exists(TestFolderFullLocation))
             {
-                
+                if (test4_readonly_flag_filename!= null)
+                {
+                    File.SetAttributes(test4_readonly_flag_filename, FileAttributes.Normal);
+                }
                 Directory.Delete(TestFolderFullLocation, true);
             }
         }
