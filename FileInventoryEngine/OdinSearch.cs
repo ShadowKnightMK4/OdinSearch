@@ -354,27 +354,37 @@ namespace OdinSearchEngine
                 }
                 return true;
             }
-            bool AttribCheck(SearchTarget.MatchStyleString HowToCompare, FileAttributes SearchTargetCompare, FileAttributes FileInfoCompare)
+            bool AttribCheck(SearchTarget.MatchStyleFileAttributes HowToCompare, FileAttributes SearchTargetCompare, FileAttributes FileInfoCompare)
             {
                 bool CompareMe = false;
                 
                 // treat check if true if no attributeres were specified or normal was
-                if  ( (HowToCompare == MatchStyleString.Skip) || ( (SearchTargetCompare == FileAttributes.Normal) || (SearchTargetCompare == 0)))
+                if  ( (HowToCompare == MatchStyleFileAttributes.Skip) || ( (SearchTargetCompare == FileAttributes.Normal) || (SearchTargetCompare == 0)))
                 {
                     return true;
                 }
                 else
                 {
-                    if (HowToCompare.HasFlag(MatchStyleString.MatchAll))
+                    if (HowToCompare.HasFlag(MatchStyleFileAttributes.MatchAll))
                     {
-                        if ((SearchTargetCompare & FileInfoCompare) == (SearchTargetCompare))
+                        if (HowToCompare.HasFlag(MatchStyleFileAttributes.Exacting))
                         {
-                            CompareMe = true;
+                            if (SearchTargetCompare == FileInfoCompare)
+                            {
+                                CompareMe = true;
+                            }
+                        }
+                        else
+                        {
+                            if ((SearchTargetCompare & FileInfoCompare) == (SearchTargetCompare))
+                            {
+                                CompareMe = true;
+                            }
                         }
                     }
                     else
                     {
-                        if (HowToCompare.HasFlag(MatchStyleString.MatchAny))
+                        if (HowToCompare.HasFlag(MatchStyleFileAttributes.MatchAny))
                         {
                             if ((SearchTargetCompare & FileInfoCompare) != 0)
                             {
@@ -384,7 +394,7 @@ namespace OdinSearchEngine
                     }
 
 
-                    if (HowToCompare.HasFlag(MatchStyleString.Invert))
+                    if (HowToCompare.HasFlag(MatchStyleFileAttributes.Invert))
                     {
                         CompareMe = (CompareMe != true);
                     }
@@ -413,7 +423,7 @@ namespace OdinSearchEngine
 
             if ((SearchTarget.SearchTarget.AttributeMatching2 != FileAttributes.Normal) && (SearchTarget.SearchTarget.AttributeMatching2 != 0))
             {
-                bool result = AttribCheck(SearchTarget.SearchTarget.AttribMatching1Style, SearchTarget.SearchTarget.AttributeMatching1, Info.Attributes);
+                bool result = AttribCheck(SearchTarget.SearchTarget.AttribMatching2Style, SearchTarget.SearchTarget.AttributeMatching2, Info.Attributes);
                 if (!result)
                 {
                     FinalMatch = false;
@@ -422,7 +432,7 @@ namespace OdinSearchEngine
             }
 
             // if the filename check has not been disabled
-            if (!SearchTarget.SearchTarget.FileNameMatching.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.Skip))
+            if (!SearchTarget.SearchTarget.FileNameMatching.HasFlag(MatchStyleString.Skip))
             {
                 /* This is a pecial case in <the Convert to RegEx routine.
                  * Empty list means we're functionally matching ALL file name combinations
@@ -498,7 +508,7 @@ namespace OdinSearchEngine
 
 
 
-            if (SearchTarget.SearchTarget.AccessAnchorCheck1 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
+            if (SearchTarget.SearchTarget.AccessAnchorCheck1 != MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.AccessAnchorCheck1, SearchTarget.SearchTarget.AccessAnchor, Info.LastAccessTime);
                 if (!result)
@@ -508,7 +518,7 @@ namespace OdinSearchEngine
                 }
             }
 
-            if (SearchTarget.SearchTarget.AccessAnchorCheck2 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
+            if (SearchTarget.SearchTarget.AccessAnchorCheck2 != MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.AccessAnchorCheck2, SearchTarget.SearchTarget.AccessAnchor, Info.LastAccessTime);
                 if (!result)
@@ -518,7 +528,7 @@ namespace OdinSearchEngine
                 }
             }
 
-            if (SearchTarget.SearchTarget.WriteAnchorCheck1 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
+            if (SearchTarget.SearchTarget.WriteAnchorCheck1 != MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.WriteAnchorCheck1, SearchTarget.SearchTarget.CreationAnchor, Info.LastWriteTime);
                 if (!result)
@@ -528,7 +538,7 @@ namespace OdinSearchEngine
                 }
             }
 
-            if (SearchTarget.SearchTarget.WriteAnchorCheck2 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
+            if (SearchTarget.SearchTarget.WriteAnchorCheck2 != MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.WriteAnchorCheck2, SearchTarget.SearchTarget.CreationAnchor, Info.LastWriteTime);
                 if (!result)
@@ -538,7 +548,7 @@ namespace OdinSearchEngine
                 }
             }
 
-            if (SearchTarget.SearchTarget.CreationAnchorCheck1 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
+            if (SearchTarget.SearchTarget.CreationAnchorCheck1 != MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.CreationAnchorCheck1, SearchTarget.SearchTarget.CreationAnchor, Info.CreationTime);
                 if (!result)
@@ -548,7 +558,7 @@ namespace OdinSearchEngine
                 }
             }
 
-            if (SearchTarget.SearchTarget.CreationAnchorCheck2 != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
+            if (SearchTarget.SearchTarget.CreationAnchorCheck2 != MatchStyleDateTime.Disable)
             {
                 bool result = DateCheck(SearchTarget.SearchTarget.CreationAnchorCheck2, SearchTarget.SearchTarget.CreationAnchor, Info.CreationTime);
                 if (!result)
