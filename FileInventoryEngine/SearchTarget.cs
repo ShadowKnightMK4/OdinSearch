@@ -179,13 +179,13 @@ namespace OdinSearchEngine
         /// <summary>
         /// How to comare <see cref="AttributeMatching1"/> with possible entries
         /// </summary>
-        public MatchStyleString AttribMatching1Style = MatchStyleString.Skip;
+        public MatchStyleFileAttributes AttribMatching1Style = MatchStyleFileAttributes.Skip;
 
         /// <summary>
         /// Expression that's (by default) compared to be LACKING in <see cref="FileInfoExtract.FileAttributes"/>
         /// </summary>
         public FileAttributes AttributeMatching2 =  FileAttributes.Normal;
-        public MatchStyleString AttribMatching2Style = MatchStyleString.Invert | MatchStyleString.Skip;
+        public MatchStyleFileAttributes AttribMatching2Style = MatchStyleFileAttributes.Invert | MatchStyleFileAttributes.Skip;
 
 
         /// <summary>
@@ -231,20 +231,53 @@ namespace OdinSearchEngine
         }
 
         /// <summary>
+        /// These Attributes indicate how to fail with <see cref="FileAttributes"/> matching
+        /// </summary>
+        [Flags]
+        public enum MatchStyleFileAttributes
+        {
+            /// <summary>
+            /// Match at least attribute item in the file / folder's attributes.  Invert means at least one attribute specified must not be there
+            /// </summary>
+            MatchAny = 1,
+            /// <summary>
+            /// The file/folder must contain the <see cref="SearchTarget"/> attributes specified. It can contain others also unless <see cref="Exacting"/> is also set
+            /// </summary>
+            MatchAll = 2,
+            /// <summary>
+            /// When comparing <see cref="SearchTarget"/> file attributes, the match is a bool value, invert the result before dealing with it.
+            /// </summary>
+            Invert = 4,
+            /// <summary>
+            /// For MatchAll, this means that the file/folder cannot have additional flags beyond what the <see cref="SearchTarget"/> wants or it fails
+            /// </summary>
+            Exacting = 8,
+            /// <summary>
+            /// Disable the check
+            /// </summary>
+            Skip = 16,
+            /// <summary>
+            /// ReservedForFuture
+            /// </summary>
+            Reserved = 32
+        }
+
+        [Flags]
+        /// <summary>
         /// Tell the search what to do with the string based search input
         /// </summary>
         public enum MatchStyleString
         {
             /// <summary>
-            /// Match at least one item in the list.  Invert means at least one of the items in the list must NOT be there
+            /// Match at least string item in the list.  Invert means at least one string specified must not be there
             /// </summary>
             MatchAny = 1,
             /// <summary>
-            /// Match all in the list. Invert means NO entries must match or the search values.
+            /// Match all string items in the list. Invert means NO entries must match or the search values.
             /// </summary>
             MatchAll = 2,
             /// <summary>
-            /// binary '!' on the match i.e. must NOT match.
+            /// A sucessful match to the target fails the compaire i.e. now this part of the <see cref="SearchTarget"/> specifies what it must NOT match
             /// </summary>
             Invert = 4,
             [Obsolete("Not Implemented")]
@@ -257,7 +290,7 @@ namespace OdinSearchEngine
             /// </summary>
             Skip =16,
             /// <summary>
-            /// Add to make the search string case sensisitve. Has not effect if not comparing strings.
+            /// Add to make the search string case sensitive.
             /// </summary>
             CaseImportant = 32
         }
