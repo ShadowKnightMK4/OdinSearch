@@ -8,13 +8,85 @@ using System.Threading.Tasks;
 namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
 
-    
+    public class ArgumentNotFoundException : KeyNotFoundException
+    { 
+        public ArgumentNotFoundException() { }  
+        public ArgumentNotFoundException(string message) : base(message) { }
+    }
+
 
     /// <summary>
     /// The OdinSearch class Search Threads use this class to send output/communications to your code.
     /// </summary>
     public abstract class OdinSearch_OutputConsumerBase : IDisposable
     {
+
+        protected bool ArgCheck(string RequiredArg)
+        {
+            if (RequiredArg == null)
+                return true;
+            else
+                return CustomParameters.Keys.Contains(RequiredArg);
+        }
+
+        /// <summary>
+        /// Return if these strings are in our custom argument list
+        /// </summary>
+        /// <param name="RequiredArgs"></param>
+        /// <returns></returns>
+        protected bool ArgCheck(string[] RequiredArgs)
+        {
+            if (RequiredArgs.Length == 0)
+            {
+                return true;
+            }
+            foreach (string s in RequiredArgs)
+            {
+                if (!ArgCheck(s))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Get the names of set custom parameters for your class. 
+        /// </summary>
+        /// <returns></returns>
+        public string[] GetCustomParameterNames()
+        {
+            return CustomParameters.Keys.ToArray();
+        }
+
+        public void SetCustomParamter(string name, object val)
+        {
+            CustomParameters[name] = val;
+        }
+
+
+        public object this[string ArgName]
+        {
+            get
+            {
+                try
+                {
+                    var ret = CustomParameters[ArgName];
+                    return ret;
+                }
+                catch (KeyNotFoundException)
+                {
+                    throw new ArgumentNotFoundException(ArgName);
+                }
+            }
+            set
+            {
+                CustomParameters[ArgName] = value;
+            }
+        }
+
+
+        private Dictionary<string, object> CustomParameters = new();
         public bool Disposed { get; protected set; }
         /// <summary>
         /// For Future. Set if you want the WasNotMatched called for each time. This does NOTHING Currently.
@@ -87,6 +159,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// </summary>
         /// <param name="Start">DateTime of call</param>
         /// <returns>Your routine should return true to continue being called for the rest of the threads or false if just a single notify is enough</returns>
+        /// <exception cref="InvalidOperationException">A subclass may throw Exceptions if a required custom arg is not set. That will stop the search from started</exception>
         public virtual bool SearchBegin(DateTime Start)
         {
             return false;
