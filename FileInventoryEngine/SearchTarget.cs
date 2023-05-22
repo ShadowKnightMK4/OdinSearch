@@ -14,26 +14,39 @@ namespace OdinSearchEngine
     /// </summary>
     public class SearchTarget
     {
-
-
         /// <summary>
-        /// Call <see cref="ConvertFileNameToRegEx(SearchTarget)"/> and specific this
+        /// When added to <see cref="FileName"/> as in item, causes the compare to match sucessfully against any file.
         /// </summary>
-        /// <remarks>same as calling <see cref="SearchTarget.ConvertFileNameToRegEx"/> and passing this</remarks>
-        /// <returns>returns a list of RegEx instances to match the possible file names in the target</returns>
-        public List<Regex> ConvertFileNameToRegEx()
+        public const string MatchAnyFile = "*";
+
+        internal enum ConvertToRegExMode
         {
-            return ConvertFileNameToRegEx(this);
+            WantFileNameRegs = 1,
+            WantDirectoryNameRegs = 2,
         }
+
+
         /// <summary>
-        /// Convert The passed SearchTarget file names to a matching RegEx list
+        ///  internal class used to convert lists of strings to lists of predone REGEX expresses. 
         /// </summary>
-        /// <param name="Target">which one to work on</param>
-        /// <returns>returns a list of RegEx instances to match the possible file names in the target</returns>
-        public static List<Regex> ConvertFileNameToRegEx(SearchTarget Target)
+        /// <param name="Target">what to work on</param>
+        /// <param name="mode">mode to use</param>
+        /// <returns></returns>
+        internal static List<Regex> ConvertToRegEx(SearchTarget Target, ConvertToRegExMode mode)
         {
+            List<string> loopthru = null;
+            
+            if ((mode & ConvertToRegExMode.WantFileNameRegs | ConvertToRegExMode.WantDirectoryNameRegs) == 0)
+            {
+                throw new InvalidOperationException("Internal ConverToRegEx() with unspecified mode");
+            }
+            if (mode.HasFlag(ConvertToRegExMode.WantFileNameRegs))
+                loopthru = Target.FileName;
+            if (mode.HasFlag(ConvertToRegExMode.WantDirectoryNameRegs))
+                loopthru = Target.DirectoryPath;
+
             var ret = new List<Regex>();
-            foreach (string s in Target.FileName)
+            foreach (string s in loopthru)
             {
                 string pattern;
 
@@ -43,7 +56,7 @@ namespace OdinSearchEngine
                  * This is hard coded to returning a clear regex list. The code that does the searching treats
                  * it as disabling the file name compare since any file name will match
                  * */
-                if (pattern == "^.*$") 
+                if (pattern == "^.*$")
                 {
                     ret.Clear();
                     return ret;
@@ -60,9 +73,45 @@ namespace OdinSearchEngine
             }
 
             return ret;
+
+        }
+        /// <summary>
+        /// Call <see cref="ConvertFileNameToRegEx(SearchTarget)"/> and specific this
+        /// </summary>
+        /// <remarks>same as calling <see cref="SearchTarget.ConvertFileNameToRegEx"/> and passing this</remarks>
+        /// <returns>returns a list of RegEx instances to match the possible file names in the target</returns>
+        public List<Regex> ConvertFileNameToRegEx()
+        {
+            return ConvertFileNameToRegEx(this);
+        }
+        /// <summary>
+        /// Convert The passed SearchTarget file names to a matching RegEx list
+        /// </summary>
+        /// <param name="Target">which one to work on</param>
+        /// <returns>returns a list of RegEx instances to match the possible file names in the target</returns>
+        public static List<Regex> ConvertFileNameToRegEx(SearchTarget Target)
+        {
+            return ConvertToRegEx(Target, ConvertToRegExMode.WantFileNameRegs);
         }
 
-
+        /// <summary>
+        /// Convert SearchTarget Directry names to a matching RegEx list
+        /// </summary>
+        /// <param name="Target">which to work on</param>
+        /// <returns>returns a list of RegEx instances to match the possible folders in the target </returns>
+        public List<Regex> ConvertDirectoryPathToRegEx()
+        {
+            return ConvertDirectoryPathToRegEx(this);
+        }
+        /// <summary>
+        /// Convert the passed SearchTarget Directry names to a matching RegEx list
+        /// </summary>
+        /// <param name="Target">which to work on</param>
+        /// <returns>returns a list of RegEx instances to match the possible folders in the target </returns>
+        public static List<Regex> ConvertDirectoryPathToRegEx(SearchTarget Target)
+        {
+            return ConvertToRegEx(Target, ConvertToRegExMode.WantDirectoryNameRegs);
+        }
         public void SaveXml(Stream output)
         {
             XmlDocument ret = new XmlDocument();
@@ -71,10 +120,11 @@ namespace OdinSearchEngine
             XmlElement AccessAnchor1Tag = ret.CreateElement("AccessAnchor1");
             XmlElement AccessAnchor2Tag = ret.CreateElement("AccessAnchor2");
             XmlElement AccessAnchorHandle1 = ret.CreateElement("AccessAnchor1");
-
+            throw new NotImplementedException();
         }
         public string ToXml()
         {
+            throw new NotImplementedException();
             using (MemoryStream output = new MemoryStream())
             {
                 SaveXml(output);
@@ -94,7 +144,7 @@ namespace OdinSearchEngine
 
 
         /// <summary>
-        /// Make an instance of this class where it matches existing files
+        /// Make a blank instance of this class.
         /// </summary>
         public SearchTarget()
         {
@@ -273,8 +323,9 @@ namespace OdinSearchEngine
             /// </summary>
             MatchAny = 1,
             /// <summary>
-            /// Match all string items in the list. Invert means NO entries must match or the search values.
+            /// DEFAULT if no match is specified. Match all string items in the list. Invert means NO entries must match or the search values.
             /// </summary>
+            /// <remarks>If neither <see cref="MatchAll"/> or <see cref="MatchAny"/> are specified a <see cref="SearchTarget.FileName"/> or <see cref="SearchTarget.DirectoryPath"/> default is <see cref="MatchAll"/></remarks>
             MatchAll = 2,
             /// <summary>
             /// A sucessful match to the target fails the compaire i.e. now this part of the <see cref="SearchTarget"/> specifies what it must NOT match
@@ -282,9 +333,9 @@ namespace OdinSearchEngine
             Invert = 4,
             [Obsolete("Not Implemented")]
             /// <summary>
-            /// This must be sucessfully match (or invert match) or the search fails.
+            /// Reserved for future. Currently not used for this enum.
             /// </summary>
-            ReservedUnusedCritical = 8,
+            ReservedUnused = 8,
             /// <summary>
             /// Disable this matching.. 
             /// </summary>
