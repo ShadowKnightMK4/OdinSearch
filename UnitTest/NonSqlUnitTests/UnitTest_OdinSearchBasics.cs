@@ -12,6 +12,9 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollector.InProcDataCo
 
 namespace UnitTest
 {
+    /// <summary>
+    /// This class ensures we can spawn the search, get data from it and that it can start ok. 
+    /// </summary>
     [TestClass]
     public class UnitTest_OdinSearchBasics
     {
@@ -136,7 +139,7 @@ namespace UnitTest
 
             Demo.AddSearchAnchor(TestAnchor);
             Demo.AddSearchTarget(TestSearch);
-            TestSearch.FileName.Add("*");
+            TestSearch.FileName.Add(SearchTarget.MatchAnyFile);
 
             try
             {
