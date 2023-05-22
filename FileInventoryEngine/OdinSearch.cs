@@ -1,15 +1,13 @@
-﻿using System;
+﻿using OdinSearchEngine.OdinSearch_OutputConsumerTools;
+using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Collections.ObjectModel;
-using System.Runtime.CompilerServices;
-using OdinSearchEngine.OdinSearch_OutputConsumerTools;
-using System.Runtime.Intrinsics.X86;
+using System.Threading;
 using static OdinSearchEngine.SearchTarget;
+
+
 namespace OdinSearchEngine
 {
 
@@ -39,6 +37,10 @@ namespace OdinSearchEngine
         /// <see cref = "InvalidOperationException" /> message when <see cref="Search(OdinSearch_OutputConsumerBase)"/> is called while a search is active i.e. when the worker thread list is not empty
         /// </summary>
         const string CantStartNewSearchWhileSearching = "Search in Progress. Workerthread != 0";
+        /// <summary>
+        /// <see cref = "InvalidOperationException" /> message when <see cref="Search(OdinSearch_OutputConsumerBase)"/> is called when the <see cref="SanityChecks(WorkerThreadArgs)"/> routine returns false.  
+        /// </summary>
+        const string SanityCheckFailureMessage = "Sanity Check test failed. Search May not work as intended.  To disable Sanity Check set the DisableSanityCheck flag to true";
         #endregion
         /// <summary>
         /// Reset to functionally a new blank instance
@@ -72,11 +74,14 @@ namespace OdinSearchEngine
         {
             public SearchTargetPreDoneRegEx(SearchTarget SearchTarget)
             {
-                PreDoneRegEx = SearchTarget.ConvertFileNameToRegEx();
+                PreDoneRegExFileName = SearchTarget.ConvertFileNameToRegEx();
                 this.SearchTarget = SearchTarget;
+
+                PreDoneRegExDirectoryName = SearchTarget.ConvertDirectoryPathToRegEx();
             }
             public SearchTarget SearchTarget;
-            public List<Regex> PreDoneRegEx;
+            public List<Regex> PreDoneRegExFileName;
+            public List<Regex> PreDoneRegExDirectoryName;
         }
         /// <summary>
         /// This class is passed to the worker thread as an argument
@@ -304,6 +309,10 @@ namespace OdinSearchEngine
         /// <remarks>Honstestly just returns true with this current build</remarks>
         bool SanityChecks(WorkerThreadArgs Arg)
         {
+            // TODO:  Ensure conflicting filename and DirectoryName can actually match. For example, we're not attempting to compare contrarray
+            //  settings in the filename array and directory path
+            // TODO: Ensure we can have allowable file attributes. For example we're not wanting something that's botha file and a file.
+            System.Diagnostics.Debug.Write("Add code SanityCheck() routine");
             return true;
         }
 
@@ -323,6 +332,63 @@ namespace OdinSearchEngine
             bool MatchedOne = false;
             bool MatchedFailedOne = false;
 
+            bool StringCheck(SearchTarget.MatchStyleString HowToCompare, List<Regex> TestValues, string TestAgainst, out bool MatchAll, out bool MatchAny)
+            {
+                uint MatchCount = 0;
+                bool CompareMe = false;
+                MatchAll = false;
+                MatchAny = false;
+                if ( (MatchStyleString.MatchAll & MatchStyleString.MatchAny & HowToCompare) == 0)
+                {
+                    HowToCompare |= MatchStyleString.MatchAll;
+                }
+                // a plan regex list for this code means we sucessfully match any file. Also skip.
+                if ((HowToCompare == MatchStyleString.Skip) || (TestValues.Count == 0))
+                {
+                    MatchAll = MatchAny = true;
+                    return true;
+                }
+                else
+                {
+                    foreach (Regex comparethis in TestValues)
+                    {
+                        if (comparethis.IsMatch(TestAgainst))
+                        {
+                            MatchCount++;
+                            MatchAny = true;
+                        }
+                    }
+
+                    if (HowToCompare.HasFlag(MatchStyleString.MatchAll))
+                    {
+                        if (MatchCount > 0)
+                            MatchAny = true;
+                        if (MatchCount != TestValues.Count)
+                        {
+                            MatchAll = false;
+                        }
+                        else
+                        {
+                            MatchAll = true;
+                        }
+                    }
+                    if (HowToCompare.HasFlag(MatchStyleString.Invert))
+                    {
+                        MatchAny = (MatchAny != true);
+                        MatchAll = (MatchAll != true);
+                    }
+
+                    if (HowToCompare.HasFlag(MatchStyleString.MatchAll))
+                    {
+                        return MatchAll;
+                    }
+                    if (HowToCompare.HasFlag(MatchStyleString.MatchAny))
+                    {
+                        return MatchAny;
+                    }
+                    return false;
+                }
+            }
             bool DateCheck(SearchTarget.MatchStyleDateTime HowToCompare, DateTime SearchTargetCompare, DateTime FileInfoCompare)
             {
                 if (HowToCompare != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
@@ -431,12 +497,21 @@ namespace OdinSearchEngine
                 }
             }
 
+
             // if the filename check has not been disabled
             if (!SearchTarget.SearchTarget.FileNameMatching.HasFlag(MatchStyleString.Skip))
             {
-                /* This is a pecial case in <the Convert to RegEx routine.
-                 * Empty list means we're functionally matching ALL file name combinations
-                 */
+                bool MatchAny, MatchAll;
+                bool result = StringCheck(SearchTarget.SearchTarget.FileNameMatching, SearchTarget.PreDoneRegExFileName, Info.Name, out MatchAny, out MatchAll);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+
+                // This is a pecial case in <the Convert to RegEx routine.
+                // Empty list means we're functionally matching ALL file name combinations
+                /*
                 if (SearchTarget.PreDoneRegEx.Count == 0)
                 {
                     MatchedOne = true;
@@ -454,7 +529,7 @@ namespace OdinSearchEngine
                             MatchedFailedOne = true;
                         }
                     }
-                }
+                }*/
                 /*
                  * MatchOne & MatchFailOne true means we're not a match all
                  * 
@@ -462,6 +537,7 @@ namespace OdinSearchEngine
                  * 
                  * MatchOne false and MatchFail false means nothing matched
                  * */
+                /*
                 if (SearchTarget.SearchTarget.FileNameMatching.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.MatchAll))
                 {
                     if (SearchTarget.SearchTarget.FileNameMatching.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.Invert))
@@ -500,9 +576,21 @@ namespace OdinSearchEngine
                             goto exit;
                         }
                     }
-                }
+                }*/
             }
 
+
+            // if the pareny check has not been diabled
+            if (!SearchTarget.SearchTarget.DirectoryMatching.HasFlag(MatchStyleString.Skip))
+            {
+                bool MatchAny, MatchAll;
+                bool result = StringCheck(SearchTarget.SearchTarget.DirectoryMatching, SearchTarget.PreDoneRegExDirectoryName, Info.Name, out MatchAny, out MatchAll);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
             MatchedOne = false;
             MatchedFailedOne = false;
 
@@ -845,6 +933,15 @@ namespace OdinSearchEngine
                             Args.StartFrom = SmallAnchor;
                             Args.Targets.AddRange(Targets);
                             Args.Coms = Coms;
+
+                            if (!SkipSanityCheck)
+                            {
+                                // TODO: SanityCheck is there to catch theority inpossible matching.
+                                if (!SanityChecks(Args))
+                                {
+                                    throw new InvalidOperationException(SanityCheckFailureMessage);
+                                }
+                            }
 
                             WorkerThreadWithCancelToken Worker = new WorkerThreadWithCancelToken();
                             Worker.Thread = new Thread(() => ThreadWorkerProc(Args));
