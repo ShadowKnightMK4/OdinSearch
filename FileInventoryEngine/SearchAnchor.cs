@@ -365,7 +365,7 @@ namespace OdinSearchEngine
             return ret;
 
         }
-
+        
         public override bool Equals(object obj)
         {
             return Equals(obj as SearchAnchor);
