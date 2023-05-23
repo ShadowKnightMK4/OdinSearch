@@ -584,7 +584,7 @@ namespace OdinSearchEngine
             if (!SearchTarget.SearchTarget.DirectoryMatching.HasFlag(MatchStyleString.Skip))
             {
                 bool MatchAny, MatchAll;
-                bool result = StringCheck(SearchTarget.SearchTarget.DirectoryMatching, SearchTarget.PreDoneRegExDirectoryName, Info.Name, out MatchAny, out MatchAll);
+                bool result = StringCheck(SearchTarget.SearchTarget.DirectoryMatching, SearchTarget.PreDoneRegExDirectoryName, Info.FullName, out MatchAny, out MatchAll);
                 if (!result)
                 {
                     FinalMatch = false;

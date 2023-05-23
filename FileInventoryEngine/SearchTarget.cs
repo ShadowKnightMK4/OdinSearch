@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -12,7 +13,7 @@ namespace OdinSearchEngine
     /// <summary>
     /// Indicate what will be searched for.
     /// </summary>
-    public class SearchTarget
+    public class SearchTarget: IEquatable<SearchTarget>
     {
         /// <summary>
         /// When added to <see cref="FileName"/> as in item, causes the compare to match sucessfully against any file.
@@ -54,7 +55,7 @@ namespace OdinSearchEngine
                 pattern = pattern.Replace("\\*", ".*").Replace("\\?", ".");
                 /* this is the match anything regexpression for.
                  * This is hard coded to returning a clear regex list. The code that does the searching treats
-                 * it as disabling the file name compare since any file name will match
+                 * it skipping the compare and treating it as a positivbematch.
                  * */
                 if (pattern == "^.*$")
                 {
@@ -112,6 +113,12 @@ namespace OdinSearchEngine
         {
             return ConvertToRegEx(Target, ConvertToRegExMode.WantDirectoryNameRegs);
         }
+
+        /// <summary>
+        /// Save this <see cref="SearchTarget"/> as XML to a stream
+        /// </summary>
+        /// <param name="output"></param>
+        /// <exception cref="NotImplementedException">Throws this</exception>
         public void SaveXml(Stream output)
         {
             XmlDocument ret = new XmlDocument();
@@ -120,11 +127,22 @@ namespace OdinSearchEngine
             XmlElement AccessAnchor1Tag = ret.CreateElement("AccessAnchor1");
             XmlElement AccessAnchor2Tag = ret.CreateElement("AccessAnchor2");
             XmlElement AccessAnchorHandle1 = ret.CreateElement("AccessAnchor1");
+
+
             throw new NotImplementedException();
+
+
+            ret.Save(output);
         }
+
+        /// <summary>
+        /// Conert this <see cref="SearchTarget"/> to xmland return it.
+        /// </summary>
+        /// <returns>string containing the xml.</returns>
+        /// <exception cref="NotImplementedException">Due this calling <see cref="SaveXml(Stream)"/>, it will always throw this until that's coded</exception>
         public string ToXml()
         {
-            throw new NotImplementedException();
+            
             using (MemoryStream output = new MemoryStream())
             {
                 SaveXml(output);
@@ -139,6 +157,133 @@ namespace OdinSearchEngine
         public static SearchTarget CreateFromXml(string v)
         {
             throw new NotImplementedException();
+        }
+
+        public override int GetHashCode()
+        {
+            int hash = HashCode.Combine(this.AttributeMatching1, AttributeMatching2, AttribMatching2Style, AttribMatching1Style, this.FileNameMatching, FileSizeMax, FileSizeMax, FileSizeMax);
+            hash = HashCode.Combine(hash, this.AccessAnchor, AccessAnchor2, AccessAnchorCheck1, AccessAnchorCheck2, this.AttribMatching1Style, AttribMatching2Style, AttributeMatching1);
+            hash = HashCode.Combine(hash, AttributeMatching2, this.CheckFileSize, this.CreationAnchor, CreationAnchor2, CreationAnchorCheck1, CreationAnchorCheck2, this.DirectoryMatching);
+            
+            if (this.FileName != null)
+            {
+                foreach(string s in this.FileName)
+                {
+                    hash = HashCode.Combine(hash, s.GetHashCode());
+                }
+            }
+            else
+            {
+                hash = HashCode.Combine(hash, FileName);
+            }
+
+            if (this.DirectoryPath != null)
+            {
+                foreach (string s in this.DirectoryPath)
+                {
+                    hash = HashCode.Combine(hash, s.GetHashCode());
+                }
+            }
+            else
+            {
+                hash = HashCode.Combine(hash, DirectoryPath);
+            }
+
+            return hash;
+
+
+        }
+
+        public static bool operator ==(SearchTarget left, SearchTarget right)
+        {
+            return EqualityComparer<SearchTarget>.Default.Equals(left, right);
+        }
+
+        public static bool operator !=(SearchTarget left, SearchTarget right)
+        {
+            return !(left == right);
+        }
+
+
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as SearchTarget);
+        }
+        public bool Equals(SearchTarget other)
+        {
+            // does a and b count match and do each list contain the same items.
+            bool stringListCompare(List<string> a, List<string> b)
+            {
+                if ((a != null) && (b != null))
+                {
+                    if (a.Count != b.Count)
+                        return false;
+                    else
+                    {
+                        for (int step = 0; step < a.Count; step++)
+                        {
+                            if (b.Find(p => { return (p == a[step]); }) == null)
+                            {
+                                return false;
+                            }
+                        }
+
+
+                        for (int step = 0; step < b.Count; step++)
+                        {
+                            if (a.Find(p => { return (p == b[step]); }) == null)
+                            {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+            if (other == null) return false;
+
+            if (this.CreationAnchor != other.CreationAnchor) return false;
+            if (this.CreationAnchor2 != other.CreationAnchor2) return false;
+            if (this.AccessAnchor != other.AccessAnchor) return false;
+            if (this.AccessAnchor2 != other.AccessAnchor2) return false;
+            if (this.WriteAnchor != other.WriteAnchor) return false;
+            if (this.WriteAnchor2 != other.WriteAnchor2) return false;
+            if (this.CreationAnchorCheck1 != other.CreationAnchorCheck1) return false;
+            if (this.CreationAnchorCheck2 != other.CreationAnchorCheck2) return false;
+            if (this.AccessAnchorCheck1 != other.AccessAnchorCheck1) return false;
+            if (this.AccessAnchorCheck2 != other.AccessAnchorCheck2) return false;
+            if (this.WriteAnchorCheck1 != other.WriteAnchorCheck1) return false;
+            if (this.WriteAnchorCheck2 != other.WriteAnchorCheck2) return false;
+
+
+            if (stringListCompare(this.FileName, other.FileName) == false) return false;
+            if (this.FileNameMatching != other.FileNameMatching) return false;
+
+
+            if (stringListCompare(this.DirectoryPath, other.DirectoryPath) == false)
+            if (this.DirectoryMatching != other.DirectoryMatching) return false;
+
+
+
+            if (this.AttributeMatching1 != other.AttributeMatching1) return false;
+            if (this.AttributeMatching2 != other.AttributeMatching2) return false;
+
+
+
+            if (this.FileSizeMax != other.FileSizeMax) return false;
+            if (this.FileSizeMin != other.FileSizeMin) return false;
+            if (this.CheckFileSize != other.CheckFileSize) return false;
+
+
+            if (this.AttribMatching1Style != other.AttribMatching1Style) return false;
+            if (this.AttribMatching2Style != other.AttribMatching2Style) return false;
+
+
+
+
+            return true;
+
         }
 
 
@@ -217,7 +362,7 @@ namespace OdinSearchEngine
         public MatchStyleString FileNameMatching = MatchStyleString.MatchAny;
 
         /// <summary>
-        /// REGEX expressthat that's compared against <see cref="FileInfoExtract.ParentLocationPath"/>
+        /// REGEX expressthat that's compared against <see cref="FileInfoExtract.FullName"/>
         /// </summary>
         public readonly List<string> DirectoryPath = new List<string>() ;
         public MatchStyleString DirectoryMatching = MatchStyleString.MatchAny;
