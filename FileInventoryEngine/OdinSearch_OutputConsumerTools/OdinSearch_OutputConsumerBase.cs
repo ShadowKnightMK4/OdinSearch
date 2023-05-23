@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
 
+    /// <summary>
+    /// A thinly wrapped <see cref="KeyNotFoundException"/> for argument access
+    /// </summary>
     public class ArgumentNotFoundException : KeyNotFoundException
     { 
         public ArgumentNotFoundException() { }  
@@ -58,13 +61,40 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         {
             return CustomParameters.Keys.ToArray();
         }
-
-        public void SetCustomParamter(string name, object val)
+        /// <summary>
+        /// Set a custom argument.
+        /// </summary>
+        /// <param name="name">argument name</param>
+        /// <param name="val">argument value</param>
+        public void SetCustomParameter(string name, object val)
         {
             CustomParameters[name] = val;
         }
 
+        /// <summary>
+        /// Get custom argument
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNotFoundException">Is thown if its not there.</exception>
+        public object GetCustomParameter(string name)
+        {
+            try
+            {
+                return CustomParameters[name];
+            }
+            catch (KeyNotFoundException e)
+            {
+                throw new ArgumentNotFoundException(e.Message);
+            }
+        }
 
+        /// <summary>
+        /// Acess or set any custom arguments for this <see cref="OdinSearch_OutputConsumerBase"/> class type
+        /// </summary>
+        /// <param name="ArgName"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNotFoundException"></exception>
         public object this[string ArgName]
         {
             get
@@ -86,7 +116,10 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         }
 
 
-        private Dictionary<string, object> CustomParameters = new();
+        /// <summary>
+        /// Custom arguments are stored here.  Should they require a call to Dipose when done, implement Dispose in your subclass to do this.
+        /// </summary>
+        protected readonly Dictionary<string, object> CustomParameters = new();
         public bool Disposed { get; protected set; }
         /// <summary>
         /// For Future. Set if you want the WasNotMatched called for each time. This does NOTHING Currently.
