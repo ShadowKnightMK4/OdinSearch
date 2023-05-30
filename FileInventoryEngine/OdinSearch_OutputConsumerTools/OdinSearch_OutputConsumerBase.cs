@@ -150,7 +150,6 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// For Future: OdinSearch does not call this.
         /// </summary>
         /// <param name="info"></param>
-        /// <exception cref="NotImplementedException">Throws this</exception>
         public virtual void WasNotMatched(FileSystemInfo info)
         {
             if (TimesNoMatchCalled != UInt128.MaxValue)
