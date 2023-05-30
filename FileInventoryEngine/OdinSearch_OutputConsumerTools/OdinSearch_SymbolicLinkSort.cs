@@ -90,7 +90,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             }
 
             /// <summary>
-            /// Create a folder in root location baed on Info and return its location
+            /// Create a folder in root location based on Info and return its location
             /// </summary>
             /// <param name="Info">Matching file  system item recevied from <see cref="OdinSearch"/></param>
             /// <param name="RootLocation">This is from the string set by <see cref="OdinSearch_SymbolicLinkSort.OutputFolderArgument"/></param>
