@@ -1,4 +1,5 @@
-﻿using OdinSearchEngine.OdinSearch_OutputConsumerTools;
+﻿using OdinSearchEngine.OdinSearchContainers;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -256,7 +257,7 @@ namespace OdinSearchEngine
         }
 
         /// <summary>
-        /// Add a new SearchAnchor
+        /// Get SearchAnchor list
         /// </summary>
         /// <returns>Returns the Anchor list in ready only form</returns>
         public ReadOnlyCollection<SearchAnchor> GetSearchAnchorReadOnly()
@@ -265,7 +266,49 @@ namespace OdinSearchEngine
         }
 
         #endregion
+        #region Code for dealing with Containers
+        /// <summary>
+        /// A container is a handler for files/folders that are containg within things that are files for a single file i.e. zip
+        /// </summary>
+        readonly List<OdinSearch_ContainerGeneric> Containers = new List<OdinSearch_ContainerGeneric>();
 
+        /// <summary>
+        /// Add a new container to the list.
+        /// </summary>
+        /// <param name="Container">container to add. Note that if multiple instances of the same type are added, the first one is used.</param>
+        public void AddContainer(OdinSearch_ContainerGeneric Container)
+        {
+            Containers.Add(Container);
+        }
+
+        /// <summary>
+        /// Clear the container list.  The Emply list still lets the engine work with the file system.
+        /// </summary>
+        public void ClearContainer()
+        {
+            Containers.Clear();
+        }
+        /// <summary>
+        /// Get Container List as an array
+        /// </summary>
+        /// <returns></returns>
+        public OdinSearch_ContainerGeneric[] GetContainerListAsArray()
+        {
+            return Containers.ToArray();
+        }
+
+        /// <summary>
+        /// Get Container List
+        /// </summary>
+        /// <returns></returns>
+        public ReadOnlyCollection<OdinSearch_ContainerGeneric> GetContainerListReadOnly()
+        {
+            return Containers.AsReadOnly();
+        }
+
+
+
+        #endregion
         #region Code with Dealing with threads
 
         /// <summary>

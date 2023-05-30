@@ -38,8 +38,10 @@ namespace OdinSearchEngine.OdinSearch_FileSystemScanner
     /// <summary>
     /// Prototype for the container class handlers.
     /// </summary>
-    public abstract class OdinSearch_ContainerGeneric
+    public abstract class OdinSearch_ContainerGeneric: IDisposable
     {
+        private bool disposedValue;
+
         /// <summary>
         /// Get a list of strings from this location that can contain others.
         /// </summary>
@@ -61,6 +63,37 @@ namespace OdinSearchEngine.OdinSearch_FileSystemScanner
         /// <param name="Name"></param>
         /// <returns>Returns a subclass of <see cref="OdinSearch_ContainerSystemItem"/> that deals with abstracting away how to interact with the item in a <see cref="System.IO.FileSystemInfo"/> like way</returns>
         public abstract OdinSearch_ContainerSystemItem MakeInstance(string Name);
+
+        /// <summary>
+        /// Default dipose does not need to actual do this. This is for subclasses
+        /// </summary>
+        /// <param name="disposing"></param>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+
+                }
+
+                disposedValue = true;
+            }
+        }
+
+        
+        ~OdinSearch_ContainerGeneric()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: false);
+        }
+
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
     }
 
 }
