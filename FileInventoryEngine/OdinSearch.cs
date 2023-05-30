@@ -1,29 +1,59 @@
-﻿using System;
+﻿using OdinSearchEngine.OdinSearch_OutputConsumerTools;
+using System;
 using System.Collections.Generic;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Text.RegularExpressions;
-using System.Collections.ObjectModel;
-using System.Runtime.CompilerServices;
+using System.Threading;
+using static OdinSearchEngine.SearchTarget;
+
 
 namespace OdinSearchEngine
 {
-    
+
     /// <summary>
     /// Search the local system for files/folders 
     /// </summary>
     public class OdinSearch
     {
+        #region ExceptionMessages
         /// <summary>
-        /// reset before we started searching
+        /// <see cref="InvalidOperationException"/> message when <see cref="WorkerThreadJoin"/> is called with an empty worker thread list.
+        /// </summary>
+        const string JoinEmptyWorkerThreadListExceptionMessage = "Error: Can't Join Worker Threads. Reason: No Known Threads in list.";
+        /// <summary>
+        /// <see cref="InvalidOperationException"/> message when <see cref="WorkerThreadJoin"/> is called before calling <see cref="Search(OdinSearch_OutputConsumerBase)"/>. Search sets the <see cref="SearchCalled"/> bool to true when it's called
+        /// </summary>
+        const string JoinNonEmptyWorkerThreadListBeforeCallingSearch = "Error: Attempt to Join Worker Threads before beginning search.";
+        /// <summary>
+        /// <see cref="InvalidOperationException"/> message when <see cref="Search(OdinSearch_OutputConsumerBase)"> is called and there are no Anchors in the <see cref="Anchors"/> list
+        /// </summary>
+        const string NonEmptyAnchorListEmptySplitRoots = "Ensure at list one Anchor in the list has a folder starting point.";
+        /// <summary>
+        /// <see cref = "InvalidOperationException" /> message when <see cref="Search(OdinSearch_OutputConsumerBase)"/> is called and its call to <see cref="SearchAnchor.SplitRoots"/> retursn an empty list.  
+        /// </summary>
+        const string EmptyAnchorList = "Specify where to start search.";
+        /// <summary>
+        /// <see cref = "InvalidOperationException" /> message when <see cref="Search(OdinSearch_OutputConsumerBase)"/> is called while a search is active i.e. when the worker thread list is not empty
+        /// </summary>
+        const string CantStartNewSearchWhileSearching = "Search in Progress. Workerthread != 0";
+        /// <summary>
+        /// <see cref = "InvalidOperationException" /> message when <see cref="Search(OdinSearch_OutputConsumerBase)"/> is called when the <see cref="SanityChecks(WorkerThreadArgs)"/> routine returns false.  
+        /// </summary>
+        const string SanityCheckFailureMessage = "Sanity Check test failed. Search May not work as intended.  To disable Sanity Check set the DisableSanityCheck flag to true";
+        #endregion
+        /// <summary>
+        /// Reset to functionally a new blank instance
         /// </summary>
         public void Reset()
         {
             KillSearch();
             ClearSearchAnchorList();
             ClearSearchTargetList();
+            
+            SkipSanityCheck = true;
+            ThreadSynchResultsBacking = false;
+            SearchCalled = false;
         }
         
 
@@ -34,6 +64,7 @@ namespace OdinSearchEngine
         {
             public Thread Thread;
             public CancellationTokenSource Token;
+            public WorkerThreadArgs Args;
         }
 
         /// <summary>
@@ -43,11 +74,14 @@ namespace OdinSearchEngine
         {
             public SearchTargetPreDoneRegEx(SearchTarget SearchTarget)
             {
-                PreDoneRegEx = SearchTarget.ConvertFileNameToRegEx();
+                PreDoneRegExFileName = SearchTarget.ConvertFileNameToRegEx();
                 this.SearchTarget = SearchTarget;
+
+                PreDoneRegExDirectoryName = SearchTarget.ConvertDirectoryPathToRegEx();
             }
             public SearchTarget SearchTarget;
-            public List<Regex> PreDoneRegEx;
+            public List<Regex> PreDoneRegExFileName;
+            public List<Regex> PreDoneRegExDirectoryName;
         }
         /// <summary>
         /// This class is passed to the worker thread as an argument
@@ -67,23 +101,25 @@ namespace OdinSearchEngine
             /// </summary>
             public CancellationToken Token;
             /// <summary>
-            /// Used in the worker thread.  This is how it will send messages and results outside of its thread.
+            /// Used in the worker thread.  This is how said thread will send messages and results outside of its world.
             /// </summary>
             public OdinSearch_OutputConsumerBase Coms;
         }
-        /// <summary>
-        /// for future: 
-        /// </summary>
-        readonly object TargetLock = new object();
+
 
         /// <summary>
-        /// Locked when sending a match to the output
+        /// Used to guard against a thread exception in <see cref="WorkerThreadJoin"/> if it is called begin <see cref="Search(OdinSearch_OutputConsumerBase)"/>. Search sets this to true and <see cref="WorkerThreadJoin"/> will refuse to work if not
+        /// </summary>
+        bool SearchCalled = false;
+
+        /// <summary>
+        /// Locked when sending a match to the output aka one <see cref="OdinSearch_OutputConsumerBase"/> derived class and only if <see cref="ThreadSynchResults"/> is true
         /// </summary>
         readonly object ResultsLock = new object();
 
         #region Worker Thread stuff
         /// <summary>
-        /// During the search, this contains all worker thread copies
+        /// During the search, this contains all worker thread instances we've spone off.
         /// </summary>
         List<WorkerThreadWithCancelToken> WorkerThreads = new List<WorkerThreadWithCancelToken>();
 
@@ -96,9 +132,28 @@ namespace OdinSearchEngine
         /// <summary>
         /// Call Thread.Join() for all worker threads spawned in the list. Your code will functionally be awaiting until it is done
         /// </summary>
+        /// <exception cref="ThreadStart">Can potentially trigger if a thread has not started yet.</exception>
+        /// <exception cref=">"
+        /// <remarks></remarks>
         public void WorkerThreadJoin()
         {
-            WorkerThreads.ForEach(p => { p.Thread.Join(); });
+            if (WorkerThreads.Count == 0)
+            {
+                throw new InvalidOperationException(JoinEmptyWorkerThreadListExceptionMessage);
+            }
+            if (SearchCalled == false)
+            {
+                throw new InvalidOperationException(JoinNonEmptyWorkerThreadListBeforeCallingSearch);
+            }
+            // This is here to also guard against premature starting
+            Thread.Sleep(200);
+            WorkerThreads.ForEach(
+                p => {
+                    if (p.Thread.ThreadState == ThreadState.Running)
+                    {
+                        p.Thread.Join();
+                    }
+                });
         }
         /// <summary>
         /// get if any of the worker threads are alive and running still.
@@ -107,6 +162,9 @@ namespace OdinSearchEngine
         {
             get
             {
+                if (WorkerThreads.Count == 0)
+                    return false;
+
                 int running_count = 0;
                 for (int step = 0; step < WorkerThreads.Count; step++)
                 {
@@ -116,7 +174,7 @@ namespace OdinSearchEngine
                         break;
                     }
                 }
-                return (running_count > 0);
+                return running_count > 0;
             }
         }
 
@@ -129,20 +187,36 @@ namespace OdinSearchEngine
         /// </summary>
         readonly List<SearchTarget> Targets = new List<SearchTarget>();
 
+        /// <summary>
+        /// Add a new thing to look for
+        /// </summary>
+        /// <param name="target"></param>
         public void AddSearchTarget(SearchTarget target)
         {
             Targets.Add(target);
         }
 
+        /// <summary>
+        /// Clear the Search target list
+        /// </summary>
         public void ClearSearchTargetList()
         {
             Targets.Clear();
         }
+        /// <summary>
+        /// Fetch the current list of SearchTargets as an array.
+        /// </summary>
+        /// <returns>returns copy of the SearchTarget list as an array</returns>
         public SearchTarget[] GetSearchTargetsAsArray()
         {
             return Targets.ToArray();
         }
 
+
+        /// <summary>
+        /// Return a read only copy of the SearchTargetList
+        /// </summary>
+        /// <returns>Returns the Search Target list in ready only form</returns>
         public ReadOnlyCollection<SearchTarget> GetSearchTargetsReadOnly()
         {
             return Targets.AsReadOnly();
@@ -154,21 +228,37 @@ namespace OdinSearchEngine
         /// </summary>
         readonly List<SearchAnchor> Anchors = new List<SearchAnchor>();
 
+        /// <summary>
+        /// Add a new SearchAnchor
+        /// </summary>
+        /// <param name="Anchor">the new starting point to begin looking for files</param>
         public void AddSearchAnchor(SearchAnchor Anchor)
         {
             Anchors.Add(Anchor);
         }
 
+        /// <summary>
+        /// Clear the SearchAnchor List
+        /// </summary>
         public void ClearSearchAnchorList()
         {
             Anchors.Clear();
         }
 
+
+        /// <summary>
+        /// Fetch the current list of SearchAnchors as an array.
+        /// </summary>
+        /// <returns>returns copy of the SearchAnchors list as an array</returns>
         public SearchAnchor[] GetSearchAnchorsAsArray()
         {
             return Anchors.ToArray();
         }
 
+        /// <summary>
+        /// Add a new SearchAnchor
+        /// </summary>
+        /// <returns>Returns the Anchor list in ready only form</returns>
         public ReadOnlyCollection<SearchAnchor> GetSearchAnchorReadOnly()
         {
             return Anchors.AsReadOnly();
@@ -194,6 +284,9 @@ namespace OdinSearchEngine
         }
         protected bool ThreadSynchResultsBacking = true;
 
+        /// <summary>
+        /// Politely ask the worker threads to end and remove them from our list
+        /// </summary>
         public void KillSearch()
         {
             if (WorkerThreads.Count != 0)
@@ -216,22 +309,165 @@ namespace OdinSearchEngine
         /// <remarks>Honstestly just returns true with this current build</remarks>
         bool SanityChecks(WorkerThreadArgs Arg)
         {
+            // TODO:  Ensure conflicting filename and DirectoryName can actually match. For example, we're not attempting to compare contrarray
+            //  settings in the filename array and directory path
+            // TODO: Ensure we can have allowable file attributes. For example we're not wanting something that's botha file and a file.
+            System.Diagnostics.Debug.Write("Add code SanityCheck() routine");
             return true;
         }
 
+        /// <summary>
+        /// If True, SanityCheck that looks for impossible combinations must pass before starting the search
+        /// </summary>
+        public bool SkipSanityCheck = true;
         /// <summary>
         /// Compares if the specified thing to look for matches this possible file system item
         /// </summary>
         /// <param name="SearchTarget">A class containing both the <see cref="SearchTarget"/> and the predone <see cref="Regex"/> stuff</param>
         /// <param name="Info">look for this</param>
         /// <returns>true if matchs and false if not.</returns>
-
         bool MatchThis(SearchTargetPreDoneRegEx SearchTarget, FileSystemInfo Info)
         {
             bool FinalMatch= true;
             bool MatchedOne = false;
             bool MatchedFailedOne = false;
 
+            bool StringCheck(SearchTarget.MatchStyleString HowToCompare, List<Regex> TestValues, string TestAgainst, out bool MatchAll, out bool MatchAny)
+            {
+                uint MatchCount = 0;
+                bool CompareMe = false;
+                MatchAll = false;
+                MatchAny = false;
+                if ( (MatchStyleString.MatchAll & MatchStyleString.MatchAny & HowToCompare) == 0)
+                {
+                    HowToCompare |= MatchStyleString.MatchAll;
+                }
+                // a plan regex list for this code means we sucessfully match any file. Also skip.
+                if ((HowToCompare == MatchStyleString.Skip) || (TestValues.Count == 0))
+                {
+                    MatchAll = MatchAny = true;
+                    return true;
+                }
+                else
+                {
+                    foreach (Regex comparethis in TestValues)
+                    {
+                        if (comparethis.IsMatch(TestAgainst))
+                        {
+                            MatchCount++;
+                            MatchAny = true;
+                        }
+                    }
+
+                    if (HowToCompare.HasFlag(MatchStyleString.MatchAll))
+                    {
+                        if (MatchCount > 0)
+                            MatchAny = true;
+                        if (MatchCount != TestValues.Count)
+                        {
+                            MatchAll = false;
+                        }
+                        else
+                        {
+                            MatchAll = true;
+                        }
+                    }
+                    if (HowToCompare.HasFlag(MatchStyleString.Invert))
+                    {
+                        MatchAny = (MatchAny != true);
+                        MatchAll = (MatchAll != true);
+                    }
+
+                    if (HowToCompare.HasFlag(MatchStyleString.MatchAll))
+                    {
+                        return MatchAll;
+                    }
+                    if (HowToCompare.HasFlag(MatchStyleString.MatchAny))
+                    {
+                        return MatchAny;
+                    }
+                    return false;
+                }
+            }
+            bool DateCheck(SearchTarget.MatchStyleDateTime HowToCompare, DateTime SearchTargetCompare, DateTime FileInfoCompare)
+            {
+                if (HowToCompare != OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable)
+                {
+                    switch (HowToCompare)
+                    {
+                        case OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoEarlierThanThis:
+                            {
+                                if (Info.CreationTime.CompareTo(SearchTarget.SearchTarget.CreationAnchor) < 0)
+                                {
+                                    //FinalMatch = false;// goto exit
+                                    return false;
+                                }
+                                break;
+                            }
+                        case OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoLaterThanThis:
+                            {
+                                if (Info.CreationTime.CompareTo(DateTime.MinValue) < 0)
+                                {
+                                    //FinalMatch = false;// goto exit;
+                                    return false;
+                                }
+                                break;
+                            }
+                        case OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable:
+                        default:
+                            break;
+                    }
+                }
+                return true;
+            }
+            bool AttribCheck(SearchTarget.MatchStyleFileAttributes HowToCompare, FileAttributes SearchTargetCompare, FileAttributes FileInfoCompare)
+            {
+                bool CompareMe = false;
+                
+                // treat check if true if no attributeres were specified or normal was
+                if  ( (HowToCompare == MatchStyleFileAttributes.Skip) || ( (SearchTargetCompare == FileAttributes.Normal) || (SearchTargetCompare == 0)))
+                {
+                    return true;
+                }
+                else
+                {
+                    if (HowToCompare.HasFlag(MatchStyleFileAttributes.MatchAll))
+                    {
+                        if (HowToCompare.HasFlag(MatchStyleFileAttributes.Exacting))
+                        {
+                            if (SearchTargetCompare == FileInfoCompare)
+                            {
+                                CompareMe = true;
+                            }
+                        }
+                        else
+                        {
+                            if ((SearchTargetCompare & FileInfoCompare) == (SearchTargetCompare))
+                            {
+                                CompareMe = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (HowToCompare.HasFlag(MatchStyleFileAttributes.MatchAny))
+                        {
+                            if ((SearchTargetCompare & FileInfoCompare) != 0)
+                            {
+                                CompareMe = true;
+                            }
+                        }
+                    }
+
+
+                    if (HowToCompare.HasFlag(MatchStyleFileAttributes.Invert))
+                    {
+                        CompareMe = (CompareMe != true);
+                    }
+                    return CompareMe;
+                }
+            }
+            // ensure both the SearchTarget and what we're comparing against are not null
             if (SearchTarget == null)
             {
                 throw new ArgumentNullException(nameof(SearchTarget));
@@ -241,11 +477,41 @@ namespace OdinSearchEngine
                 throw new ArgumentNullException(nameof(Info));
             }
 
+            if ( (SearchTarget.SearchTarget.AttributeMatching1 != FileAttributes.Normal ) && (SearchTarget.SearchTarget.AttributeMatching1 != 0))
+            {
+                bool result = AttribCheck(SearchTarget.SearchTarget.AttribMatching1Style, SearchTarget.SearchTarget.AttributeMatching1, Info.Attributes);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+            if ((SearchTarget.SearchTarget.AttributeMatching2 != FileAttributes.Normal) && (SearchTarget.SearchTarget.AttributeMatching2 != 0))
+            {
+                bool result = AttribCheck(SearchTarget.SearchTarget.AttribMatching2Style, SearchTarget.SearchTarget.AttributeMatching2, Info.Attributes);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
 
             // if the filename check has not been disabled
-            if (!SearchTarget.SearchTarget.FileNameMatching.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.Skip))
+            if (!SearchTarget.SearchTarget.FileNameMatching.HasFlag(MatchStyleString.Skip))
             {
-                // special case in <the Convert to RegEx routine.  Empty list means we've matched all
+                bool MatchAny, MatchAll;
+                bool result = StringCheck(SearchTarget.SearchTarget.FileNameMatching, SearchTarget.PreDoneRegExFileName, Info.Name, out MatchAny, out MatchAll);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+
+                // This is a pecial case in <the Convert to RegEx routine.
+                // Empty list means we're functionally matching ALL file name combinations
+                /*
                 if (SearchTarget.PreDoneRegEx.Count == 0)
                 {
                     MatchedOne = true;
@@ -263,7 +529,7 @@ namespace OdinSearchEngine
                             MatchedFailedOne = true;
                         }
                     }
-                }
+                }*/
                 /*
                  * MatchOne & MatchFailOne true means we're not a match all
                  * 
@@ -271,6 +537,7 @@ namespace OdinSearchEngine
                  * 
                  * MatchOne false and MatchFail false means nothing matched
                  * */
+                /*
                 if (SearchTarget.SearchTarget.FileNameMatching.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.MatchAll))
                 {
                     if (SearchTarget.SearchTarget.FileNameMatching.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.Invert))
@@ -309,40 +576,115 @@ namespace OdinSearchEngine
                             goto exit;
                         }
                     }
-                }
+                }*/
             }
 
+
+            // if the pareny check has not been diabled
+            if (!SearchTarget.SearchTarget.DirectoryMatching.HasFlag(MatchStyleString.Skip))
+            {
+                bool MatchAny, MatchAll;
+                bool result = StringCheck(SearchTarget.SearchTarget.DirectoryMatching, SearchTarget.PreDoneRegExDirectoryName, Info.FullName, out MatchAny, out MatchAll);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
             MatchedOne = false;
             MatchedFailedOne = false;
-            if (!SearchTarget.SearchTarget.AttribMatching1Style.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.Skip))
+
+
+
+            if (SearchTarget.SearchTarget.AccessAnchorCheck1 != MatchStyleDateTime.Disable)
             {
-                if ((SearchTarget.SearchTarget.AttributeMatching1.HasFlag(FileAttributes.Normal) != true) && 
-                   (SearchTarget.SearchTarget.AttributeMatching1 != 0))
+                bool result = DateCheck(SearchTarget.SearchTarget.AccessAnchorCheck1, SearchTarget.SearchTarget.AccessAnchor, Info.LastAccessTime);
+                if (!result)
                 {
-                    if (SearchTarget.SearchTarget.AttribMatching1Style.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.MatchAll))
-                    {
-                        if (SearchTarget.SearchTarget.AttributeMatching1 == Info.Attributes)
-                        {
-                            if ((SearchTarget.SearchTarget.AttribMatching1Style.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.Invert)))
-                            {
-                                FinalMatch = false;
-                                goto exit;
-                            }
-                        }
-                    }
-
-                    if (SearchTarget.SearchTarget.AttribMatching1Style.HasFlag(OdinSearchEngine.SearchTarget.MatchStyleString.MatchAny))
-                    {
-                        if ( (SearchTarget.SearchTarget.AttributeMatching1 & Info.Attributes) == 0)
-                        {
-                            FinalMatch = false;
-                            goto exit;
-                        }
-                    }
-
+                    FinalMatch = false;
+                    goto exit;
                 }
             }
-            
+
+            if (SearchTarget.SearchTarget.AccessAnchorCheck2 != MatchStyleDateTime.Disable)
+            {
+                bool result = DateCheck(SearchTarget.SearchTarget.AccessAnchorCheck2, SearchTarget.SearchTarget.AccessAnchor, Info.LastAccessTime);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+            if (SearchTarget.SearchTarget.WriteAnchorCheck1 != MatchStyleDateTime.Disable)
+            {
+                bool result = DateCheck(SearchTarget.SearchTarget.WriteAnchorCheck1, SearchTarget.SearchTarget.CreationAnchor, Info.LastWriteTime);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+            if (SearchTarget.SearchTarget.WriteAnchorCheck2 != MatchStyleDateTime.Disable)
+            {
+                bool result = DateCheck(SearchTarget.SearchTarget.WriteAnchorCheck2, SearchTarget.SearchTarget.CreationAnchor, Info.LastWriteTime);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+            if (SearchTarget.SearchTarget.CreationAnchorCheck1 != MatchStyleDateTime.Disable)
+            {
+                bool result = DateCheck(SearchTarget.SearchTarget.CreationAnchorCheck1, SearchTarget.SearchTarget.CreationAnchor, Info.CreationTime);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+            if (SearchTarget.SearchTarget.CreationAnchorCheck2 != MatchStyleDateTime.Disable)
+            {
+                bool result = DateCheck(SearchTarget.SearchTarget.CreationAnchorCheck2, SearchTarget.SearchTarget.CreationAnchor, Info.CreationTime);
+                if (!result)
+                {
+                    FinalMatch = false;
+                    goto exit;
+                }
+            }
+
+
+            /*
+            if (SearchTarget.SearchTarget.CreationAnchorCheck != OdinSearchEngine.SearchTarget.DateTimeMatching.Disable)
+            {
+                switch (SearchTarget.SearchTarget.CreationAnchorCheck)
+                {
+                    case OdinSearchEngine.SearchTarget.DateTimeMatching.NoEarlierThanThis:
+                        {
+                            if (Info.CreationTime.CompareTo(SearchTarget.SearchTarget.CreationAnchor) < 0) 
+                            { 
+                                FinalMatch = false; goto exit;
+                            }
+                            break;
+                        }
+                    case OdinSearchEngine.SearchTarget.DateTimeMatching.NoLaterThanThis:
+                        {
+                            if (Info.CreationTime.CompareTo(DateTime.MinValue) < 0)
+                            {
+                                FinalMatch = false; goto exit;
+                            }
+                            break;
+                        }
+                    case OdinSearchEngine.SearchTarget.DateTimeMatching.Disable:
+                    default:
+                        break;
+                }
+            }
+            */
+
             MatchedOne = false;
             MatchedFailedOne = false;
             exit:
@@ -369,8 +711,42 @@ namespace OdinSearchEngine
         {
             return MatchThis(SearchTarget, Info as FileSystemInfo);
         }
+
+
         /// <summary>
-        /// Unpack the WorkerThreadArgs and go to work
+        /// Spawn the routine <see cref="WatchdogFireAllDoneWorkerThead(WorkerThreadArgs)"/> in a new thread
+        /// </summary>
+        /// <param name="Args">Arguments to the worker threads. Coms is used.</param>
+        void WatchdogFireAllDoneSpawner(WorkerThreadArgs Args)
+        {
+            Thread SpawnThis = new Thread(p => { WatchdogFireAllDoneWorkerThead(Args); });
+            SpawnThis.Name = "Scanner Watchdog AllDone() Fire";
+            SpawnThis.Start();
+        }
+        /// <summary>
+        /// This checks the threads in the list, if all finished, fires off a call to the <see cref="OdinSearch_OutputConsumerBase.AllDone"/> routine before reseting the <see cref="SearchCalled"/> flag and clearing the worker thread list
+        /// </summary>
+        /// <param name="Args"></param>
+        void WatchdogFireAllDoneWorkerThead(WorkerThreadArgs Args)
+        {
+            if (Args == null)
+                throw new ArgumentNullException(nameof(Args));
+            else
+            {
+                if (WorkerThreads.Count > 0)
+                {
+                    WorkerThreadJoin();
+                    if (WorkerThreads.Count > 0)
+                    {
+                        WorkerThreads[0].Args.Coms.AllDone();
+                    }
+                    SearchCalled = false;
+                    WorkerThreads.Clear();
+                }
+            }
+        }
+        /// <summary>
+        /// Unpack the WorkerThreadArgs and go to work. Not intended to to called without having done by its own thread
         /// </summary>
         /// <param name="Args"></param>
         void ThreadWorkerProc(object Args)
@@ -378,7 +754,8 @@ namespace OdinSearchEngine
             Queue<DirectoryInfo> FolderList= new Queue<DirectoryInfo>();
             List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
             WorkerThreadArgs TrueArgs = Args as WorkerThreadArgs;
-
+            Thread.CurrentThread.Name = TrueArgs.StartFrom.roots[0].ToString() + " Scanner";
+            
             
             
            if (TrueArgs != null ) 
@@ -396,7 +773,8 @@ namespace OdinSearchEngine
                         // add root[0] to the queue to pull from
                         FolderList.Enqueue(TrueArgs.StartFrom.roots[0]);
 
-                        // label is used as a starting point to loop back to for looking at subfolders
+                        // label is used as a starting point to loop back to for looking at subfolders when we get
+                        // looping
                     Reset:
 
                         
@@ -409,7 +787,7 @@ namespace OdinSearchEngine
 
                             // files in the CurrentLoc
                             FileInfo[] Files = null;
-                            // folders in the CurrentLc
+                            // folders in the CurrentLoc
                             DirectoryInfo[] Folders = null;
                             try
                             {
@@ -422,7 +800,7 @@ namespace OdinSearchEngine
                                 TrueArgs.Coms.Blocked(CurrentLoc.ToString());
                                 ErrorPrune = true;
                             }
-                            catch (UnauthorizedAccessException e)
+                            catch (UnauthorizedAccessException)
                             {
                                 TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason Access Denied");
                                 TrueArgs.Coms.Blocked(CurrentLoc.ToString());
@@ -525,6 +903,10 @@ namespace OdinSearchEngine
         /// <exception cref="ArgumentNullException">Is thrown if the Coms argument is null</exception>
         public void Search(OdinSearch_OutputConsumerBase Coms)
         {
+            if (Anchors.Count <= 0)
+            {
+                throw new InvalidOperationException(EmptyAnchorList);
+            }
             if (Coms == null)
             {
                 throw new ArgumentNullException(nameof(Coms));
@@ -533,25 +915,38 @@ namespace OdinSearchEngine
             {
                 if (WorkerThreads.Count != 0)
                 {
-                    throw new InvalidOperationException("Search in Progress. Workerthread != 0");
+                    throw new InvalidOperationException(CantStartNewSearchWhileSearching);
                 }
                 else
                 {
-
+                    WorkerThreadArgs Args=null;
                     foreach (SearchAnchor Anchor in Anchors)
                     {
                         var AnchorList = Anchor.SplitRoots();
+                        if (AnchorList.Length== 0)
+                        {
+                            throw new InvalidOperationException(NonEmptyAnchorListEmptySplitRoots);
+                        }
                         foreach (SearchAnchor SmallAnchor in AnchorList)
                         {
-                            WorkerThreadArgs Args = new();
+                            Args = new();
                             Args.StartFrom = SmallAnchor;
                             Args.Targets.AddRange(Targets);
                             Args.Coms = Coms;
 
+                            if (!SkipSanityCheck)
+                            {
+                                // TODO: SanityCheck is there to catch theority inpossible matching.
+                                if (!SanityChecks(Args))
+                                {
+                                    throw new InvalidOperationException(SanityCheckFailureMessage);
+                                }
+                            }
+
                             WorkerThreadWithCancelToken Worker = new WorkerThreadWithCancelToken();
                             Worker.Thread = new Thread(() => ThreadWorkerProc(Args));
                             Worker.Token = new CancellationTokenSource();
-
+                            Worker.Args = Args;
                             Args.Token = Worker.Token.Token;
 
 
@@ -579,10 +974,18 @@ namespace OdinSearchEngine
                         WorkerThreads.Add(Worker);
                     }
                     */
+                    
+                    bool DoNotNotifyRest = false;
                     foreach (WorkerThreadWithCancelToken t in WorkerThreads)
                     {
+                        if (!DoNotNotifyRest)
+                        {
+                            DoNotNotifyRest = t.Args.Coms.SearchBegin(DateTime.Now);
+                        }
                         t.Thread.Start();
                     }
+                    SearchCalled = true;
+                    WatchdogFireAllDoneSpawner(Args);
                 }
             }
         }

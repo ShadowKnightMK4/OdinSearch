@@ -12,9 +12,20 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
     /// </summary>
     public class OdinSearch_OutputConsumerGatherResults : OdinSearch_OutputConsumerBase
     {
+        /// <summary>
+        /// This contains matching results from the serach
+        /// </summary>
         public readonly List<FileSystemInfo> Results = new();
+        /// <summary>
+        /// This contains file/folder items that the software could not access
+        /// </summary>
         public readonly List<string> BlockedResults = new();
+        /// <summary>
+        /// This contains messages posted from the search
+        /// </summary>
         public readonly List<string> MessageResults = new();
+
+
         public override void Blocked(string Blocked)
         {
             BlockedResults.Add(Blocked);

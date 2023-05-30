@@ -9,62 +9,151 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
 
     /// <summary>
-    /// Serves as an example.  Matches are sent to stdout,  blocks are send to stderr
+    /// A thinly wrapped <see cref="KeyNotFoundException"/> for argument access
     /// </summary>
-    public class OdinSearch_OutputSimpleConsole : OdinSearch_OutputConsumerBase
-    {
-        TextWriter stdout, stderr;
-        public OdinSearch_OutputSimpleConsole()
-        {
-            stdout = Console.Out;
-            stderr = Console.Error;
-        }
-
-        public override void WasNotMatched(FileSystemInfo info)
-        {
-            base.WasNotMatched(info);
-        }
-        public override void Match(FileSystemInfo info)
-        {
-            stdout.WriteLine("File Match: \"{0}\" @ \"{1}\"", info.Name, info.FullName);
-            base.Match(info);
-        }
-
-        public override void Blocked(string Blocked)
-        {
-            stderr.WriteLine(Blocked);
-            base.Blocked(Blocked);
-        }
-
-        public override void Messaging(string Message)
-        {
-            stdout.WriteLine(Message);
-            base.Messaging(Message);
-        }
+    public class ArgumentNotFoundException : KeyNotFoundException
+    { 
+        public ArgumentNotFoundException() { }  
+        public ArgumentNotFoundException(string message) : base(message) { }
     }
 
+
     /// <summary>
-    /// The OdinSearch class posts results and when it can't access something to a class of this type.  
+    /// The OdinSearch class Search Threads use this class to send output/communications to your code.
     /// </summary>
     public abstract class OdinSearch_OutputConsumerBase : IDisposable
     {
+
+        protected bool ArgCheck(string RequiredArg)
+        {
+            if (RequiredArg == null)
+                return true;
+            else
+                return CustomParameters.Keys.Contains(RequiredArg);
+        }
+
+        /// <summary>
+        /// Return if these strings are in our custom argument list
+        /// </summary>
+        /// <param name="RequiredArgs"></param>
+        /// <returns></returns>
+        protected bool ArgCheck(string[] RequiredArgs)
+        {
+            if (RequiredArgs.Length == 0)
+            {
+                return true;
+            }
+            foreach (string s in RequiredArgs)
+            {
+                if (!ArgCheck(s))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Get the names of set custom parameters for your class. 
+        /// </summary>
+        /// <returns></returns>
+        public string[] GetCustomParameterNames()
+        {
+            return CustomParameters.Keys.ToArray();
+        }
+        /// <summary>
+        /// Set a custom argument.
+        /// </summary>
+        /// <param name="name">argument name</param>
+        /// <param name="val">argument value</param>
+        public void SetCustomParameter(string name, object val)
+        {
+            CustomParameters[name] = val;
+        }
+
+        /// <summary>
+        /// Get custom argument
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNotFoundException">Is thown if its not there.</exception>
+        public object GetCustomParameter(string name)
+        {
+            try
+            {
+                return CustomParameters[name];
+            }
+            catch (KeyNotFoundException e)
+            {
+                throw new ArgumentNotFoundException(e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Acess or set any custom arguments for this <see cref="OdinSearch_OutputConsumerBase"/> class type
+        /// </summary>
+        /// <param name="ArgName"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNotFoundException"></exception>
+        public object this[string ArgName]
+        {
+            get
+            {
+                try
+                {
+                    var ret = CustomParameters[ArgName];
+                    return ret;
+                }
+                catch (KeyNotFoundException)
+                {
+                    throw new ArgumentNotFoundException(ArgName);
+                }
+            }
+            set
+            {
+                CustomParameters[ArgName] = value;
+            }
+        }
+
+
+        /// <summary>
+        /// Custom arguments are stored here.  Should they require a call to Dipose when done, implement Dispose in your subclass to do this.
+        /// </summary>
+        protected readonly Dictionary<string, object> CustomParameters = new();
+        public bool Disposed { get; protected set; }
         /// <summary>
         /// For Future. Set if you want the WasNotMatched called for each time. This does NOTHING Currently.
         /// </summary>
         public bool EnableNotMatchCall = false;
-
+        /// <summary>
+        /// This is set by the <see cref="AllDone"/> to be true when called.
+        /// </summary>
+        public bool SearchOver = false;
+        /// <summary>
+        /// Base routine increments this by 1 on each call
+        /// </summary>
         public UInt128 TimesMatchCalled = 0;
+        /// <summary>
+        /// Base routine increments this by 1 on each call
+        /// </summary>
         public UInt128 TimesNoMatchCalled = 0;
+        /// <summary>
+        /// Base routine increments this by 1 on each call
+        /// </summary>
         public UInt128 TimesBlockCalled = 0;
+        /// <summary>
+        /// Base routine increments this by 1 on each call
+        /// </summary>
+
         public UInt128 TimesMessageCalled = 0;
         /// <summary>
         /// For Future: OdinSearch does not call this.
         /// </summary>
         /// <param name="info"></param>
-        /// <exception cref="NotImplementedException">Throws this</exception>
         public virtual void WasNotMatched(FileSystemInfo info)
         {
-            TimesNoMatchCalled++;
+            if (TimesNoMatchCalled != UInt128.MaxValue)
+                TimesNoMatchCalled++;
         }
 
         /// <summary>
@@ -73,6 +162,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <param name="info"></param>
         public virtual void Match(FileSystemInfo info)
         {
+            if (TimesMatchCalled != UInt128.MaxValue)
             TimesMatchCalled++;
         }
 
@@ -82,7 +172,8 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <param name="Blocked"></param>
         public virtual void Blocked(string Blocked)
         {
-            TimesBlockCalled++;
+            if (TimesBlockCalled != UInt128.MaxValue)
+                TimesBlockCalled++;
         }
 
         /// <summary>
@@ -91,15 +182,35 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <param name="Message"></param>
         public virtual void Messaging(string Message)
         {
-            TimesMessageCalled++;
+            if (TimesMessageCalled!= UInt128.MaxValue)
+                TimesMessageCalled++;
         }
 
         /// <summary>
-        /// Default class needs not dispose 
+        /// Called once for each thread when the search is started by OdinSearch. It's called shortly before each thread starts
+        /// </summary>
+        /// <param name="Start">DateTime of call</param>
+        /// <returns>Your routine should return true to continue being called for the rest of the threads or false if just a single notify is enough</returns>
+        /// <exception cref="InvalidOperationException">A subclass may throw Exceptions if a required custom arg is not set. That will stop the search from started</exception>
+        public virtual bool SearchBegin(DateTime Start)
+        {
+            return false;
+        }
+
+        /// <summary>
+        /// OdinSearch calls this when all threads searching are done. Base just sets variable <see cref="SearchOver"/> to true
+        /// </summary>
+        public virtual void AllDone()
+        {
+            SearchOver = true;
+        }
+        /// <summary>
+        /// Default class needs not dispose. This is here subclasses if needed
         /// </summary>
         public virtual void Dispose()
         {
-
+            GC.SuppressFinalize(this);
+            Disposed = true;
         }
     }
 }

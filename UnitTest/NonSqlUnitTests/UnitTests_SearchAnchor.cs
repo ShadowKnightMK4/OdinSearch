@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace UnitTest
 {
     /// <summary>
-    /// The Search
+    /// The Search for testing the code to ensure it works and does not go up in flames
     /// </summary>
     [TestClass]
     public class UnitTests_SearchAnchor
@@ -127,6 +127,19 @@ namespace UnitTest
             Assert.AreEqual(Demo.roots.Count, 1);
 
             Assert.IsTrue(Demo.roots[0].FullName.Equals(DemoLocation), "Did not add DemoLocation \" " + DemoLocation + "\" to root list ok");
+        }
+
+        [TestCategory("XML Anchor Handling")]
+        [TestMethod]
+        public void SearchAnchor_ConvertToXmlAndBack()
+        {
+             SearchAnchor Demo = new SearchAnchor();
+            
+            string xml = Demo.ToXml();
+
+            SearchAnchor Demo2 = SearchAnchor.CreateFromXmlString(xml);
+
+            Assert.IsTrue(Demo2 == Demo);
         }
 
         [TestCategory("Simple Anchor")]

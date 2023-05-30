@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using OdinSearchEngine;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 using System;
 using System.Collections.Generic;
@@ -17,7 +18,60 @@ namespace UnitTest
         OdinSearch_OutputConsumerSql Demo=null;
         SqlException LocalConnectOk_Catche = null;
 
-        [TestInitialize]
+
+        [TestMethod]
+        public void FromTypeInstance_To_Sql_insert()
+        {
+            var connect = Demo.GetSqlConnect();
+            string TestFileName = "C:\\Dummy\\A" + DateTime.Now.Ticks.ToString() + ".MD45";
+            string TestDB = Path.GetFileNameWithoutExtension(TestFileName);
+            string TestTable = "B" + DateTime.Now.Ticks.ToString();
+            // create the temp database
+            if (!OdinSearchSqlActions.CreateSqlDatabase(connect, TestFileName))
+            {
+                Assert.Fail("Failed to create databaseok");
+            }
+            // create a table based on type
+
+            if (!OdinSearchSqlActions.CreateTableFromType(connect, TestTable, typeof(FileInfoExtract)))
+            {
+                Assert.Fail("Failed to database table and record ok");
+            }
+
+            // select the temp database
+            OdinSearchSqlActions.SelectDatabase(connect, TestDB);
+            
+            // does it contain a TestTab;e
+            Assert.IsTrue(OdinSearchSqlActions.GetTableList(connect).Contains(TestTable));
+
+            // if so delete it
+            OdinSearchSqlActions.DeleteTable(connect, TestTable);
+
+            // did delete work
+            Assert.IsFalse(OdinSearchSqlActions.GetTableList(connect).Contains(TestTable));
+
+
+            // Finally delete the database
+            if (!OdinSearchSqlActions.DeleteSqlDataBase(connect, TestFileName))
+            {
+                Assert.Fail("Failed to delete databaseok");
+            }
+            // and the file
+            {
+                File.Delete(TestFileName);
+            }
+        }
+            
+            [TestMethod]
+        public void CS_Class_To_SqlRecord_manuel_check()
+        {
+            string result;
+            result = OdinSearchSqlActions.ConvertClassToSqlRecord(typeof(OdinSearchEngine.FileInfoExtract));
+
+
+            return;
+        }
+       [TestInitialize]
         public void Init()
         {
             if (!Directory.Exists("V:\\DevDB"))
@@ -33,7 +87,27 @@ namespace UnitTest
                 LocalConnectOk_Catche = e;
             }
         }
+        [TestMethod]
+        public void LocalDB_CreateDatabaseOK_AndDelete()
+        {
+            Assert.IsNotNull(Demo);
+            var connect = Demo.GetSqlConnect();
+            string TestName = "C:\\Dummy\\A" + DateTime.Now.Ticks.ToString() + ".MD45";
 
+            if (!OdinSearchSqlActions.CreateSqlDatabase(connect, TestName))
+            {
+                Assert.Fail("Failed to create databaseok");
+            }
+
+            Assert.IsTrue(OdinSearchSqlActions.GetSqlDatabaseList(connect).Contains(Path.GetFileNameWithoutExtension(TestName)));
+
+            if (!OdinSearchSqlActions.DeleteSqlDataBase(connect, TestName))
+            {
+                Assert.Fail("Failed to delete databaseok");
+            }
+
+            Assert.IsFalse(OdinSearchSqlActions.GetSqlDatabaseList(connect).Contains(Path.GetFileNameWithoutExtension(TestName)));
+        }
         
         [TestMethod]
         public void LocalDB_CreateDatabaseOk()
@@ -41,14 +115,14 @@ namespace UnitTest
             Assert.IsNotNull(Demo);
             var connect = Demo.GetSqlConnect();
 
-            if (!OdinSearch_OutputConsumerSql_CommandHandler.CreateSqlDatabase(connect, "TestDB2"))
+            //if (!OdinSearch_OutputConsumerSql_CommandHandler.CreateSqlDatabase(connect, "C:\\Dummy\\Test4.Sea"))
             {
-                Assert.Fail("Failed to create databaseok");
+              //  Assert.Fail("Failed to create databaseok");
             }
 
-            if (!OdinSearch_OutputConsumerSql_CommandHandler.GetSqlDatabaseList(connect).Contains("TestDB2"))
+            //if (!OdinSearch_OutputConsumerSql_CommandHandler.GetSqlDatabaseList(connect).Contains("Test4"))
             {
-                Assert.Fail("Failed to insert DB ok");
+             //   Assert.Fail("Failed to insert DB ok");
             }
         }
         [TestMethod]

@@ -2,6 +2,8 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Threading.Tasks.Dataflow;
 
 namespace OdinSearchEngine
 {
@@ -20,6 +22,41 @@ namespace OdinSearchEngine
             
         }
 
+        /// <summary>
+        /// Creation Time
+        /// </summary>
+        public DateTime CreationTime
+        {
+            get
+            {
+                return Content.CreationTime;
+            }
+        }
+
+        /// <summary>
+        /// Last time file/folder was accessed
+        /// </summary>
+        public DateTime AccessTime
+        {
+            get
+            {
+                return Content.LastAccessTime;
+            }
+        }
+
+        /// <summary>
+        /// Last time the file/folder written too
+        /// </summary>
+        public DateTime LastWriteTime
+        {
+            get
+            {
+                return Content.LastWriteTime;
+            }
+        }
+        /// <summary>
+        /// Gets the fullname of the directory or file
+        /// </summary>
         public string FullName
         {
             get
@@ -28,6 +65,9 @@ namespace OdinSearchEngine
             }
         }
 
+        /// <summary>
+        /// Get either the directory name or the file name by itself
+        /// </summary>
         public string Name
         {
             get
@@ -36,6 +76,10 @@ namespace OdinSearchEngine
             }
         }
 
+        [OdinSearchSqlSkipAttrib]
+        /// <summary>
+        /// Return how big it is in bytes (0 for Directory)
+        /// </summary>
         public long SizeBytes
         {
             get
@@ -79,6 +123,10 @@ namespace OdinSearchEngine
             }
         }
 
+        [OdinSearchSqlSkipAttrib]
+        /// <summary>
+        /// Return how big it is in kilobytes (0 for Directory)
+        /// </summary>
         public long SizeKB
         {
             get
@@ -91,7 +139,7 @@ namespace OdinSearchEngine
                 return ret;
             }
         }
-
+        [OdinSearchSqlSkipAttrib]
         public long SizeMB
         {
             get
@@ -104,7 +152,7 @@ namespace OdinSearchEngine
                 return ret;
             }
         }
-
+        [OdinSearchSqlSkipAttrib]
         public long SizeGB
         {
             get
@@ -118,6 +166,7 @@ namespace OdinSearchEngine
             }
         }
 
+        [OdinSqlPreFab_TypeGen("bit", OverrideName ="FileExists")]
         public bool Exists
         {
             get
@@ -151,6 +200,34 @@ namespace OdinSearchEngine
         }
 
 
+        
+
+        /// <summary>
+        /// Allocate resourcs to compute hash for file. If Folder, always returns null
+        /// </summary>
+        public byte[] GetSha512()
+        {
+            bool OK = false;
+            byte[] bytes;
+
+                if (Content.Attributes.HasFlag(FileAttributes.Directory))
+                {
+                    return null;
+                }
+            using (SHA512 once = SHA512.Create())
+            {
+                using (var FN = File.OpenRead(Content.FullName))
+                {
+                    bytes = new byte[once.HashSize/8];
+                    bytes = once.ComputeHash(FN);
+                    OK = true;
+                }
+            }
+            if (OK == true)
+                return bytes;
+            return null;
+        }
+
         public void Refresh()
         {
             if (Content != null)
@@ -161,11 +238,32 @@ namespace OdinSearchEngine
             { 
                 SizeContainer.Refresh();
             }
+
+            Sha512Buffer = GetSha512();
+
             if (OperatingSystem.IsWindows())
             {
 
             }
         }
+
+        /// <summary>
+        /// First pass, cacluate hash, rest of passes return said result.  To Update Call Refresh() or call <see cref="GetSha512"/> to get more recent hash
+        /// </summary>
+        public byte[] Sha512Hash
+        {
+            get
+            {
+                if (Sha512Buffer == null)
+                {
+                    Sha512Buffer = GetSha512();
+                }
+                return Sha512Buffer;
+            }
+        }
+
+        byte[] Sha512Buffer;
+        
 
         SafeFileHandle SizeContentWindows;
         /// <summary>

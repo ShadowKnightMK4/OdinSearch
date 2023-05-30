@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "FileInventoryConsole": {
+      "commandName": "Project",
+      "commandLineArgs": "-anchor \"C:\\\\Windows\"  -anchor \"C:\\\\Program Files\""
+    }
+  }
+}

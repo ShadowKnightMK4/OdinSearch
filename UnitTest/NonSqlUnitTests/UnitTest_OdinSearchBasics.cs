@@ -8,9 +8,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollector.InProcDataCollector;
 
 namespace UnitTest
 {
+    /// <summary>
+    /// This class ensures we can spawn the search, get data from it and that it can start ok. 
+    /// </summary>
     [TestClass]
     public class UnitTest_OdinSearchBasics
     {
@@ -53,6 +57,9 @@ namespace UnitTest
             }
         }
 
+        /// <summary>
+        /// Does the number of folder locations in the Anchor list passed become 1 thread per folder?
+        /// </summary>
         [TestMethod]
         public void OdinSearch_Does_AnchorList_Equal_ThreadCount()
         {
@@ -75,14 +82,122 @@ namespace UnitTest
             
         }
 
+
+        // belongs to too tests. We test if We fire the watchdog call 
+        void common_WasAllDone(bool EnumFolders, string assert1, string assert2, int timeout)
+        {
+            OdinSearch_Output_UnitTesting_class coms = new();
+
+            var Demo = new OdinSearch();
+            Assert.IsNotNull(Demo);
+            var TestAnchor = new SearchAnchor(false);
+            var TestSearch = new SearchTarget();
+
+            Demo.AddSearchAnchor(TestAnchor);
+            Demo.AddSearchTarget(TestSearch);
+            TestAnchor.AddAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Windows));
+            TestAnchor.EnumSubFolders = EnumFolders;
+            TestSearch.FileName.Add("*");
+            Demo.Search(coms);
+            if (timeout == -1)
+            {
+                Demo.WorkerThreadJoin();
+            }
+  
+            
+
+            if (coms.SearchOver == false)
+            {
+                Assert.Fail(assert1);
+            }
+            else
+            {
+                if (coms.SearchOver == true)
+                {
+                    if (Demo.HasActiveSearchThreads == true)
+                    {
+                        Assert.Fail(assert2);
+                    }
+                }
+            }
+
+        }
+
+
+        /// <summary>
+        /// Testing to ensure exceptions are thrown when joining the worker thread list before it starts
+        /// </summary>
+        [TestMethod]
+        public void OdinSearch_DoesSearchGuardWork()
+        {
+            OdinSearch_Output_UnitTesting_class coms = new OdinSearch_Output_UnitTesting_class();
+            Assert.IsNotNull(Demo);
+            Demo.Reset();
+
+            var TestAnchor = new SearchAnchor(true);
+            var TestSearch = new SearchTarget();
+
+            Demo.AddSearchAnchor(TestAnchor);
+            Demo.AddSearchTarget(TestSearch);
+            TestSearch.FileName.Add(SearchTarget.MatchAnyFile);
+
+            try
+            {
+                Demo.WorkerThreadJoin();
+            }
+            catch (InvalidOperationException)
+            {
+                // its ok
+                Demo.Search(coms);
+
+                
+                {
+                    Demo.WorkerThreadJoin();
+                    if (coms.SearchOver == false)
+                    {
+                        Assert.Fail("WorkerThreadJoin() failed to wait until search was over");
+                    }
+                }
+            }
+
+        }
+
+        /// <summary>
+        /// Does the <see cref="OdinSearch_OutputConsumerBase.AllDone"/> fire ok when not enuming folders?
+        /// </summary>
+        [TestMethod]
+        public void OdinSearch_WasAllDoneCalled_DONOTEnumSubFolders()
+        {
+            common_WasAllDone(false,
+                "Search OK. Search Over flag was not set. Check Watchdog thread",
+                "Watchdog thread fired too early", -1);
+        }
+
+        /// <summary>
+        /// Does the <see cref="OdinSearch_OutputConsumerBase.AllDone"/> fire ok when enuming folders?
+        /// </summary>
+
+        
+        public void OdinSearch_WasAllDoneCalled_EnumSubFolders()
+        {
+            common_WasAllDone(true,
+             "The Search sucseedef but the SearchOver flag was not set. " +
+             "Check if watchdog thread spawned and if it set it ok",
+             "Watchdog thread fired too early", 1000
+             );
+        }
+
+
+        /// <summary>
+        /// Can we locate C:\\Windows.
+        /// </summary>
         [TestMethod]
         public void OdinSearch_Can_SearchForWindowsFolder()
         {
             OdinSearch_Output_UnitTesting_class coms = new OdinSearch_Output_UnitTesting_class();
             Assert.IsNotNull(Demo);
             Demo.Reset();
-
-
+            
             var TestAnchor = new SearchAnchor(false);
             
 

@@ -1,1 +1,4 @@
 ﻿This placeholder text is displayed for the help info for the console app.
+
+
+%1 -SearchTargetXML="" -SearchTargetXML="",  -SearchAnchor="", -SearchAnchor=""	

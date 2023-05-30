@@ -1,15 +1,20 @@
 # FileInventory
-FileInventory is a project aimed at building a flexible simple search engine for locating files on a local machine. It allows customization of what do to with search output. This project is not yet ready for general use, and some knowledge of C# or programming in general is recommended. On the plus side, one only has to worry about 4 main different classes and the rest are support for these classes.
+
+This is to build myself a better local file search engine that is customizable.  The OdinSearchEngine project within this solution containg the actual code.  
 
 
-# Using FileInventory
-There are four core classes in this project. The SearchAnchor class is used to specify starting locations for the search. When the search is initiated, a thread is created for each SearchAnchor class adding to OdinSearch’s list. The SearchTarget class is used to define the search criteria aka what to look for. The class called OdinSearch, is the part of the project that does the searching.  Both SearchTarget and SearchAnchor classes are added to a list in OdinSearch. To start the search, you need to call the Search() method located in OdinSearch and provide a class based on OdinSearch_OutputConsumerBase.
+Building a better local file search engine.  Repo/Project name subject to change
 
 
-The class based on OdinSearch_OutputConsumerBase receives notifications from the OdinSearch class during the search process. These notifications can include matches, non-matches, possible errors, and messages. There are a few prebuilt classes available, such as OdinSearch_OutputConsumerGatherResults, which collects a list of matches, or OdinSearch_OutputSimpleConsole, which outputs the results to the console. The intention is for the user of this project to either use a prebuilt OutputConsumeBase class or subclass from the general one for his or her needs.
+Plan is to build the Search Engine side to be flexible with searching local sources and be able to output the matched results to comething to consume results - for example a console window / text file.  There are plans to include a way to include a class to output results to a sql database.  Currently it is not functional as I'm still learning about what I need to do for it.
 
 
-# Design Goals
-The project aims to include a Windows front end and provide a functional consumer base that allows users to send the output to an SQL file. Additional, I'm hoping to add a console based version so that the user can use the project on something other than Windows.
+The FileInventoryConsole project defaults to listing all files it can access to the console.
 
 
+# Using FileIventory
+This is not really at the general user stage yet.  It's more developer writes code to use it stage. The class SearchAnchor are were the programmer describes in the local system where to start searching. The class SearchTarget is how to tell the what the search for.  The actual Search class itself is called 'OdinSearch'. You're need to make instance of it an add the SearchTarget + SearchAnchors to lists in it.  Finally, you're going to need to derive from either OdinSearch_OutputConsumerBase and code what you want to do with the output use one of the base ones such as OdinSearch_OutputSimpleConsole or OdinSearch_OutputConsumerGatherResults
+
+
+# Branch Related Info
+This branch is there for me to focus on tightening up the core parts before attempting to build on them the rest.

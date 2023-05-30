@@ -19,6 +19,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SqlBasedUnitTests", "UnitTe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NonSqlUnitTests", "UnitTest\NonSqlUnitTests\NonSqlUnitTests.csproj", "{8FBB6C71-2C2B-4C0F-9EBD-32AF0F07AFB5}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "FileHunter", "FileHunter", "{E81666E1-4C54-4231-83AA-E3B1472E4227}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

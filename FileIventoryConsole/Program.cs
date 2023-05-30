@@ -1,18 +1,23 @@
 ﻿using System;
 using OdinSearchEngine;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 using System.IO;
 using System.Threading;
 using System.Runtime.CompilerServices;
 using FileInventoryConsole;
+using System.Data.Sql;
+using System.Text;
+using System.Reflection;
 
 namespace FileIventoryConsole
-{
-    class Program
+{   
+    static class Program
     {
-
+        static bool WorkerMode = false;
         static void Main(string[] args)
         {
-            ArgumentsHandling.Usage();
+            Console.WriteLine("You got a version of this project that is intended to be tested via its UnitTests. Run the UnitTests");
+            return;
             SearchTarget ProgramFiles = new SearchTarget();
             SearchAnchor LocalStorage = new SearchAnchor();
             ProgramFiles.FileName.Add("*");
@@ -23,7 +28,9 @@ namespace FileIventoryConsole
             runme.AddSearchAnchor(LocalStorage);
             runme.AddSearchTarget(ProgramFiles);
 
-            var results = new OdinSearch_OutputSimpleConsole();
+            var results = new OdinSearch_OutputConsumerSql(string.Empty, "C:\\Dummy\\SearchInfo32.md5");
+            
+
             runme.Search(results);
             while (runme.HasActiveSearchThreads)
             {
