@@ -42,5 +42,8 @@ OdinSearch is a tool written in C# that lets users search thru local file system
 When begining the search, each SearchAnchor folder will gets its own thread and a call is placed to SearchBegin() in your commincation class just before starting.  Also, code is set up to call AllDone() when each thread is finished.    When your code gets a call outside of these -- such as Matched(), Blocked() or Messaging(), OdinSearch locks an object in its own class with the C# keyword to assist in thread synchronization.   There currently one big important consideration in Commuication class design.  When OdinSearch calls into the commucation class, it can't continue with its search until the communcation class returns control to OdinSearch.  If the Communcation class takes a while to do something, I recommand it put the FileSystemItem passed to it in buffer of somesort and return control to OdinSearch.  When Container handlers (i.e zip) get added, there's likely going to be a bit of change in considerations.
 
 
+## License
+License is currently MIT version that comes with the download.
 
-
+## Feedback and Contributions.
+I welcome feedback and feature suggestions/ideas/bug reports.  Thanks for reading.
