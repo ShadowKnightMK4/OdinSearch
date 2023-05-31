@@ -1,5 +1,4 @@
-## About OdinSearch.
-OdinSearch is a tool written in C# that lets users search thru local file systems for matches. The engine provides an expandable achritector by letting developer expand on what the engine does with matching output. It's recommanded the user have some programming experience to use this.
+OdinSearch is a tool written in C# that lets users search thru local file systems for matches. The engine provides an expandable achritector by letting developer expand on what the engine does with matching output.
 
 
 
@@ -11,11 +10,11 @@ OdinSearch is a tool written in C# that lets users search thru local file system
 3. Ease of getting started and extensibility.    There's about 4 classes to become familier with  if all you need is searching and dealing with output. 
 
 
-## TO DO Features
+## TODO Features
 
 #1 IN PROGRESS:   Container Support.  I'm planning on adding to deal with searching thru container files such as zip files and check for matches also.
 
-#2 IN PROGRESS:  SQL Support.  I'm planning on adding ability to pipe matches to an SQL file so at a later date, it can be opened in software of the developer's choice. This is going to take come time.
+#2  IN PROGRESS:  SQL Support.  I'm planning on adding ability to pipe matches to an SQL file so at a later date, it can be opened in software of the developer's choice. This is going to take come time.
 
 #3 IN PROGRESS.  CSV Support.  I'm planning to adding ability o pipe matches to an CVS file to let users open up in Excel or OpenOffice at a later date.
 
@@ -27,7 +26,7 @@ OdinSearch is a tool written in C# that lets users search thru local file system
 3.  Try building first.   It'll build the console demo, the engine and the unit tests.  Note that the SQL unit tests currently do not pass so don't be suprised if that happens.  
 4.  Explore the Classes to see the layout.
 5.  Determine what you want the matching class to do. Subclass the base Matching class and write your code.
-6.  Compile and run it.
+6.  Compile and run. it.
 
 
 ## Classes of Interest
