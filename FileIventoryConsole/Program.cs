@@ -20,11 +20,12 @@ namespace FileIventoryConsole
         
         static void Main(string[] args)
         {
-            Console.WriteLine("You got a version of this project that is intended to be tested via its UnitTests. Run the UnitTests");
-            return;
+            Console.WriteLine("Most of the testing code is in the unit tests. Try them out. ");
+            Console.WriteLine("This console app can serve as an example of what to do or how to use.");
+            
             SearchTarget ProgramFiles = new SearchTarget();
             SearchAnchor LocalStorage = new SearchAnchor();
-            ProgramFiles.FileName.Add("*");
+            ProgramFiles.FileName.Add(SearchTarget.MatchAnyFile);
             
             ProgramFiles.FileNameMatching = SearchTarget.MatchStyleString.MatchAny;
             LocalStorage.EnumSubFolders = true;
