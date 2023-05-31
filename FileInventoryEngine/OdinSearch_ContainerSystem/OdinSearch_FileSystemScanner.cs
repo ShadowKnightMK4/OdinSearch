@@ -7,7 +7,7 @@ using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Reflection.Metadata.Ecma335;
 
-namespace OdinSearchEngine.OdinSearch_FileSystemScanner
+namespace OdinSearchEngine.OdinSearch_ContainerSystems
 {
 
     /// <summary>

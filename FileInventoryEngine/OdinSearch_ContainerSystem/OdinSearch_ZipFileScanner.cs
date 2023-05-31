@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.IO.Compression;
 using System.IO;
 
-namespace OdinSearchEngine.OdinSearch_FileSystemScanner
+namespace OdinSearchEngine.OdinSearch_ContainerSystems
 {
     /// <summary>
     /// NOT FULLY IMPLEMENTED YET
