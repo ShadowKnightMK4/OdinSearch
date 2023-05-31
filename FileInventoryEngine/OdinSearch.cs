@@ -1,5 +1,4 @@
-﻿using OdinSearchEngine.OdinSearchContainers;
-using OdinSearchEngine.OdinSearch_OutputConsumerTools;
+﻿using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -7,7 +6,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading;
 using static OdinSearchEngine.SearchTarget;
-
+using OdinSearchEngine.OdinSearch_ContainerSystems;
 
 namespace OdinSearchEngine
 {
@@ -349,7 +348,7 @@ namespace OdinSearchEngine
         /// </summary>
         /// <param name="Arg"></param>
         /// <returns></returns>
-        /// <remarks>Honstestly just returns true with this current build</remarks>
+        /// <remarks>Honstestly just returns true with this current build.</remarks>
         bool SanityChecks(WorkerThreadArgs Arg)
         {
             // TODO:  Ensure conflicting filename and DirectoryName can actually match. For example, we're not attempting to compare contrarray

@@ -11,9 +11,13 @@ using System.Reflection;
 
 namespace FileIventoryConsole
 {   
+    /// <summary>
+    /// Try the SearchAnchor, SearchTarget and OdinSearch class out
+    /// </summary>
     static class Program
     {
-        static bool WorkerMode = false;
+
+        
         static void Main(string[] args)
         {
             Console.WriteLine("You got a version of this project that is intended to be tested via its UnitTests. Run the UnitTests");
@@ -28,7 +32,7 @@ namespace FileIventoryConsole
             runme.AddSearchAnchor(LocalStorage);
             runme.AddSearchTarget(ProgramFiles);
 
-            var results = new OdinSearch_OutputConsumerSql(string.Empty, "C:\\Dummy\\SearchInfo32.md5");
+            var results = new OdinSearch_OutputSimpleConsole();
             
 
             runme.Search(results);
