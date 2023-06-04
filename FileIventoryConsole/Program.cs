@@ -17,7 +17,6 @@ namespace FileIventoryConsole
     static class Program
     {
 
-        
         static void Main(string[] args)
         {
             Console.WriteLine("Most of the testing code is in the unit tests. Try them out. ");
