@@ -97,10 +97,10 @@ static class Program
 
 ## Classes of Interest
 
-1. OdinSearch is the class that does the searching. It's here that you's start searching and set what to search for.
-2. OdinSearch_OutputConsumerBase is the base class of the communications class with OdinSearch.  Subclass it and implement the methods to control what your code does with matching.
-2. SearchAnchor is the class that describes the starting point to search.  OdinSearch can have any number of these in a list.
-3. SearchTarget is the class that describes what to search for.  OdinSearch can have any number of these in a list.
+1. [OdinSearch](https://github.com/ShadowKnightMK4/OdinSearch/blob/master/FileInventoryEngine/OdinSearch.cs) is the class that does the searching. It's here that you's start searching and set what to search for.
+2. [OdinSearch_OutputConsumerBase](https://github.com/ShadowKnightMK4/OdinSearch/blob/master/FileInventoryEngine/OdinSearch_OutputConsumerTools/OdinSearch_OutputConsumerBase.cs) is the base class of the communications class with OdinSearch.  Subclass it and implement the methods to control what your code does with matching.
+2. [SearchAnchor](https://github.com/ShadowKnightMK4/OdinSearch/blob/master/FileInventoryEngine/SearchAnchor.cs) is the class that describes the starting point to search.  OdinSearch can have any number of these in a list.
+3. [SearchTarget](https://github.com/ShadowKnightMK4/OdinSearch/blob/master/FileInventoryEngine/SearchTarget.cs) is the class that describes what to search for.  OdinSearch can have any number of these in a list.
 
 
 ## Communcations Class Design Guidelines.
