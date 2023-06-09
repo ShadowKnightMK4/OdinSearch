@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using static OdinSearchEngine.SearchTarget;
 using OdinSearchEngine.OdinSearch_ContainerSystems;
+using System.Linq;
+using System.Collections;
 
 namespace OdinSearchEngine
 {
@@ -104,6 +106,8 @@ namespace OdinSearchEngine
             /// Used in the worker thread.  This is how said thread will send messages and results outside of its world.
             /// </summary>
             public OdinSearch_OutputConsumerBase Coms;
+
+            //public ReadOnlyCollection<OdinSearchContainer_GenericItem> ContainerList { get; internal set; }
         }
 
 
@@ -265,49 +269,7 @@ namespace OdinSearchEngine
         }
 
         #endregion
-        #region Code for dealing with Containers
-        /// <summary>
-        /// A container is a handler for files/folders that are containg within things that are files for a single file i.e. zip
-        /// </summary>
-        readonly List<OdinSearch_ContainerGeneric> Containers = new List<OdinSearch_ContainerGeneric>();
-
-        /// <summary>
-        /// Add a new container to the list.
-        /// </summary>
-        /// <param name="Container">container to add. Note that if multiple instances of the same type are added, the first one is used.</param>
-        public void AddContainer(OdinSearch_ContainerGeneric Container)
-        {
-            Containers.Add(Container);
-        }
-
-        /// <summary>
-        /// Clear the container list.  The Emply list still lets the engine work with the file system.
-        /// </summary>
-        public void ClearContainer()
-        {
-            Containers.Clear();
-        }
-        /// <summary>
-        /// Get Container List as an array
-        /// </summary>
-        /// <returns></returns>
-        public OdinSearch_ContainerGeneric[] GetContainerListAsArray()
-        {
-            return Containers.ToArray();
-        }
-
-        /// <summary>
-        /// Get Container List
-        /// </summary>
-        /// <returns></returns>
-        public ReadOnlyCollection<OdinSearch_ContainerGeneric> GetContainerListReadOnly()
-        {
-            return Containers.AsReadOnly();
-        }
-
-
-
-        #endregion
+        
         #region Code with Dealing with threads
 
         /// <summary>
@@ -791,9 +753,11 @@ namespace OdinSearchEngine
         /// Unpack the WorkerThreadArgs and go to work. Not intended to to called without having done by its own thread
         /// </summary>
         /// <param name="Args"></param>
-        void ThreadWorkerProc(object Args)
+        void WorkerThreadProc(object Args)
         {
             Queue<DirectoryInfo> FolderList= new Queue<DirectoryInfo>();
+            //Queue<OdinSearch_ContainerSystemItem> FolderList = new Queue<OdinSearch_ContainerSystemItem>();
+
             List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
             WorkerThreadArgs TrueArgs = Args as WorkerThreadArgs;
             Thread.CurrentThread.Name = TrueArgs.StartFrom.roots[0].ToString() + " Scanner";
@@ -806,6 +770,7 @@ namespace OdinSearchEngine
                 {
                     if (TrueArgs.StartFrom != null)
                     {
+                        
                         // prececulate the search target info
                         foreach (SearchTarget Target in TrueArgs.Targets)
                         {
@@ -975,6 +940,7 @@ namespace OdinSearchEngine
                             Args.StartFrom = SmallAnchor;
                             Args.Targets.AddRange(Targets);
                             Args.Coms = Coms;
+                            //Args.ContainerList = null;
 
                             if (!SkipSanityCheck)
                             {
@@ -986,7 +952,7 @@ namespace OdinSearchEngine
                             }
 
                             WorkerThreadWithCancelToken Worker = new WorkerThreadWithCancelToken();
-                            Worker.Thread = new Thread(() => ThreadWorkerProc(Args));
+                            Worker.Thread = new Thread(() => WorkerThreadProc(Args));
                             Worker.Token = new CancellationTokenSource();
                             Worker.Args = Args;
                             Args.Token = Worker.Token.Token;
@@ -995,34 +961,16 @@ namespace OdinSearchEngine
                             WorkerThreads.Add(Worker);
                         }
                     }
-                    /*
-
-                        foreach (SearchAnchor Anchor in Anchors)
-                    {
-                        WorkerThreadArgs Args = new();
-                        Args.StartFrom = Anchor;
-                        
-                        Args.Targets.AddRange(Targets);
-                        Args.Coms = Coms;
-
-                        
-                        WorkerThreadWithCancelToken Worker = new WorkerThreadWithCancelToken();
-                        Worker.Thread = new Thread(() => ThreadWorkerProc(Args)); 
-                        Worker.Token = new CancellationTokenSource();
-
-                        Args.Token = Worker.Token.Token;
-                        
-
-                        WorkerThreads.Add(Worker);
-                    }
-                    */
                     
-                    bool DoNotNotifyRest = false;
+                    
+                    // we loop thru and call search begin for each thread.
+                    // if it returns true, we prematurly quit looping.
+                    bool DoNotNotifyTheRest = false;
                     foreach (WorkerThreadWithCancelToken t in WorkerThreads)
                     {
-                        if (!DoNotNotifyRest)
+                        if (!DoNotNotifyTheRest)
                         {
-                            DoNotNotifyRest = t.Args.Coms.SearchBegin(DateTime.Now);
+                            DoNotNotifyTheRest = t.Args.Coms.SearchBegin(DateTime.Now);
                         }
                         t.Thread.Start();
                     }

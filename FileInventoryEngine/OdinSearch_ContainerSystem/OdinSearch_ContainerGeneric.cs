@@ -3,97 +3,93 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.IO;
 
 namespace OdinSearchEngine.OdinSearch_ContainerSystems
 {
 
-    /// <summary>
-    /// The base item the container classes deal with.
-    /// </summary>
-    public abstract class OdinSearch_ContainerSystemItem
-    {
-        public OdinSearch_ContainerSystemItem(object Source)
+    /*
+     * MiTM class must work just like fileinfo and directoryinfo.
+     * We add a new thing called container that specifies where the file is located
+     *      for default, same as fullname
+     *      for zip files, zip location,
+     *      for vhx mounted,  original vhx location a
+     *      and so on.
+     * 
+     */
+    
+        public abstract class OdinSearch_FileInfoGeneric
         {
-            this.Source = Source;
-        }
-        public abstract string FullName { get; }
-        public abstract string? LinkTarget { get; }
-        public abstract DateTime LastWriteTimeUtc { get; set; }
-        public abstract DateTime LastWriteTime { get; set; }
-        public abstract DateTime LastAccessTimeUtc { get; set; }
-        public abstract DateTime LastAccessTime { get; set; }
-        public abstract string Extension { get;  }
-        public abstract bool Exists { get; }
-        public abstract DateTime CreationTimeUTC { get; set; }
-        public abstract DateTime CreationTime { get; set; }
-        public abstract string Name { get; set; }
+        /// <summary>
+        /// Generial constructor
+        /// </summary>
+        /// <param name="location">location to read /deal with</param>
+        protected OdinSearch_FileInfoGeneric(string location) { this.Location = location; }
 
         /// <summary>
-        /// Get the object the properties come from.  It'll be container specific.
+        /// Get the name of this file or directory
         /// </summary>
-        protected object Source;
-    }
-
-    /// <summary>
-    /// Prototype for the container class handlers.
-    /// </summary>
-    public abstract class OdinSearch_ContainerGeneric: IDisposable
-    {
-        private bool disposedValue;
+            public abstract string Name { get; }
+        /// <summary>
+        /// Get the full location of this file or directory
+        /// </summary>
+            public abstract string FullName { get; }
+        /// <summary>
+        /// Does this file or directory exist
+        /// </summary>
+            public abstract bool Exists { get; }
+        /// <summary>
+        /// Get the length of this file. Directory always returns 0.
+        /// </summary>
+            public abstract long Length { get; }
+        /// <summary>
+        /// Get or set this file/directory's attributes
+        /// </summary>
+            public abstract FileAttributes Attributes { get; set; }
+        /// <summary>
+        /// Delete this file or directory. Note directory should be empty.
+        /// </summary>
+            public abstract void Delete();
 
         /// <summary>
-        /// Get a list of strings from this location that can contain others.
+        /// For Files/folders contained within things like zip files, full path to the file. For everything else, same as <see cref="FullName"/>
         /// </summary>
-        /// <param name="Location"></param>
-        /// <returns></returns>
-        /// <remarks>If you're doing a local drive. Think <see cref="Directory.GetDirectories(string)"/></remarks>
-        public abstract string[] GetContainerFiles(string Location);
+        public abstract string ContainerLocation { get; }
         /// <summary>
-        /// Get a list of strings from this location that can contain others.
+        /// location on the location file system where this is located.
         /// </summary>
-        /// <param name="Location"></param>
-        /// <returns></returns>
-        /// <remarks>If you're doing a local drive. Think <see cref="Directory.GetFiles(string)"/></remarks>
-        public abstract string[] GetFiles(string Location);
-
-        /// <summary>
-        /// make an instance of the named file system item and return it having the wrapper to deal with it. 
-        /// </summary>
-        /// <param name="Name"></param>
-        /// <returns>Returns a subclass of <see cref="OdinSearch_ContainerSystemItem"/> that deals with abstracting away how to interact with the item in a <see cref="System.IO.FileSystemInfo"/> like way</returns>
-        public abstract OdinSearch_ContainerSystemItem MakeInstance(string Name);
-
-        /// <summary>
-        /// Default dipose does not need to actual do this. This is for subclasses
-        /// </summary>
-        /// <param name="disposing"></param>
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-
-                }
-
-                disposedValue = true;
-            }
+        protected string Location;
         }
 
+    public abstract class OdinSearch_DirectoryInfoGeneric :OdinSearch_FileInfoGeneric
+    {
+        public OdinSearch_DirectoryInfoGeneric(string location) : base(location)
+        {
+
+        }
+        /// <summary>
+        /// Get a DirectoryInfo one level above this
+        /// </summary>
+        public abstract OdinSearch_DirectoryInfoGeneric Parent { get; }
+
+        /// <summary>
+        /// Get the root location of this
+        /// </summary>
+        public abstract OdinSearch_DirectoryInfoGeneric Root { get; }
+
+        /// <summary>
+        /// Get the files in this location
+        /// </summary>
+        /// <returns></returns>
+        public abstract OdinSearch_FileInfoGeneric[] GetFiles();
+
+        /// <summary>
+        /// Get the directories in this location
+        /// </summary>
+        /// <returns></returns>
+        public abstract OdinSearch_DirectoryInfoGeneric[] GetDirectories();
         
-        ~OdinSearch_ContainerGeneric()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
-        }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
     }
 
 }
+
