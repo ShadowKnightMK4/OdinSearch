@@ -116,6 +116,15 @@ namespace NonSqlUnitTests
             Items.Add(new FileInfo(targ));
         }
 
+        
+        /// <summary>
+        /// If this is a file or folder, it's deleted at dispoe
+        /// </summary>
+        /// <param name="Location"></param>
+        public void AddItem(string Location)
+        {
+
+        }
         void IDisposable.Dispose()
         {
             Purge();
