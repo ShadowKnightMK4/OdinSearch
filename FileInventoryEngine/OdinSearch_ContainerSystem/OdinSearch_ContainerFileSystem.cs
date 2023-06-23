@@ -60,6 +60,14 @@ namespace OdinSearchEngine.OdinSearch_ContainerSystems
             }
         }
 
+        public override long GetEncodedLength
+        {
+            get
+            {
+                return 0;
+            }
+        }
+
         public override void Delete()
         {
             File.Delete(Location);
@@ -133,6 +141,10 @@ namespace OdinSearchEngine.OdinSearch_ContainerSystems
             }
         }
 
+        public override long GetEncodedLength
+        {
+            get { return 0; }
+        }
         public override string Name
         {
             get
