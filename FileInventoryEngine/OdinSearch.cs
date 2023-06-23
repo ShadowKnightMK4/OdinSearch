@@ -57,8 +57,8 @@ namespace OdinSearchEngine
             ThreadSynchResultsBacking = false;
             SearchCalled = false;
         }
-        
 
+        #region Internal Classes to this class
         /// <summary>
         /// pairing a Thread with a a cancilation token.
         /// </summary>
@@ -109,8 +109,25 @@ namespace OdinSearchEngine
 
             //public ReadOnlyCollection<OdinSearchContainer_GenericItem> ContainerList { get; internal set; }
         }
+        #endregion
+
+        #region Class Properties and Variables
 
 
+        /// <summary>
+        /// Get the current number of worker thread
+        /// </summary>
+        public int WorkerThreadCount { get { return WorkerThreads.Count; } }
+
+        /// <summary>
+        /// When starting a search, if this is true, the call to <see cref="SanityChecks(WorkerThreadArgs)"/> is skipped. Currently, that routine does nothing, but is intended to be a way to guard against silly/impossible things such as searching for a file that's also a folder for example
+        /// </summary>
+        public bool SkipSanityCheck = true;
+
+        /// <summary>
+        /// Backing Varible for <see cref="ThreadSynchResults"/>
+        /// </summary>
+        protected bool ThreadSynchResultsBacking = true;
         /// <summary>
         /// Used to guard against a thread exception in <see cref="WorkerThreadJoin"/> if it is called begin <see cref="Search(OdinSearch_OutputConsumerBase)"/>. Search sets this to true and <see cref="WorkerThreadJoin"/> will refuse to work if not
         /// </summary>
@@ -121,6 +138,13 @@ namespace OdinSearchEngine
         /// </summary>
         readonly object ResultsLock = new object();
 
+        /// <summary>
+        /// Add Where to look here. Note that each anchor gets a worker thread.
+        /// </summary>
+        readonly List<SearchAnchor> Anchors = new List<SearchAnchor>();
+
+        readonly List<OdinSearch_FileInfoGeneric> ContainerHandlers= new();
+        #endregion
         #region Worker Thread stuff
         /// <summary>
         /// During the search, this contains all worker thread instances we've spone off.
@@ -128,10 +152,6 @@ namespace OdinSearchEngine
         List<WorkerThreadWithCancelToken> WorkerThreads = new List<WorkerThreadWithCancelToken>();
 
 
-        /// <summary>
-        /// Get the current number of worker thread
-        /// </summary>
-        public int WorkerThreadCount { get { return WorkerThreads.Count; } }
 
         /// <summary>
         /// Call Thread.Join() for all worker threads spawned in the list. Your code will functionally be awaiting until it is done
@@ -227,10 +247,7 @@ namespace OdinSearchEngine
         }
         #endregion
         #region Code for dealing with setting anchors
-        /// <summary>
-        /// Add Where to look here. Note that each anchor gets a worker thread.
-        /// </summary>
-        readonly List<SearchAnchor> Anchors = new List<SearchAnchor>();
+        
 
         /// <summary>
         /// Add a new SearchAnchor
@@ -286,7 +303,7 @@ namespace OdinSearchEngine
                 ThreadSynchResultsBacking = value;
             }
         }
-        protected bool ThreadSynchResultsBacking = true;
+        
 
         /// <summary>
         /// Politely ask the worker threads to end and remove them from our list
@@ -320,10 +337,6 @@ namespace OdinSearchEngine
             return true;
         }
 
-        /// <summary>
-        /// If True, SanityCheck that looks for impossible combinations must pass before starting the search
-        /// </summary>
-        public bool SkipSanityCheck = true;
         /// <summary>
         /// Compares if the specified thing to look for matches this possible file system item
         /// </summary>
@@ -902,12 +915,92 @@ namespace OdinSearchEngine
             }
         }
         #endregion
+        #region Container Handling
+        /// <summary>
+        /// When called, your routine should do what it needs to do to see if there's a class to handle this location.
+        /// </summary>
+        /// <param name="location">Someone in a file system. May be nested as a container like C:\\Something.zip\\Somethinginside.txt</param>
+        /// <returns>If your callback knows the current handler for this location, return the typeof(classname). If not, return null</returns>
+        public delegate Type ContainerCheckFileCallback(string location);
+        /// <summary>
+        /// When called, your routine should do what it needs to do to see if there's a class to handle this location.
+        /// </summary>
+        /// <param name="location">Someone in a file system. May be nested as a container like C:\\Something.zip\\Somethinginside.txt</param>
+        /// <returns>If your callback knows the current handler for this location, return the typeof(classname). If not, return null</returns>
+        public delegate Type ContainerCheckDirectoryCallback(string location);
+
+        readonly List<ContainerCheckDirectoryCallback> DirectoryContainerList = new();
+        readonly List<ContainerCheckFileCallback> FileContainerList = new();
+
+        public void AddFileContainerCallback(ContainerCheckDirectoryCallback ContainerCheckDirectoryCallback)
+        {
+            DirectoryContainerList.Add(ContainerCheckDirectoryCallback);
+        }
+        public void AddDirectoryContainerCallback(ContainerCheckFileCallback ContainerCheckFileCallback)
+        {
+            FileContainerList.Add(ContainerCheckFileCallback);
+        }
+
+        public void ClearFileContainerCallback()
+        {
+            FileContainerList.Clear();
+        }
+
+        public void ClearDirectoryContainerCallback()
+        {
+            DirectoryContainerList.Clear();
+        }
+
+        protected OdinSearch_DirectoryInfoGeneric InstanceDirHandler(string location)
+        {
+            Type ret = typeof(OdinSearch_ContainerDirectoryInfo);
+            foreach (ContainerCheckFileCallback s in FileContainerList)
+            {
+                ret = s(location);
+                if (ret != null)
+                    break;
+            }
+            if (ret == null)
+            {
+                return (OdinSearch_DirectoryInfoGeneric)new OdinSearch_ContainerDirectoryInfo(location);
+            }
+            else
+            {
+                return (OdinSearch_DirectoryInfoGeneric)Activator.CreateInstance(ret, new object[] { location });
+            }
+
+        }
+        protected OdinSearch_FileInfoGeneric InstanceFileHandler(string location)
+        {
+            Type ret = typeof(OdinSearch_ContainerFileInfo);
+            foreach (ContainerCheckFileCallback s in FileContainerList)
+            {
+                ret = s(location);
+                if (ret != null)
+                    break;
+            }
+            if (ret == null)
+            {
+                return (OdinSearch_FileInfoGeneric)new OdinSearch_ContainerFileInfo(location);
+            }
+            else
+            {
+                return (OdinSearch_FileInfoGeneric) Activator.CreateInstance(ret, new object[] { location });
+            }
+
+        }
+
+        #endregion
+
+        #region Search Starting
+
         /// <summary>
         /// Start the search rolling. 
         /// </summary>
         /// <param name="Coms">This class is how the search communicates with your code. Cannot be null</param>
         /// <exception cref="IOException">Is thrown if Search is called while searching. </exception>
         /// <exception cref="ArgumentNullException">Is thrown if the Coms argument is null</exception>
+        /// <remarks>Note that the search uses a default class <see cref="OdinSearch_ContainerFileInfo"/> if there's not container class</remarks>
         public void Search(OdinSearch_OutputConsumerBase Coms)
         {
             if (Anchors.Count <= 0)
@@ -979,5 +1072,6 @@ namespace OdinSearchEngine
                 }
             }
         }
+        #endregion
     }
 }
