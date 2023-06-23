@@ -11,7 +11,7 @@ using System.IO.Compression;
 namespace NonSqlUnitTests
 {
     [TestClass]
-    class ContainerTests
+    public class ContainerTests
     {
         [TestInitialize]
         public void Init() {
@@ -29,9 +29,9 @@ namespace NonSqlUnitTests
                 Cache.MakeFolder("C:\\TestScrubLocation", "ContainerTests");
                 Cache.MakeFolder("C:\\TestScrubLocation\\ContainerTests\\MiMT_File",string.Empty);
                 Cache.MakeFile("C:\\TestScrubLocation\\ContainerTests\\MiMT_File\\testfile.dat", string.Empty, FileAttributes.Normal);
-                using (var str = File.Open("C:\\TestScrubLocation\\ContainerTests\\MiMT_File\\testfile.zip", FileMode.CreateNew))
+                using (var str = File.Open("C:\\TestScrubLocation\\ContainerTests\\MiMT_File\\testfile.zip", FileMode.OpenOrCreate))
                 {
-                    using (ZipArchive Arch = new ZipArchive(str))
+                    using (ZipArchive Arch = new ZipArchive(str, ZipArchiveMode.Create))
                     {
                         ZipArchiveEntry Entry = Arch.CreateEntry("Demo.data");
                         using (Stream ComEntry = Entry.Open())
@@ -43,11 +43,12 @@ namespace NonSqlUnitTests
                 }
                 Cache.AddItem("C:\\TestScrubLocation\\ContainerTests\\MiMT_File\\testfile.zip");
 
-                var TestZip = new OdinSearch_ZippedFileInfo("C:\\TestScrubLocation\\ContainerTests\\MiMT_File\\testfile.zip\\Demo.data");
 
-                Assert.IsTrue(TestZip.Length == 512);
-                Assert.IsTrue(string.Compare("Demo.data", TestZip.Name) == 0);
-                Assert.IsTrue()
+                using (var TestZip = new OdinSearch_ZippedFileInfo("C:\\TestScrubLocation\\ContainerTests\\MiMT_File\\testfile.zip\\Demo.data"))
+                {
+                    Assert.IsTrue(TestZip.Length == 512);
+                    Assert.IsTrue(string.Compare("Demo.data", TestZip.Name) == 0);
+                }
 
 
                 

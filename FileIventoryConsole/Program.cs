@@ -23,11 +23,15 @@ namespace FileIventoryConsole
             Console.WriteLine("This console app can serve as an example of what to do or how to use.");
             
             SearchTarget ProgramFiles = new SearchTarget();
-            SearchAnchor LocalStorage = new SearchAnchor();
+            SearchAnchor LocalStorage = new SearchAnchor(true);
             ProgramFiles.FileName.Add(SearchTarget.MatchAnyFile);
-            
+
+            ProgramFiles.FileName.Add("*brandy*.PDF");
+            ProgramFiles.FileName.Add("*.*XLS");
+            ProgramFiles.FileName.Add("*.")
             ProgramFiles.FileNameMatching = SearchTarget.MatchStyleString.MatchAny;
             LocalStorage.EnumSubFolders = true;
+
             OdinSearch runme = new OdinSearch();
             runme.AddSearchAnchor(LocalStorage);
             runme.AddSearchTarget(ProgramFiles);
