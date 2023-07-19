@@ -270,6 +270,7 @@ namespace OdinSearchEngine
                 ChildNode.InnerText = d.FullName;
                 RootData.AppendChild(ChildNode);
             }
+            
             ret.Save(output);
         }
         /// <summary>
