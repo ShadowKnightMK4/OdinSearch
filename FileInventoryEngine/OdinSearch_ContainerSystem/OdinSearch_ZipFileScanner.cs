@@ -13,26 +13,33 @@ using System.Runtime.CompilerServices;
 namespace OdinSearchEngine.OdinSearch_ContainerSystems
 {
     
-    
     /// <summary>
-    /// A File contained within a zip file
+    /// Common and useful code for the zip container
     /// </summary>
-    public class OdinSearch_ZippedFileInfo: OdinSearch_FileInfoGeneric
+    public static class ZipClassCommon
     {
-        ZipArchive arch;
-        ZipArchiveEntry entry;
-        string SubContainerPart;
-        FileInfo ArchProbe;
-
         /// <summary>
-        /// Callback used by OdinSeach to ask if this handler can deal with zip files.
+        /// Add both the directory callback and file callback to this <see cref="OdinSearch"/> in one call
+        /// </summary>
+        /// <param name="s"></param>
+        /// <exception cref="ArgumentNullException"></exception>
+        public static void AddZipContainer(OdinSearch s)
+        {
+            if (s == null)
+                throw new ArgumentNullException("s");
+            s.AddFileContainerCallback(OdinSearch_ZippedDirectoryInfo.CallbackChecker);
+            s.AddDirectoryContainerCallback(OdinSearch_ZippedFileInfo.CallbackChecker);
+        }
+        /// <summary>
+        /// Common  used by OdinSeach to ask if this handler can deal with zip files.
         /// </summary>
         /// <param name="location">locaiton of file item in question, may contain path like C:\\Zipthing.zip\\containedfile.dat.  <see cref="GetFileSystemLocation"/></param>
         /// <returns></returns>
-        protected static Type CallbackHandler(string location)
+        /// <remarks>We're just testing if we can open the file as an archive</remarks>
+         internal static Type CallbackHandler(string location, Type YesMan)
         {
             bool Ok = false;
-            FileInfo ziproot = GetFileSystemLocation(location);
+            FileInfo ziproot = OdinSearch_FileInfoGeneric.GetFileSystemLocation(location);
             if (ziproot == null)
             {
                 return null;
@@ -60,16 +67,35 @@ namespace OdinSearchEngine.OdinSearch_ContainerSystems
 
                 if (Ok)
                 {
-                    return typeof(OdinSearch_ZippedFileInfo);
+                    return YesMan;
                 }
                 return null;
             }
 
         }
+    }
+    /// <summary>
+    /// A File contained within a zip file
+    /// </summary>
+    public class OdinSearch_ZippedFileInfo: OdinSearch_FileInfoGeneric
+    {
+        ZipArchive arch;
+        ZipArchiveEntry entry;
+        string SubContainerPart;
+        FileInfo ArchProbe;
+
+        protected static Type CallbackHandler(string location)
+        {
+            return ZipClassCommon.CallbackHandler(location, typeof(OdinSearch_ZippedFileInfo));
+        }
+
         /// <summary>
-        /// 
+        /// Pass this to <see cref="OdinSearch.AddDirectoryContainerCallback(ContainerCheckFileCallback)(ContainerCheckDirectoryCallback)"/> to allow use of peeking into zip files
         /// </summary>
         public static ContainerCheckFileCallback CallbackChecker { get { return CallbackHandler; } }
+
+
+
         /// <summary>
         /// This tests if the entry is null and if not, gets the file the subcontainer part points too
         /// </summary>
@@ -177,7 +203,16 @@ namespace OdinSearchEngine.OdinSearch_ContainerSystems
     /// </summary>
     public class OdinSearch_ZippedDirectoryInfo: OdinSearch_DirectoryInfoGeneric
     {
-        
+        protected static Type CallbackHandler(string location)
+        {
+            return ZipClassCommon.CallbackHandler(location, typeof(OdinSearch_ZippedDirectoryInfo));
+        }
+
+        /// <summary>
+        /// Pass this to <see cref="OdinSearch.AddDirectoryContainerCallback(ContainerCheckFileCallback)(ContainerCheckDirectoryCallback)"/> to allow use of peeking into zip files
+        /// </summary>
+        public static ContainerCheckDirectoryCallback CallbackChecker { get { return CallbackHandler; } }
+
         public override FileAttributes Attributes { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
         public override string ContainerLocation => throw new NotImplementedException();
         public override void Delete()
