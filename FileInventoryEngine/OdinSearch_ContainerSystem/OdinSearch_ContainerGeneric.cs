@@ -17,9 +17,17 @@ namespace OdinSearchEngine.OdinSearch_ContainerSystems
      *      and so on.
      * 
      */
-    
-        public abstract class OdinSearch_FileInfoGeneric: IDisposable
+
+    /*
+     * To use with OdinSearch.
+     * Subclass both OdinSearch_FileInfoGeneric and OdinSearch_DirectoryInfoGeneric.
+        * Implement your code to do the handling.
+        * 
+     */
+
+    public abstract class OdinSearch_FileInfoGeneric: IDisposable
         {
+       
         /// <summary>
         /// Generial constructor
         /// </summary>
@@ -69,12 +77,13 @@ namespace OdinSearchEngine.OdinSearch_ContainerSystems
         #endregion
 
         /// <summary>
-        /// This routine is what is used to reverse traill a zip path until we get  to the zip file
+        /// This routine is what is used to reverse walk a path containg a container file that has the sub location based on it. 
         /// </summary>
-        /// <param name="path">Such as C:\\Something\fun.zip\\specialbooks\\thebestthingever.pdf.</param>
+        /// <param name="path">Such as C:\\Something\FUN.ZIP\\specialbooks\\thebestthingever.pdf.</param>
         /// <returns></returns>
         /// <example>For the path example "C:\\Something\fun.zip\\specialbooks\thebestthingever.pdf." this should return an instance of FileInfo pointing to fun.zip</example>
-        protected static FileInfo GetFileSystemLocation(string path)
+        /// <remarks>In practice, we just start at the end point and keep ripping off part of the directory path until it exists</remarks>
+        public static FileInfo GetFileSystemLocation(string path)
         {
             while (path != null)
             {

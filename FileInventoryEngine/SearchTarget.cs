@@ -5,6 +5,7 @@ using System.Reflection.Metadata.Ecma335;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using System.Xml.Linq;
 using System.Xml.Serialization;
 
 namespace OdinSearchEngine
@@ -114,6 +115,89 @@ namespace OdinSearchEngine
             return ConvertToRegEx(Target, ConvertToRegExMode.WantDirectoryNameRegs);
         }
 
+        #region xmlconstants
+        /// <summary>
+        /// the root element
+        /// </summary>
+        const string BaseXmlDocName = "OdinSearchTarget";
+        /// <summary>
+        /// Version Info Tag
+        /// </summary>
+        const string XmlDocVersion = "VersionInfo";
+        /// <summary>
+        /// Specific Version of this xml encoding
+        /// </summary>
+        const string XmlDocVersionData = "1";
+
+        /// <summary>
+        /// xml string for the <see cref="AccessAnchor"/> variable
+        /// </summary>
+        const string XmlAccessAnchor1Name = "AccessAnchor1";
+        /// <summary>
+        /// xml string for the <see cref="AccessAnchor2"/> varaible
+        /// </summary>
+        const string XmlAccessAnchor2Name = "AccessAnchor2";
+
+        /// <summary>
+        /// xml string for the <see cref="AccessAnchor"/> variable
+        /// </summary>
+        const string XmlAccessAnchor1Check = "AccessAnchor1Check";
+        /// <summary>
+        /// xml string for the <see cref="AccessAnchor2"/> varaible
+        /// </summary>
+        const string XmlAccessAnchor2Check = "AccessAnchor2Check";
+
+
+        /// <summary>
+        /// xml string for the <see cref="AttributeMatching1"/> variable
+        /// </summary>
+        const string XmlAttribMatch1 = "AttribMatch1";
+        /// <summary>
+        /// xml string for the <see cref="AttributeMatching2"/> vaarible
+        /// </summary>
+        const string XmlAttribMatch2 = "AttribMatch2";
+
+
+        /// <summary>
+        /// xml string for the <see cref="AttribMatching1Style"/> variable
+        /// </summary>
+        const string XmlAttribMatchString1 = "AttribMatchStyle1";
+        /// <summary>
+        /// xml string for the <see cref="AttribMatching2Style"/> variable
+        /// </summary>
+        const string XmlAttribMatchString2 = "AttribMatchStyle2";
+
+
+
+        /// <summary>
+        /// xml string for the <see cref="CheckFileSize"/> variable
+        /// </summary>
+        const string XmlCheckFileSize = "CheckFileSize";
+        const string XmlFileSizeLow = "FileSizeLow";
+        const string XmlFileSizeHigh = "FileSizeHigh";
+
+        const string XmlCreationAnchor1 = "CreationAnchor1";
+        const string XmlCreationAnchor2 = "CreationAnchor2";
+
+        const string XmlCreationCheck1 = "CreationAnchorCheck1";
+        const string XmlCreationCheck2 = "CreationAnchorCheck2";
+
+        const string XmlDirectoryName = "DirectoryPath";
+        const string XmlDirectoryNameContent = "DirectoryPathContentEntry";
+        const string XmlDirectoryNameCheck = "DirectoryNameCheck";
+
+        const string XmlFileName = "FileName";
+        const string XmlFileNameContent = "FileNameEntry";
+        const string XmlFileNameCheck = "FileNameCheck";
+
+
+        const string XmlWriteAnchor1 = "WriteAnchor1";
+        const string XmlWriteAnchor2 = "WriteAnchor2";
+        const string XmlWriteAnchorCheck1 = "WriteAnchorCheck1";
+        const string XmlWriteAnchorCheck2 = "WriteAnchorCheck2";
+
+        #endregion
+
         /// <summary>
         /// Save this <see cref="SearchTarget"/> as XML to a stream
         /// </summary>
@@ -121,15 +205,132 @@ namespace OdinSearchEngine
         /// <exception cref="NotImplementedException">Throws this</exception>
         public void SaveXml(Stream output)
         {
+            // 23 different items to xmlize
             XmlDocument ret = new XmlDocument();
-            XmlElement BaseTag = ret.CreateElement("OdinSearchTarget");
+            XmlElement BaseTag = ret.CreateElement(BaseXmlDocName);
+            XmlElement VersionData = ret.CreateElement(XmlDocVersion);
+            VersionData.InnerText = XmlDocVersionData;
+            
+            ret.AppendChild(BaseTag);
+            BaseTag.AppendChild(VersionData);
 
-            XmlElement AccessAnchor1Tag = ret.CreateElement("AccessAnchor1");
-            XmlElement AccessAnchor2Tag = ret.CreateElement("AccessAnchor2");
-            XmlElement AccessAnchorHandle1 = ret.CreateElement("AccessAnchor1");
+
+            XmlElement AccessAnchor1 = ret.CreateElement(XmlAccessAnchor1Name);
+            XmlElement AccessAnchor2 = ret.CreateElement(XmlAccessAnchor2Name);
+            AccessAnchor1.InnerText = this.AccessAnchor.ToString();
+            AccessAnchor2.InnerText = this.AccessAnchor.ToString();
+            BaseTag.AppendChild(AccessAnchor1);
+            BaseTag.AppendChild(AccessAnchor2);
 
 
-            throw new NotImplementedException();
+            XmlElement AccessAnchor1Check = ret.CreateElement(XmlAccessAnchor1Check);
+            XmlElement AccessAnchor2Check = ret.CreateElement(XmlAccessAnchor2Check);
+            AccessAnchor1Check.InnerText = this.AccessAnchorCheck1.ToString();
+            AccessAnchor2Check.InnerText = this.AccessAnchorCheck2.ToString();
+            BaseTag.AppendChild(AccessAnchor1Check);
+            BaseTag.AppendChild(AccessAnchor2Check);
+
+            XmlElement attribMatch1style = ret.CreateElement(XmlAttribMatchString1);
+            XmlElement attribMatch2style = ret.CreateElement(XmlAttribMatchString2);
+            attribMatch1style.InnerText = this.AttribMatching1Style.ToString();
+            attribMatch2style.InnerText = this.AttribMatching2Style.ToString();
+            BaseTag.AppendChild(attribMatch1style);
+            BaseTag.AppendChild(attribMatch2style);
+
+            XmlElement attribMatch1 = ret.CreateElement(XmlAttribMatch1); 
+            XmlElement attribMatch2 = ret.CreateElement(XmlAttribMatch2);
+            attribMatch1.InnerText = this.AttributeMatching1.ToString();
+            attribMatch2.InnerText = this.AttributeMatching2.ToString();
+            BaseTag.AppendChild(attribMatch1);
+            BaseTag.AppendChild(attribMatch2);
+
+            XmlElement CheckFileSize = ret.CreateElement(XmlCheckFileSize);
+            CheckFileSize.InnerText = this.CheckFileSize.ToString();
+            BaseTag.AppendChild(CheckFileSize); ;
+
+            XmlElement CreationAnchor1 = ret.CreateElement(XmlCreationAnchor1);
+            XmlElement CreationAnchor2 = ret.CreateElement(XmlCreationAnchor2);
+            CreationAnchor1.InnerText = this.CreationAnchor.ToString();
+            CreationAnchor2.InnerText = this.CreationAnchor2.ToString();
+            BaseTag.AppendChild(CreationAnchor1);
+            BaseTag.AppendChild(CreationAnchor2 );
+
+            XmlElement CreationAnchorcheck1 = ret.CreateElement(XmlCreationCheck1);
+            XmlElement CreationAnchorcheck2 = ret.CreateElement(XmlCreationCheck2);
+            CreationAnchorcheck1.InnerText = this.CreationAnchorCheck1.ToString();
+            CreationAnchorcheck2.InnerText = this.CreationAnchorCheck2.ToString();
+            BaseTag.AppendChild(CreationAnchorcheck1);
+            BaseTag.AppendChild(CreationAnchorcheck2);
+
+            var DirectNameTag = ret.CreateElement(XmlDirectoryName);
+            foreach (string s in this.DirectoryPath)
+            {
+                var innername = ret.CreateElement(XmlDirectoryNameContent);
+                innername.InnerText = s;
+                DirectNameTag.AppendChild(innername);
+            }
+            BaseTag.AppendChild(DirectNameTag);
+
+            XmlElement DirNameCompare = ret.CreateElement(XmlDirectoryNameCheck);
+            DirNameCompare.InnerText = DirectoryMatching.ToString();
+            BaseTag.AppendChild(DirNameCompare);
+
+            var FileNameTag = ret.CreateElement(XmlFileName);
+            foreach (string s in this.FileName)
+            {
+                var innername = ret.CreateElement(XmlFileNameContent);
+                innername.InnerText = s;
+                FileNameTag.AppendChild(innername);
+            }
+            BaseTag.AppendChild(FileNameTag);
+
+            XmlElement FileNameCompare = ret.CreateElement(XmlFileNameCheck);
+            FileNameCompare.InnerText = FileNameMatching.ToString();
+            BaseTag.AppendChild(FileNameCompare);
+
+            XmlElement FileSizeHigh = ret.CreateElement(XmlFileSizeHigh);
+            FileSizeHigh.InnerText = this.FileSizeMax.ToString();
+            BaseTag.AppendChild(FileSizeHigh);
+
+            XmlElement FileSizeLow = ret.CreateElement(XmlFileSizeLow);
+            FileSizeLow.InnerText = this.FileSizeMin.ToString();
+            BaseTag.AppendChild(FileSizeLow);
+            
+
+
+            XmlElement WriteAnchor1 = ret.CreateElement(XmlWriteAnchor1);
+            XmlElement WriteAnchor2 = ret.CreateElement(XmlWriteAnchor2);
+            WriteAnchor1.InnerText = this.WriteAnchor.ToString();
+            WriteAnchor2.InnerText = this.WriteAnchor2.ToString();
+            BaseTag.AppendChild(WriteAnchor1);
+            BaseTag.AppendChild(WriteAnchor2);
+
+            XmlElement WriteAnchorCheck1 = ret.CreateElement(XmlWriteAnchorCheck1);
+            XmlElement WriteAnchorCheck2 = ret.CreateElement(XmlWriteAnchorCheck2);
+
+            WriteAnchorCheck1.InnerText = this.WriteAnchorCheck1.ToString();
+            WriteAnchorCheck2.InnerText = this.WriteAnchorCheck2.ToString();
+            BaseTag.AppendChild(WriteAnchorCheck1);
+            BaseTag.AppendChild(WriteAnchorCheck2);
+
+            
+
+
+
+
+
+
+            
+
+
+            
+            
+            
+
+
+
+
+
 
 
             ret.Save(output);
@@ -154,9 +355,261 @@ namespace OdinSearchEngine
                 return str;
             }
         }
-        public static SearchTarget CreateFromXml(string v)
+        public static SearchTarget CreateFromXmlString(string v)
         {
-            throw new NotImplementedException();
+            SearchTarget ret = new SearchTarget();
+            var xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(v);
+
+            var Base = xmlDoc.GetElementsByTagName(SearchTarget.BaseXmlDocName);
+            
+            if (Base.Count == 0)
+            {
+                throw new ArgumentException();
+            }
+            var VersionInfo = Base.Item(0).SelectSingleNode(XmlDocVersion);
+            if (VersionInfo != null)
+            {
+                if (VersionInfo.InnerText != XmlDocVersionData)
+                {
+                    throw new ArgumentException();
+                }
+            }
+            else
+            {
+                throw new ArgumentException();
+            }
+
+            XmlNode AccessAnchor1 = Base.Item(0).SelectSingleNode(XmlAccessAnchor1Name);
+            XmlNode AccessAnchor2  = Base.Item(0).SelectSingleNode(XmlAccessAnchor2Name);
+            XmlNode AccessAnchorCheck1 = Base.Item(0).SelectSingleNode(XmlAccessAnchor1Check);
+            XmlNode AccessAnchorCheck2 = Base.Item(0).SelectSingleNode(XmlAccessAnchor2Check);
+
+
+            if (AccessAnchor1 != null)
+            {
+                if (!DateTime.TryParse(AccessAnchor1.InnerText, out ret.AccessAnchor))
+                {
+                    throw new ArgumentException();
+                }
+
+                if (!Enum.TryParse<MatchStyleDateTime>(AccessAnchorCheck1.InnerText, out ret.AccessAnchorCheck1))
+                {
+                    throw new ArgumentException();
+                }
+            }
+
+            if (AccessAnchor2 != null)
+            {
+                if (!DateTime.TryParse(AccessAnchor2.InnerText, out ret.AccessAnchor2))
+                {
+                    throw new ArgumentException();
+                }
+
+                if (!Enum.TryParse<MatchStyleDateTime>(AccessAnchorCheck2.InnerText, out ret.AccessAnchorCheck2))
+                {
+                    throw new ArgumentException();
+                }
+            }
+
+
+            XmlNode AttribMatchStyle1 = Base.Item(0).SelectSingleNode(XmlAttribMatchString1);
+            XmlNode AttribMatchStyle2 = Base.Item(0).SelectSingleNode(XmlAttribMatchString2);
+            XmlNode AttribMatch1 = Base.Item(0).SelectSingleNode(XmlAttribMatch1);
+            XmlNode AttribMatch2 = Base.Item(0).SelectSingleNode(XmlAttribMatch2);
+
+            if (AttribMatch1 != null)
+            {
+                if (!Enum.TryParse<FileAttributes>(AttribMatch1.InnerText, out ret.AttributeMatching1))
+                {
+                    int tmp = 0;
+                    if (int.TryParse(AttribMatch1.InnerText,  out tmp))
+                    {
+                        ret.AttributeMatching1 = (FileAttributes)tmp;
+                    }
+                    else
+                    {
+                        throw new ArgumentException();
+                    }
+                }
+            }
+
+            if (AttribMatch2 != null)
+            {
+                if (!Enum.TryParse<FileAttributes>(AttribMatch2.InnerText, out ret.AttributeMatching1))
+                {
+                    throw new ArgumentException();
+                }
+
+                if (AttribMatchStyle2 != null)
+                {
+                    if (!Enum.TryParse<MatchStyleFileAttributes>(AttribMatchStyle2.InnerText, true, out ret.AttribMatching2Style))
+                    {
+                        throw new ArgumentException();
+                    }
+                }
+            }
+
+            XmlNode CheckSize = Base.Item(0).SelectSingleNode(SearchTarget.XmlCheckFileSize);
+            if (CheckSize != null) 
+            {
+                if (!bool.TryParse(CheckSize.InnerText, out ret.CheckFileSize))
+                {
+                    throw new ArgumentException();
+                }
+            }
+
+
+
+            XmlNode CreationAnchor1 = Base.Item(0).SelectSingleNode(XmlCreationAnchor1);
+            XmlNode CreationAnchor2 = Base.Item(0).SelectSingleNode(XmlCreationAnchor2);
+            XmlNode CreationAnchor1Check = Base.Item(0).SelectSingleNode(XmlCreationCheck1);
+            XmlNode CreationAnchor2Check = Base.Item(0).SelectSingleNode(XmlCreationCheck2);
+
+
+            if (CreationAnchor1 != null)
+            {
+                if (!DateTime.TryParse(CreationAnchor1.InnerText, out ret.CreationAnchor))
+                {
+                    throw new ArgumentException();
+                }
+
+                if (!Enum.TryParse<MatchStyleDateTime>(CreationAnchor1Check.InnerText, out ret.CreationAnchorCheck1))
+                {
+                    throw new ArgumentException();
+                }
+            }
+
+
+            if (CreationAnchor2 != null)
+            {
+                if (!DateTime.TryParse(CreationAnchor2.InnerText, out ret.CreationAnchor2))
+                {
+                    throw new ArgumentException();
+                }
+
+                if (!Enum.TryParse<MatchStyleDateTime>(CreationAnchor2Check.InnerText, out ret.CreationAnchorCheck2))
+                {
+                    throw new ArgumentException();
+                }
+            }
+
+            XmlNodeList DirectoryNames = Base.Item(0).SelectNodes(XmlDirectoryName);
+
+
+
+            if ((DirectoryNames == null) || (DirectoryNames.Count == 0))
+            {
+                ret.DirectoryPath.Clear();
+                ret.DirectoryMatching = MatchStyleString.Skip;
+            }
+            else
+            {
+                var DirNameEntries = DirectoryNames.Item(0).ChildNodes;
+                foreach (XmlNode DirNameEntry in DirNameEntries)
+                {
+                    ret.DirectoryPath.Add(DirNameEntry.FirstChild.Value);
+                }
+
+
+                if (ret.DirectoryPath.Count != 0)
+                {
+                    XmlNode DirNameHandling = Base.Item(0).SelectSingleNode(XmlDirectoryNameCheck);
+                    if (DirNameHandling != null)
+                    {
+                        if (!Enum.TryParse<MatchStyleString>(DirNameHandling.InnerText, out ret.DirectoryMatching))
+                        {
+                            throw new ArgumentException();
+                        }
+                    }
+                }
+            }
+
+
+
+            XmlNodeList FileNames = Base.Item(0).SelectNodes(XmlFileName);
+
+
+
+            if ( (FileNames == null) || (FileNames.Count == 0))
+            {
+                ret.FileName.Clear();
+            }
+            else
+            {
+                var FileNameEntries = FileNames.Item(0).ChildNodes;
+                foreach ( XmlNode FileNameEntry in FileNameEntries)
+                {
+                    ret.FileName.Add(FileNameEntry.FirstChild.Value);
+                }
+
+
+                if (ret.FileName.Count != 0)
+                {
+                    XmlNode FileNameHandling = Base.Item(0).SelectSingleNode(XmlFileNameCheck);
+                    if (FileNameHandling != null)
+                    {
+                        if (!Enum.TryParse<MatchStyleString>(FileNameHandling.InnerText, out ret.FileNameMatching))
+                        {
+                            throw new ArgumentException();
+                        }
+                    }
+                }
+            }
+            XmlNode FileSizeHigh = Base.Item(0).SelectSingleNode(XmlFileSizeHigh);
+            XmlNode FileSizeMin =Base.Item(0).SelectSingleNode(XmlFileSizeLow);
+
+            if (FileSizeHigh != null)
+            {
+                if (!long.TryParse(FileSizeHigh.InnerText, out ret.FileSizeMax))
+                {
+                    throw new ArgumentException();
+                }
+            }
+            if (FileSizeMin != null)
+            {
+                if (!long.TryParse(FileSizeMin.InnerText, out ret.FileSizeMin))
+                {
+                    throw new ArgumentException();
+                }
+            }
+
+
+
+            XmlNode WriteAnchor1 = Base.Item(0).SelectSingleNode(XmlWriteAnchor1);
+            XmlNode WriteAnchor2 = Base.Item(0).SelectSingleNode(XmlWriteAnchor2);
+            XmlNode WriteAnchorCheck1 = Base.Item(0).SelectSingleNode(XmlWriteAnchorCheck1);
+            XmlNode WriteAnchorCheck2 = Base.Item(0).SelectSingleNode(XmlWriteAnchorCheck2);
+
+
+            if (WriteAnchor1 != null)
+            {
+                if (!DateTime.TryParse(WriteAnchor1.InnerText, out ret.WriteAnchor))
+                {
+                    throw new ArgumentException();
+                }
+
+                if (!Enum.TryParse<MatchStyleDateTime>(WriteAnchorCheck1.InnerText, out ret.WriteAnchorCheck1))
+                {
+                    throw new ArgumentException();
+                }
+            }
+
+            if (WriteAnchor2 != null)
+            {
+                if (!DateTime.TryParse(WriteAnchor2.InnerText, out ret.WriteAnchor2))
+                {
+                    throw new ArgumentException();
+                }
+
+                if (!Enum.TryParse<MatchStyleDateTime>(WriteAnchorCheck2.InnerText, out ret.WriteAnchorCheck2))
+                {
+                    throw new ArgumentException();
+                }
+            }
+
+
+            return ret;
         }
 
         public override int GetHashCode()
@@ -261,7 +714,7 @@ namespace OdinSearchEngine
             if (this.FileNameMatching != other.FileNameMatching) return false;
 
 
-            if (stringListCompare(this.DirectoryPath, other.DirectoryPath) == false)
+            if (stringListCompare(this.DirectoryPath, other.DirectoryPath) == false) return false;
             if (this.DirectoryMatching != other.DirectoryMatching) return false;
 
 
