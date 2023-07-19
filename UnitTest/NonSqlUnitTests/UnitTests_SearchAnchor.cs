@@ -7,9 +7,33 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace UnitTest
 {
+
+    [TestClass]
+    public class UnitTests_SearchTarget
+    {
+        [TestMethod]
+        public void SearchTargetToXmlAndBack()
+        {
+            SearchTarget target = new SearchTarget();
+            SearchTarget Target2;
+            target.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
+            target.FileName.Add("*.txt");
+            target.FileName.Add("*.dll");
+            target.DirectoryPath.Add("Windows");
+            target.DirectoryMatching = SearchTarget.MatchStyleString.Invert;
+
+            string xml = target.ToXml();
+
+            File.WriteAllLines("C:\\Dummy\\TestFile.xml", new string[1]{xml});
+            Target2 = SearchTarget.CreateFromXmlString(xml); ;
+
+            Assert.IsTrue(target == Target2);
+        }
+    }
     /// <summary>
     /// The Search for testing the code to ensure it works and does not go up in flames
     /// </summary>
