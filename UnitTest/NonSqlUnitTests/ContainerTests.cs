@@ -24,35 +24,10 @@ namespace NonSqlUnitTests
         [TestMethod]
         public void MiMT_File()
         {
-            using (FileItemCache Cache = new FileItemCache())
-            {
-                Cache.MakeFolder("C:\\TestScrubLocation", "ContainerTests");
-                Cache.MakeFolder("C:\\TestScrubLocation\\ContainerTests\\MiMT_File",string.Empty);
-                Cache.MakeFile("C:\\TestScrubLocation\\ContainerTests\\MiMT_File\\testfile.dat", string.Empty, FileAttributes.Normal);
-                using (var str = File.Open("C:\\TestScrubLocation\\ContainerTests\\MiMT_File\\testfile.zip", FileMode.OpenOrCreate))
-                {
-                    using (ZipArchive Arch = new ZipArchive(str, ZipArchiveMode.Create))
-                    {
-                        ZipArchiveEntry Entry = Arch.CreateEntry("Demo.data");
-                        using (Stream ComEntry = Entry.Open())
-                        {
-                            byte[] Buff = new byte[512];
-                            ComEntry.Write(Buff, 0, 512);
-                        }
-                    }
-                }
-                Cache.AddItem("C:\\TestScrubLocation\\ContainerTests\\MiMT_File\\testfile.zip");
+            throw new NotImplementedException();
 
 
-                using (var TestZip = new OdinSearch_ZippedFileInfo("C:\\TestScrubLocation\\ContainerTests\\MiMT_File\\testfile.zip\\Demo.data"))
-                {
-                    Assert.IsTrue(TestZip.Length == 512);
-                    Assert.IsTrue(string.Compare("Demo.data", TestZip.Name) == 0);
-                }
-
-
-                
-            }
+             
         }
     }
 }
