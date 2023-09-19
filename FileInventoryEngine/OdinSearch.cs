@@ -143,7 +143,7 @@ namespace OdinSearchEngine
         /// </summary>
         readonly List<SearchAnchor> Anchors = new List<SearchAnchor>();
 
-        readonly List<OdinSearch_FileInfoGeneric> ContainerHandlers= new();
+        
         #endregion
         #region Worker Thread stuff
         /// <summary>
@@ -952,45 +952,7 @@ namespace OdinSearchEngine
             DirectoryContainerList.Clear();
         }
 
-        protected OdinSearch_DirectoryInfoGeneric InstanceDirHandler(string location)
-        {
-            Type ret = typeof(OdinSearch_ContainerDirectoryInfo);
-            foreach (ContainerCheckFileCallback s in FileContainerList)
-            {
-                ret = s(location);
-                if (ret != null)
-                    break;
-            }
-            if (ret == null)
-            {
-                return (OdinSearch_DirectoryInfoGeneric)new OdinSearch_ContainerDirectoryInfo(location);
-            }
-            else
-            {
-                return (OdinSearch_DirectoryInfoGeneric)Activator.CreateInstance(ret, new object[] { location });
-            }
-
-        }
-        protected OdinSearch_FileInfoGeneric InstanceFileHandler(string location)
-        {
-            Type ret = typeof(OdinSearch_ContainerFileInfo);
-            foreach (ContainerCheckFileCallback s in FileContainerList)
-            {
-                ret = s(location);
-                if (ret != null)
-                    break;
-            }
-            if (ret == null)
-            {
-                return (OdinSearch_FileInfoGeneric)new OdinSearch_ContainerFileInfo(location);
-            }
-            else
-            {
-                return (OdinSearch_FileInfoGeneric) Activator.CreateInstance(ret, new object[] { location });
-            }
-
-        }
-
+        
         #endregion
 
         #region Search Starting

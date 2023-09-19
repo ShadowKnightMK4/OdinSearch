@@ -81,7 +81,7 @@ namespace FileInventoryConsole
                                 throw new ArgumentExpectsFileSystemLocation(input[step]);
                             }
                             step += 1;
-                            newTarget = SearchTarget.CreateFromXml(File.ReadAllText(input[step]));
+                            newTarget = SearchTarget.CreateFromXmlString(File.ReadAllText(input[step]));
                             break;
                         case "-output":
                             throw new NotImplementedException("0output");
