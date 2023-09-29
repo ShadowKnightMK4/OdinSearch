@@ -63,7 +63,7 @@ namespace OdinSearchEngine
                     ret.Clear();
                     return ret;
                 }
-                if (!Target.FileNameMatching.HasFlag(MatchStyleString.CaseImportant))
+                if (Target.FileNameMatching.HasFlag(MatchStyleString.CaseImportant))
                 {
                     ret.Add(new Regex(pattern, RegexOptions.Singleline));
                 }

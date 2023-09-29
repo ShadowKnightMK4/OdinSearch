@@ -3,66 +3,414 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
-    
-    public static class FilterCheck_VerifyCertRoutine
+    internal static class AuthenticodeTools
     {
         /// <summary>
-        /// Attempts to create a <see cref="X509Certificate2"/> based on the passed item
+        /// SOURCE https://stackoverflow.com/questions/6596327/how-to-check-if-a-file-is-signed-in-c
         /// </summary>
-        /// <param name="Info"></param>
-        /// <returns>returns true if <see cref="X509Certificate2.Verify"/> does and false if the cert cant be created or is not trusted</returns>
-        public static bool TrustThis(FileSystemInfo Info)
+        /// <param name="hWnd"></param>
+        /// <param name="pgActionID"></param>
+        /// <param name="pWinTrustData"></param>
+        /// <returns></returns>
+        [DllImport("Wintrust.dll", PreserveSig = true, SetLastError = false)]
+        private static extern uint WinVerifyTrust(IntPtr hWnd, IntPtr pgActionID, IntPtr pWinTrustData);
+        private static uint WinVerifyTrust(string fileName)
         {
-            X509Certificate2 cert = null;
-            try
+
+            Guid wintrust_action_generic_verify_v2 = new Guid("{00AAC56B-CD44-11d0-8CC2-00C04FC295EE}");
+            uint result = 0;
+            using (WINTRUST_FILE_INFO fileInfo = new WINTRUST_FILE_INFO(fileName,
+                                                                        Guid.Empty))
+            using (UnmanagedPointer guidPtr = new UnmanagedPointer(Marshal.AllocHGlobal(Marshal.SizeOf(typeof(Guid))),
+                                                                   AllocMethod.HGlobal))
+            using (UnmanagedPointer wvtDataPtr = new UnmanagedPointer(Marshal.AllocHGlobal(Marshal.SizeOf(typeof(WINTRUST_DATA))),
+                                                                      AllocMethod.HGlobal))
             {
-                cert =  new X509Certificate2(Info.FullName);
-                try
-                {
-                    return cert.Verify();
-                }
-                catch (System.Security.Cryptography.CryptographicException)
-                {
-                    return false;
-                }
+                WINTRUST_DATA data = new WINTRUST_DATA(fileInfo);
+                IntPtr pGuid = guidPtr;
+                IntPtr pData = wvtDataPtr;
+                Marshal.StructureToPtr(wintrust_action_generic_verify_v2,
+                                       pGuid,
+                                       true);
+                Marshal.StructureToPtr(data,
+                                       pData,
+                                       true);
+                result = WinVerifyTrust(IntPtr.Zero,
+                                        pGuid,
+                                        pData);
+
             }
-            catch (System.Security.Cryptography.CryptographicException)
-            {
-                return false;
-            }
-            finally
-            {
-                cert?.Dispose();
-            }
+            return result;
+
         }
+        public static bool IsTrusted(string fileName)
+        {
+            return WinVerifyTrust(fileName) == 0;
+        }
+
+
     }
 
-    /// <summary>
-    /// Example of <see cref="OdinSearch_OutputConsumer_FilterCheck"/>.  This software attempts to load the certificate in the file and verify via <see cref="X509Certificate2.Verify"/> 
-    /// </summary>
-    public class OdinSearchOutputConsumer_FilterCheck_CertExample: OdinSearch_OutputConsumer_FilterCheck
+    internal struct WINTRUST_FILE_INFO : IDisposable
     {
-        /// <summary>
-        /// If true, things that are trusted according to <see cref="FilterCheck_VerifyCertRoutine.TrustThis(FileSystemInfo)"/> are added to the list.  If false, those that aren't trusted are added to the list
-        /// </summary>
-        /// <remarks>Note this is backed in  <see cref="OdinSearch_OutputConsumer_FilterCheck.DesiredCheck"/></remarks>
-        public bool WantTrusted { get => DesiredCheck; set => DesiredCheck = value; }
+
+        public WINTRUST_FILE_INFO(string fileName, Guid subject)
+        {
+
+            cbStruct = (uint)Marshal.SizeOf(typeof(WINTRUST_FILE_INFO));
+
+            pcwszFilePath = fileName;
+
+
+
+            if (subject != Guid.Empty)
+            {
+
+                pgKnownSubject = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(Guid)));
+
+                Marshal.StructureToPtr(subject, pgKnownSubject, true);
+
+            }
+
+            else
+            {
+
+                pgKnownSubject = IntPtr.Zero;
+
+            }
+
+            hFile = IntPtr.Zero;
+
+        }
+
+        public uint cbStruct;
+
+        [MarshalAs(UnmanagedType.LPTStr)]
+
+        public string pcwszFilePath;
+
+        public IntPtr hFile;
+
+        public IntPtr pgKnownSubject;
+
+
+
+        #region IDisposable Members
+
+
+
+        public void Dispose()
+        {
+
+            Dispose(true);
+
+        }
+
+
+
+        private void Dispose(bool disposing)
+        {
+
+            if (pgKnownSubject != IntPtr.Zero)
+            {
+
+                Marshal.DestroyStructure(this.pgKnownSubject, typeof(Guid));
+
+                Marshal.FreeHGlobal(this.pgKnownSubject);
+
+            }
+
+        }
+
+
+
+        #endregion
+
+    }
+
+    enum AllocMethod
+    {
+        HGlobal,
+        CoTaskMem
+    };
+    enum UnionChoice
+    {
+        File = 1,
+        Catalog,
+        Blob,
+        Signer,
+        Cert
+    };
+    enum UiChoice
+    {
+        All = 1,
+        NoUI,
+        NoBad,
+        NoGood
+    };
+    enum RevocationCheckFlags
+    {
+        None = 0,
+        WholeChain
+    };
+    enum StateAction
+    {
+        Ignore = 0,
+        Verify,
+        Close,
+        AutoCache,
+        AutoCacheFlush
+    };
+    enum TrustProviderFlags
+    {
+        UseIE4Trust = 1,
+        NoIE4Chain = 2,
+        NoPolicyUsage = 4,
+        RevocationCheckNone = 16,
+        RevocationCheckEndCert = 32,
+        RevocationCheckChain = 64,
+        RecovationCheckChainExcludeRoot = 128,
+        Safer = 256,
+        HashOnly = 512,
+        UseDefaultOSVerCheck = 1024,
+        LifetimeSigning = 2048
+    };
+    enum UIContext
+    {
+        Execute = 0,
+        Install
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+
+    internal struct WINTRUST_DATA : IDisposable
+    {
+
+        public WINTRUST_DATA(WINTRUST_FILE_INFO fileInfo)
+        {
+
+            this.cbStruct = (uint)Marshal.SizeOf(typeof(WINTRUST_DATA));
+
+            pInfoStruct = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(WINTRUST_FILE_INFO)));
+
+            Marshal.StructureToPtr(fileInfo, pInfoStruct, false);
+
+            this.dwUnionChoice = UnionChoice.File;
+
+
+
+            pPolicyCallbackData = IntPtr.Zero;
+
+            pSIPCallbackData = IntPtr.Zero;
+
+
+
+            dwUIChoice = UiChoice.NoUI;
+
+            fdwRevocationChecks = RevocationCheckFlags.None;
+
+            dwStateAction = StateAction.Ignore;
+
+            hWVTStateData = IntPtr.Zero;
+
+            pwszURLReference = IntPtr.Zero;
+
+            dwProvFlags = TrustProviderFlags.Safer;
+
+
+
+            dwUIContext = UIContext.Execute;
+
+        }
+
+
+
+        public uint cbStruct;
+
+        public IntPtr pPolicyCallbackData;
+
+        public IntPtr pSIPCallbackData;
+
+        public UiChoice dwUIChoice;
+
+        public RevocationCheckFlags fdwRevocationChecks;
+
+        public UnionChoice dwUnionChoice;
+
+        public IntPtr pInfoStruct;
+
+        public StateAction dwStateAction;
+
+        public IntPtr hWVTStateData;
+
+        private IntPtr pwszURLReference;
+
+        public TrustProviderFlags dwProvFlags;
+
+        public UIContext dwUIContext;
+
+
+
+        #region IDisposable Members
+
+
+
+        public void Dispose()
+        {
+
+            Dispose(true);
+
+        }
+
+
+
+        private void Dispose(bool disposing)
+        {
+
+            if (dwUnionChoice == UnionChoice.File)
+            {
+
+                WINTRUST_FILE_INFO info = new WINTRUST_FILE_INFO();
+
+                Marshal.PtrToStructure(pInfoStruct, info);
+
+                info.Dispose();
+
+                Marshal.DestroyStructure(pInfoStruct, typeof(WINTRUST_FILE_INFO));
+
+            }
+
+
+
+            Marshal.FreeHGlobal(pInfoStruct);
+
+        }
+
+
+
+        #endregion
+
+    }
+
+    internal sealed class UnmanagedPointer : IDisposable
+    {
+
+        private IntPtr m_ptr;
+
+        private AllocMethod m_meth;
+
+        internal UnmanagedPointer(IntPtr ptr, AllocMethod method)
+        {
+
+            m_meth = method;
+
+            m_ptr = ptr;
+
+        }
+
+
+
+        ~UnmanagedPointer()
+        {
+
+            Dispose(false);
+
+        }
+
+
+
+        #region IDisposable Members
+
+        private void Dispose(bool disposing)
+        {
+
+            if (m_ptr != IntPtr.Zero)
+            {
+
+                if (m_meth == AllocMethod.HGlobal)
+                {
+
+                    Marshal.FreeHGlobal(m_ptr);
+
+                }
+
+                else if (m_meth == AllocMethod.CoTaskMem)
+                {
+
+                    Marshal.FreeCoTaskMem(m_ptr);
+
+                }
+
+                m_ptr = IntPtr.Zero;
+
+            }
+
+
+
+            if (disposing)
+            {
+
+                GC.SuppressFinalize(this);
+
+            }
+
+        }
+
+
+
+        public void Dispose()
+        {
+
+            Dispose(true);
+
+        }
+
+
+
+        #endregion
+
+
+
+        public static implicit operator IntPtr(UnmanagedPointer ptr)
+        {
+
+            return ptr.m_ptr;
+
+        }
+
+    }
+
+    public class OdinSearchOutputConsumer_FilterCheck_WinTrust: OdinSearch_OutputConsumer_FilterCheck
+    {
+
 
         /// <summary>
-        /// returns if the passed file system item's return value of <see cref="FilterCheck_VerifyCertRoutine.TrustThis(FileSystemInfo)"/> matches <see cref="WantTrusted"/>
+        /// If true, things that are trusted according to WinVerifyTrust are added to the list.  If false, those that aren't trusted are added to the list
         /// </summary>
-        /// <param name="Info">File system item to check</param>
-        /// <returns>This returns if the routine called returns the WantTrusted Value</returns>
-        public override bool FilterHandleRoutine(FileSystemInfo Info)
+        public bool WantTrusted = false;
+
+        public override void Match(FileSystemInfo info)
         {
-            return (FilterCheck_VerifyCertRoutine.TrustThis(Info) == WantTrusted);
+            FilterQuery.Enqueue(info);
+            base.Match(info);
+        }
+        public override bool FilterHandle()
+        {
+            if (this.FilterQuery.Count > 0)
+            {
+                FileSystemInfo Target = FilterQuery.Dequeue();
+                bool TrustMe = AuthenticodeTools.IsTrusted(Target.FullName);
+                if (TrustMe == WantTrusted) 
+                {
+                    this.MatchedResults.Add(Target);
+                }
+            }
+            return false;
         }
     }
-    
 }
