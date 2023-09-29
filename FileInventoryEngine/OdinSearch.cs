@@ -9,6 +9,8 @@ using static OdinSearchEngine.SearchTarget;
 using OdinSearchEngine.OdinSearch_ContainerSystems;
 using System.Linq;
 using System.Collections;
+using System.Diagnostics;
+using ThreadState = System.Threading.ThreadState;
 
 namespace OdinSearchEngine
 {
@@ -173,7 +175,7 @@ namespace OdinSearchEngine
             Thread.Sleep(200);
             WorkerThreads.ForEach(
                 p => {
-                    if (p.Thread.ThreadState == ThreadState.Running)
+                    if (p.Thread.ThreadState == System.Threading.ThreadState.Running)
                     {
                         p.Thread.Join();
                     }
@@ -774,8 +776,8 @@ namespace OdinSearchEngine
 
             List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
             WorkerThreadArgs TrueArgs = Args as WorkerThreadArgs;
-            Thread.CurrentThread.Name = TrueArgs.StartFrom.roots[0].ToString() + " Scanner";
-            
+            //Thread.CurrentThread.Name = TrueArgs.StartFrom.roots[0].ToString() + " Scanner";
+            Debug.WriteLine(Thread.CurrentThread.Name + " is working with " + TrueArgs.StartFrom.roots[0]);
             
             
            if (TrueArgs != null ) 
@@ -794,8 +796,14 @@ namespace OdinSearchEngine
                         // add root[0] to the queue to pull from
                         FolderList.Enqueue(TrueArgs.StartFrom.roots[0]);
 
-                        // label is used as a starting point to loop back to for looking at subfolders when we get
-                        // looping
+#if true
+                        lock (TrueArgs.Coms)
+                        {
+                            TrueArgs.Coms.Messaging("DEBUG: PUSHED to Que" + TrueArgs.StartFrom.roots[0]);
+                        }
+#endif
+                    // label is used as a starting point to loop back to for looking at subfolders when we get
+                    // looping
                     Reset:
 
                         
@@ -806,6 +814,12 @@ namespace OdinSearchEngine
                             
                             DirectoryInfo CurrentLoc = FolderList.Dequeue();
 
+#if true
+                            lock (TrueArgs.Coms)
+                            {
+                                TrueArgs.Coms.Messaging("DEBUG: Popped from Que " + CurrentLoc);
+                            }
+#endif
                             // files in the CurrentLoc
                             FileInfo[] Files = null;
                             // folders in the CurrentLoc
@@ -813,7 +827,19 @@ namespace OdinSearchEngine
                             try
                             {
                                 Files = CurrentLoc.GetFiles();
+#if true
+                                lock (TrueArgs.Coms)
+                                {
+                                    TrueArgs.Coms.Messaging("DEBUG:Got files ok" + CurrentLoc);
+                                }
+#endif
                                 Folders = CurrentLoc.GetDirectories();
+#if true
+                                lock (TrueArgs.Coms)
+                                {
+                                    TrueArgs.Coms.Messaging("DEBUG: Got Folders ok Que " + CurrentLoc);
+                                }
+#endif
                             }
                             catch (IOException e)
                             {
@@ -854,12 +880,24 @@ namespace OdinSearchEngine
 
                                     foreach (FileInfo Possible in Files)
                                     {
-                                        bool isMatched = MatchThis(Target, Possible);
+#if true
+                                            lock (TrueArgs.Coms)
+                                            {
+                                                TrueArgs.Coms.Messaging("DEBUG: attempt to match file " + Targets[0].FileName + " against " +Possible.FullName);
+                                            }
+#endif
+                                            bool isMatched = MatchThis(Target, Possible);
                                         if (isMatched)
                                         {
                                             if (!ThreadSynchResults)
                                             {
-                                                TrueArgs.Coms.Match(Possible);
+#if true
+                                                    lock (TrueArgs.Coms)
+                                                    {
+                                                        TrueArgs.Coms.Messaging("DEBUG: Match OK file " + Targets[0].FileName + " against " + Possible.Name);
+                                                    }
+#endif
+                                                    TrueArgs.Coms.Match(Possible);
                                             }
                                             else
                                             {
@@ -878,12 +916,24 @@ namespace OdinSearchEngine
                                     // folder check
                                     foreach (DirectoryInfo Possible in Folders)
                                     {
-                                        bool isMatched = MatchThis(Target, Possible);
+#if true
+                                            lock (TrueArgs.Coms)
+                                            {
+                                                TrueArgs.Coms.Messaging("DEBUG: attempt to match folder " + Targets[0].FileName + " against " + Possible.Name);
+                                            }
+#endif
+                                            bool isMatched = MatchThis(Target, Possible);
                                         if (isMatched)
                                         {
                                             if (!ThreadSynchResults)
                                             {
-                                                TrueArgs.Coms.Match(Possible);
+#if true
+                                                    lock (TrueArgs.Coms)
+                                                    {
+                                                        TrueArgs.Coms.Messaging("DEBUG: match folder ok " + Targets[0].FileName + " against " + Possible.Name);
+                                                    }
+#endif
+                                                    TrueArgs.Coms.Match(Possible);
                                             }
                                             else
                                             {
@@ -899,18 +949,43 @@ namespace OdinSearchEngine
 
                             if (TrueArgs.StartFrom.EnumSubFolders)
                             {
+#if true
+                                lock (TrueArgs.Coms)
+                                {
+                                    TrueArgs.Coms.Messaging("DEBUG: Subfolders requested from" + Targets[0].FileName + "");
+                                }
+#endif
                                 if (!ErrorPrune)
                                 foreach (DirectoryInfo Folder in Folders)
                                 {
-                                    FolderList.Enqueue(Folder);
+#if true
+                                        lock (TrueArgs.Coms)
+                                        {
+                                            TrueArgs.Coms.Messaging("DEBUG: Adding SubFolder " + Targets[0].FileName + Folder.FullName);
+                                        }
+#endif
+                                        FolderList.Enqueue(Folder);
                                 }
                             }
                         }
 
                         if (FolderList.Count > 0)
                         {
+#if true
+                            lock (TrueArgs.Coms)
+                            {
+                                TrueArgs.Coms.Messaging("DEBUG: Thread going back to start ");
+                            }
+#endif
+
                             goto Reset;
                         }
+#if true
+                        lock (TrueArgs.Coms)
+                        {
+                            TrueArgs.Coms.Messaging("DEBUG:  thread edning " );
+                        }
+#endif
                     }
                 }
             }
@@ -990,10 +1065,11 @@ namespace OdinSearchEngine
                         {
                             throw new InvalidOperationException(NonEmptyAnchorListEmptySplitRoots);
                         }
-                        foreach (SearchAnchor SmallAnchor in AnchorList)
+                        for (int smallstep = 0;  smallstep < AnchorList.Length; smallstep++)
+                        //foreach (SearchAnchor SmallAnchor in AnchorList)
                         {
                             Args = new();
-                            Args.StartFrom = SmallAnchor;
+                            Args.StartFrom = AnchorList[smallstep];
                             Args.Targets.AddRange(Targets);
                             Args.Coms = Coms;
                             //Args.ContainerList = null;
@@ -1009,6 +1085,7 @@ namespace OdinSearchEngine
 
                             WorkerThreadWithCancelToken Worker = new WorkerThreadWithCancelToken();
                             Worker.Thread = new Thread(() => WorkerThreadProc(Args));
+                            Worker.Thread.Name =  AnchorList[smallstep].roots[0].ToString();
                             Worker.Token = new CancellationTokenSource();
                             Worker.Args = Args;
                             Args.Token = Worker.Token.Token;

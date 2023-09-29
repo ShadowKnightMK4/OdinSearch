@@ -23,18 +23,21 @@ namespace FileIventoryConsole
             Console.WriteLine("This console app can serve as an example of what to do or how to use.");
             
             SearchTarget ProgramFiles = new SearchTarget();
-            SearchAnchor LocalStorage = new SearchAnchor(true);
-            ProgramFiles.FileName.Add(SearchTarget.MatchAnyFile);
+            SearchAnchor LocalStorage = new SearchAnchor("C:\\Windows\\");
+            //ProgramFiles.FileName.Add(SearchTarget.MatchAnyFile);
+            ProgramFiles.FileName.Add("*.EXE");
+            ProgramFiles.FileName.Add("*.DLL");
 
             ProgramFiles.FileNameMatching = SearchTarget.MatchStyleString.MatchAny;
-            LocalStorage.EnumSubFolders = true;
+            //LocalStorage.EnumSubFolders = true;
 
             OdinSearch runme = new OdinSearch();
             runme.AddSearchAnchor(LocalStorage);
             runme.AddSearchTarget(ProgramFiles);
-            
+
             var results = new OdinSearch_OutputSimpleConsole();
-            
+//            var results = new OdinSearchOutputConsumer_FilterCheck_WinTrust();
+  //          results.WantTrusted = true;
 
             runme.Search(results);
             while (runme.HasActiveSearchThreads)
