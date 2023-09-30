@@ -35,17 +35,31 @@ namespace FileIventoryConsole
             runme.AddSearchAnchor(LocalStorage);
             runme.AddSearchTarget(ProgramFiles);
 
-            var results = new OdinSearch_OutputSimpleConsole();
-//            var results = new OdinSearchOutputConsumer_FilterCheck_WinTrust();
-  //          results.WantTrusted = true;
+//            var results = new OdinSearch_OutputSimpleConsole();
+            var results = new OdinSearchOutputConsumer_FilterCheck_CertExample();
+            results.WantTrusted = false;
 
             runme.Search(results);
             while (runme.HasActiveSearchThreads)
             {
+                Thread.Sleep(1000);
                 runme.WorkerThreadJoin();
+                results.CheckFileFilter();
+
+                if (runme.IsZombied)
+                {
+                    runme.WorkerThread_ResolveComs();
+                    break;
+                }
             }
 
-            Console.Write("{0} Files and Folders matched. {1} files and folders did not match.", results.TimesMatchCalled, results.TimesNoMatchCalled);
+            foreach (var result in results.MatchedResults) 
+            {
+                Console.WriteLine(result.FullName.ToString());
+            }
+
+            Console.WriteLine("{0} Files and Folders matched. {1} files and folders did not match.", results.TimesMatchCalled, results.TimesNoMatchCalled);
+            Console.WriteLine("Out of the matched files, {0} failed the filter check and were excluded.", results.FilteredResults);
             return;
         }
     }
