@@ -3,20 +3,24 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
+    /// <summary>
+    /// SOURCE https://stackoverflow.com/questions/6596327/how-to-check-if-a-file-is-signed-in-c which gets it partiually from here https://web.archive.org/web/20200630020153/http://geekswithblogs.net/robp/archive/2007/05/04/112250.aspx
+    /// </summary>
+    /// <remarks>THe post dating seems to put the code under https://creativecommons.org/licenses/by-sa/2.5/ </remarks>
     internal static class AuthenticodeTools
     {
-        /// <summary>
-        /// SOURCE https://stackoverflow.com/questions/6596327/how-to-check-if-a-file-is-signed-in-c
-        /// </summary>
+      
         /// <param name="hWnd"></param>
         /// <param name="pgActionID"></param>
         /// <param name="pWinTrustData"></param>
         /// <returns></returns>
+        
         [DllImport("Wintrust.dll", PreserveSig = true, SetLastError = false)]
         private static extern uint WinVerifyTrust(IntPtr hWnd, IntPtr pgActionID, IntPtr pWinTrustData);
         private static uint WinVerifyTrust(string fileName)
@@ -385,6 +389,48 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 
     }
 
+    internal static class FilterCheck_CertExample
+    {
+        public static bool TrustThis(FileSystemInfo Info)
+        {
+            X509Certificate2 cert = null;
+            try
+            {
+                cert =  new X509Certificate2(Info.FullName);
+                try
+                {
+                    var Cert2 = cert as X509Certificate2;
+                    
+                    return Cert2.Verify();
+                }
+                catch (System.Security.Cryptography.CryptographicException)
+                {
+                    return false;
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            finally
+            {
+                cert?.Dispose();
+            }
+        }
+    }
+
+    public class OdinSearchOutputConsumer_FilterCheck_CertExample: OdinSearch_OutputConsumer_FilterCheck
+    {
+        /// <summary>
+        /// If true, things that are trusted according  are added to the list.  If false, those that aren't trusted are added to the list
+        /// </summary>
+        public bool WantTrusted = false;
+
+        public override bool FilterHandleRoutine(FileSystemInfo Info)
+        {
+            return ( FilterCheck_CertExample.TrustThis(Info) == WantTrusted);
+        }
+    }
     public class OdinSearchOutputConsumer_FilterCheck_WinTrust: OdinSearch_OutputConsumer_FilterCheck
     {
 
@@ -394,23 +440,10 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// </summary>
         public bool WantTrusted = false;
 
-        public override void Match(FileSystemInfo info)
+       
+        public override bool FilterHandleRoutine(FileSystemInfo Info)
         {
-            FilterQuery.Enqueue(info);
-            base.Match(info);
-        }
-        public override bool FilterHandle()
-        {
-            if (this.FilterQuery.Count > 0)
-            {
-                FileSystemInfo Target = FilterQuery.Dequeue();
-                bool TrustMe = AuthenticodeTools.IsTrusted(Target.FullName);
-                if (TrustMe == WantTrusted) 
-                {
-                    this.MatchedResults.Add(Target);
-                }
-            }
-            return false;
+            return ( AuthenticodeTools.IsTrusted(Info.FullName) == WantTrusted);
         }
     }
 }
