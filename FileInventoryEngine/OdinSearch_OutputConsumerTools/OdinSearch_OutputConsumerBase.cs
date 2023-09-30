@@ -24,6 +24,23 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
     public abstract class OdinSearch_OutputConsumerBase : IDisposable
     {
 
+        /// <summary>
+        /// If the class has pending stuff to do before reporting search is over, override this to give confirmation it's over.
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool HasPendingActions()
+        {
+            return false;
+        }
+
+        /// <summary>
+        /// Fully Resolve any pending actions this class has do to.
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool ResolvePendingActions()
+        {
+            return false;
+        }
         protected bool ArgCheck(string RequiredArg)
         {
             if (RequiredArg == null)
@@ -205,10 +222,11 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             SearchOver = true;
         }
         /// <summary>
-        /// Default class needs not dispose. This is here subclasses if needed
+        /// Default class disposal, will invoke <see cref="ResolvePendingActions"/>
         /// </summary>
         public virtual void Dispose()
         {
+            ResolvePendingActions();
             GC.SuppressFinalize(this);
             Disposed = true;
         }
