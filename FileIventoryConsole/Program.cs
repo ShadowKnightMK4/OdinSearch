@@ -23,43 +23,45 @@ namespace FileIventoryConsole
             Console.WriteLine("This console app can serve as an example of what to do or how to use.");
             
             SearchTarget ProgramFiles = new SearchTarget();
-            SearchAnchor LocalStorage = new SearchAnchor("C:\\Windows\\");
+            SearchAnchor LocalStorage = new SearchAnchor();
             //ProgramFiles.FileName.Add(SearchTarget.MatchAnyFile);
             ProgramFiles.FileName.Add("*.EXE");
             ProgramFiles.FileName.Add("*.DLL");
 
             ProgramFiles.FileNameMatching = SearchTarget.MatchStyleString.MatchAny;
-            //LocalStorage.EnumSubFolders = true;
+            LocalStorage.EnumSubFolders = true;
 
             OdinSearch runme = new OdinSearch();
             runme.AddSearchAnchor(LocalStorage);
             runme.AddSearchTarget(ProgramFiles);
 
-//            var results = new OdinSearch_OutputSimpleConsole();
-            var results = new OdinSearchOutputConsumer_FilterCheck_CertExample();
-            results.WantTrusted = false;
+              var results = new OdinSearch_OutputSimpleConsole();
+            //var results = new OdinSearchOutputConsumer_FilterCheck_CertExample();
+            // results.WantTrusted = false;
 
             runme.Search(results);
             while (runme.HasActiveSearchThreads)
             {
-                Thread.Sleep(1000);
-                runme.WorkerThreadJoin();
-                results.CheckFileFilter();
+               // Thread.Sleep(1000);
+                //runme.WorkerThreadJoin();
+            //    results.CheckFileFilter();
 
                 if (runme.IsZombied)
                 {
+                    Console.WriteLine("Almost done. All that's left is to process filter");
                     runme.WorkerThread_ResolveComs();
                     break;
                 }
             }
 
-            foreach (var result in results.MatchedResults) 
+            Console.WriteLine("Done. Showing results now");
+            //foreach (var result in results.MatchedResults) 
             {
-                Console.WriteLine(result.FullName.ToString());
+              //  Console.WriteLine(result.FullName.ToString());
             }
 
             Console.WriteLine("{0} Files and Folders matched. {1} files and folders did not match.", results.TimesMatchCalled, results.TimesNoMatchCalled);
-            Console.WriteLine("Out of the matched files, {0} failed the filter check and were excluded.", results.FilteredResults);
+            //Console.WriteLine("Out of the matched files, {0} failed the filter check and were excluded.", results.FilteredResults);
             return;
         }
     }
