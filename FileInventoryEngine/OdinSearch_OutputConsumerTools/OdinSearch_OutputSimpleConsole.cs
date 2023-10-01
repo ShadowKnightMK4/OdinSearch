@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
     /// <summary>
-    /// Serves as an example.  Matches are sent to stdout,  blocks are send to stderr by default
+    /// Serves as an example.  Matches are sent to stdout,  blocks are send to stderr by default. 
     /// </summary>
     public class OdinSearch_OutputSimpleConsole : OdinSearch_OutputConsumerBase
     {

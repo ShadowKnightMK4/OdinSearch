@@ -223,7 +223,9 @@ namespace OdinSearchEngine
                     t.Release();
                 }
             }
-            ;
+
+            if (Args == null) throw new ArgumentNullException();
+            
             Queue<DirectoryInfo> FolderList = new Queue<DirectoryInfo>();
             //Queue<OdinSearch_ContainerSystemItem> FolderList = new Queue<OdinSearch_ContainerSystemItem>();
 
@@ -232,6 +234,10 @@ namespace OdinSearchEngine
             //Thread.CurrentThread.Name = TrueArgs.StartFrom.roots[0].ToString() + " Scanner";
             Debug.WriteLine(Thread.CurrentThread.Name + " is working with " + TrueArgs.StartFrom.roots[0]);
 
+            if (Thread.CurrentThread.Name.Contains("B:\\"))
+            {
+                ;
+            }
 
             if (TrueArgs != null)
             {
@@ -324,13 +330,16 @@ namespace OdinSearchEngine
                             {
                                 try
                                 {
-                                    LockThisAccess(TrueArgs.ComTalk);
-                                    TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason: " + e.Message);
-                                    TrueArgs.Coms.Blocked(CurrentLoc.ToString());
+                                    //LockThisAccess(TrueArgs.ComTalk);
+                                    lock (TrueArgs.ComTalk)
+                                    {
+                                        TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason: " + e.Message);
+                                        TrueArgs.Coms.Blocked(CurrentLoc.ToString());
+                                    }
                                 }
                                 finally
                                 {
-                                    UnlockThisAccess(TrueArgs.ComTalk);
+                                    //UnlockThisAccess(TrueArgs.ComTalk);
                                 }
                                 ErrorPrune = true;
                             }
@@ -338,13 +347,16 @@ namespace OdinSearchEngine
                             {
                                 try
                                 {
-                                    LockThisAccess(TrueArgs.ComTalk);
-                                    TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason Access Denied");
-                                    TrueArgs.Coms.Blocked(CurrentLoc.ToString());
+                                    //LockThisAccess(TrueArgs.ComTalk);
+                                    lock (TrueArgs.ComTalk)
+                                    {
+                                        TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason Access Denied");
+                                        TrueArgs.Coms.Blocked(CurrentLoc.ToString());
+                                    }
                                 }
                                 finally
                                 {
-                                    UnlockThisAccess(TrueArgs.ComTalk);
+                                    //UnlockThisAccess(TrueArgs.ComTalk);
                                 }
 
                                 ErrorPrune = true;
@@ -414,12 +426,15 @@ namespace OdinSearchEngine
                                                     //lock (ResultsLock)
                                                     try
                                                     {
-                                                        LockThisAccess(TrueArgs.ComTalk);
-                                                        TrueArgs.Coms.Match(Possible);
+                                                        //LockThisAccess(TrueArgs.ComTalk);
+                                                        lock (TrueArgs.ComTalk)
+                                                        {
+                                                            TrueArgs.Coms.Match(Possible);
+                                                        }
                                                     }
                                                     finally
                                                     {
-                                                        UnlockThisAccess(TrueArgs.ComTalk);
+                                                        //UnlockThisAccess(TrueArgs.ComTalk);
                                                     }
 
 
@@ -437,12 +452,15 @@ namespace OdinSearchEngine
 #if true
                                             try
                                             {
-                                                LockThisAccess(TrueArgs.ComTalk);
-                                                TrueArgs.Coms.Messaging("DEBUG: attempt to match folder " + Targets[0].FileName + " against " + Possible.Name);
+                                                //  LockThisAccess(TrueArgs.ComTalk);
+                                                lock (TrueArgs.ComTalk)
+                                                {
+                                                    TrueArgs.Coms.Messaging("DEBUG: attempt to match folder " + Targets[0].FileName + " against " + Possible.Name);
+                                                }
                                             }
                                             finally
                                             {
-                                                UnlockThisAccess(TrueArgs.ComTalk);
+//                                                UnlockThisAccess(TrueArgs.ComTalk);
                                             }
 #endif
                                             bool isMatched = MatchThis(Target, Possible);
@@ -453,19 +471,24 @@ namespace OdinSearchEngine
 #if true
                                                     try
                                                     {
-                                                        LockThisAccess(TrueArgs.ComTalk);
-                                                        TrueArgs.Coms.Messaging("DEBUG: match folder ok " + Targets[0].FileName + " against " + Possible.Name);
+                                                        lock (TrueArgs.ComTalk)
+                                                        {
+                                                            //   LockThisAccess(TrueArgs.ComTalk);
+                                                            TrueArgs.Coms.Match(Possible);
+                                                            TrueArgs.Coms.Messaging("DEBUG: match folder ok " + Targets[0].FileName + " against " + Possible.Name);
+                                                        }
                                                     }
                                                     finally
                                                     {
-                                                        UnlockThisAccess(TrueArgs.ComTalk);
+                                                     //   UnlockThisAccess(TrueArgs.ComTalk);
                                                     }
 #endif
-                                                    TrueArgs.Coms.Match(Possible);
+                                                    
                                                 }
                                                 else
                                                 {
-                                                    lock (ResultsLock)
+                                                    //lock (ResultsLock)
+                                                    lock (TrueArgs.ComTalk)
                                                     {
                                                         TrueArgs.Coms.Match(Possible);
                                                     }
@@ -481,12 +504,16 @@ namespace OdinSearchEngine
                                 //lock (TrueArgs.Coms)
                                 try
                                 {
-                                    LockThisAccess(TrueArgs.ComTalk);
-                                    TrueArgs.Coms.Messaging("DEBUG: Subfolders requested from" + Targets[0].FileName + "");
+                                    //   LockThisAccess(TrueArgs.ComTalk);
+
+                                    lock (TrueArgs.ComTalk)
+                                    {
+                                        TrueArgs.Coms.Messaging("DEBUG: Subfolders requested from" + Targets[0].FileName + "");
+                                    }
                                 }
                                 finally
                                 {
-                                    UnlockThisAccess(TrueArgs.ComTalk);
+                                    //UnlockThisAccess(TrueArgs.ComTalk);
                                 }
 #endif
                                 if (!ErrorPrune)
@@ -495,12 +522,15 @@ namespace OdinSearchEngine
 #if true
                                         try
                                         {
-                                            LockThisAccess(TrueArgs.ComTalk);
+                                            lock (TrueArgs.ComTalk)
+                                            {
+                                                LockThisAccess(TrueArgs.ComTalk);
+                                            }
                                             TrueArgs.Coms.Messaging("DEBUG: Adding SubFolder " + Targets[0].FileName + Folder.FullName);
                                         }
                                         finally
                                         {
-                                            UnlockThisAccess(TrueArgs.ComTalk);
+                                           // UnlockThisAccess(TrueArgs.ComTalk);
                                         }
 #endif
                                         FolderList.Enqueue(Folder);
@@ -513,12 +543,15 @@ namespace OdinSearchEngine
 #if true
                             try
                             {
-                                LockThisAccess(TrueArgs.ComTalk);
-                                TrueArgs.Coms.Messaging("DEBUG: Thread going back to start ");
+                                //   LockThisAccess(TrueArgs.ComTalk);
+                                lock (TrueArgs.ComTalk)
+                                {
+                                    TrueArgs.Coms.Messaging("DEBUG: Thread going back to start ");
+                                }
                             }
                             finally
                             {
-                                UnlockThisAccess(TrueArgs.ComTalk);
+                               // UnlockThisAccess(TrueArgs.ComTalk);
                             }
 #endif
 
@@ -527,12 +560,14 @@ namespace OdinSearchEngine
 #if true
                         try
                         {
-                            LockThisAccess(TrueArgs.ComTalk);
-                            TrueArgs.Coms.Messaging("DEBUG:  thread edning ");
+                            lock (TrueArgs.ComTalk)
+                            {// LockThisAccess(TrueArgs.ComTalk);
+                                TrueArgs.Coms.Messaging("DEBUG:  thread edning ");
+                            }
                         }
                         finally
                         {
-                            UnlockThisAccess(TrueArgs.ComTalk);
+                            //UnlockThisAccess(TrueArgs.ComTalk);
                         }
 #endif
                     }
@@ -540,7 +575,44 @@ namespace OdinSearchEngine
             }
         }
         #endregion
+        #region Worker Thread Pending Action Thing
 
+        void WorkerThreadPendingAction_Spawner(WorkerThreadArgs Args)
+        {
+            Thread SpawnThis = new Thread(p => { WorkerThreadPendingAction(Args); });
+            SpawnThis.Name = "Scanner Pending Action Resolved";
+            SpawnThis.Start();
+        }
+        void WorkerThreadPendingAction(WorkerThreadArgs Args)
+        {
+            bool KeepGoing = true;
+            Thread.Sleep(1000);
+            if (WorkerThreads.Count > 0)
+            {
+               while (KeepGoing)
+                {
+                    KeepGoing = false;
+                    for (int step =0; step < WorkerThreads.Count;step++)
+                    {
+                        if (WorkerThreads[step].Args.Coms.HasPendingActions())
+                        {
+                            KeepGoing = true;
+                            WorkerThreads[step].Args.Coms.ResolvePendingActions();
+                        }
+                        else
+                        {
+                            if (WorkerThreads[step].Thread.IsAlive == true)
+                            {
+                                KeepGoing = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+        }
+        #endregion
 
         #region WatchDog Thread Code
 
@@ -560,9 +632,9 @@ namespace OdinSearchEngine
         /// <param name="Args"></param>
         void WatchdogFireAllDoneWorkerThead(WorkerThreadArgs Args)
         {
-            if (Args == null)
-                throw new ArgumentNullException(nameof(Args));
-            else
+            //if (Args == null)
+              //  throw new ArgumentNullException(nameof(Args));
+            //else
             {
                 if (WorkerThreads.Count > 0)
                 {
@@ -1213,7 +1285,8 @@ namespace OdinSearchEngine
                             }
 
                             WorkerThreadWithCancelToken Worker = new WorkerThreadWithCancelToken();
-                            Worker.Thread = new Thread(() => WorkerThreadProc(Args));
+                            //Worker.Thread = new Thread(() => WorkerThreadProc(Args));
+                            Worker.Thread = new Thread(WorkerThreadProc);
                             Worker.Thread.Name = AnchorList[smallstep].roots[0].ToString();
                             Worker.Token = new CancellationTokenSource();
                             Worker.Args = Args;
@@ -1221,6 +1294,7 @@ namespace OdinSearchEngine
                             Args.ComTalk = LockThis;
 
                             WorkerThreads.Add(Worker);
+                            Args = null;
                         }
                     }
 
@@ -1232,12 +1306,13 @@ namespace OdinSearchEngine
                     {
                         if (!DoNotNotifyTheRest)
                         {
-                            DoNotNotifyTheRest = t.Args.Coms.SearchBegin(DateTime.Now);
+                            DoNotNotifyTheRest = Coms.SearchBegin(DateTime.Now);
                         }
-                        t.Thread.Start();
+                        t.Thread.Start(Args);
                     }
                     SearchCalled = true;
-                    WatchdogFireAllDoneSpawner(Args);
+                    WatchdogFireAllDoneSpawner(null);
+                    WorkerThreadPendingAction_Spawner(null);
                 }
             }
         }
