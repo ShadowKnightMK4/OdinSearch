@@ -73,7 +73,10 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                 FileSystemInfo Target;
                 try
                 {
-                    Target = FilterQuery.Dequeue();
+                    lock (FilterQuery)
+                    {
+                        Target = FilterQuery.Dequeue();
+                    }
                 }
                 catch (InvalidOperationException)
                 {
@@ -96,8 +99,11 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 
         public override void Match(FileSystemInfo info)
         {
-            FilterQuery.Enqueue(info);
-             base.Match(info);
+            lock (FilterQuery)
+            {
+                FilterQuery.Enqueue(info);
+            }
+                base.Match(info);
         }
         public override void AllDone()
         {

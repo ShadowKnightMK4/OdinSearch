@@ -27,7 +27,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <summary>
         /// If the class has pending stuff to do before reporting search is over, override this to give confirmation it's over.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>return true if this class has something to do before finishing search and false if it's ready to end. Default always returns false to end it</returns>
         public virtual bool HasPendingActions()
         {
             return false;
@@ -36,10 +36,10 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <summary>
         /// Fully Resolve any pending actions this class has do to.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>return true if all actions are resolved </returns>
         public virtual bool ResolvePendingActions()
         {
-            return false;
+            return true;
         }
         protected bool ArgCheck(string RequiredArg)
         {
