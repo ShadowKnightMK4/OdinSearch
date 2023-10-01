@@ -1308,7 +1308,7 @@ namespace OdinSearchEngine
                         {
                             DoNotNotifyTheRest = Coms.SearchBegin(DateTime.Now);
                         }
-                        t.Thread.Start(Args);
+                        t.Thread.Start(t.Args);
                     }
                     SearchCalled = true;
                     WatchdogFireAllDoneSpawner(null);
