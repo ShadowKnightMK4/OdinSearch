@@ -35,6 +35,7 @@ namespace FileIventoryConsole
 
             var Comsclass = new OdinSearch_SymbolicLinkSort();
             Comsclass[OdinSearch_SymbolicLinkSort.OutputFolderArgument] = "C:\\Results\\";
+            // currently unsured but is a required setting. It always creates subfolders
             Comsclass[OdinSearch_SymbolicLinkSort.CreateSubfoldersOption] = null;
             // default works, but if one wants to customize, they set like below with their implementation of a OdinSearch_SymbolicLinkSort.OdinSearch_SymbolicLinkSort_FileSystemHelp class
             //Comsclass[OdinSearch_SymbolicLinkSort.LinkSearchHelperClass] = new OdinSearch_SymbolicLinkSort.OdinSearch_SymbolicLinkSort_FileSystemHelp();
