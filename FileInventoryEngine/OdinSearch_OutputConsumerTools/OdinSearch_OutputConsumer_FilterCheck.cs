@@ -14,6 +14,10 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
     public class OdinSearch_OutputConsumer_FilterCheck: OdinSearch_OutputConsumerBase
     {
         /// <summary>
+        /// Set to the value you want to pass for your provided <see cref="FilterHandleRoutine(FileSystemInfo)"/>. Unused for the default one
+        /// </summary>
+        public bool DesiredCheck;
+        /// <summary>
         /// Default action is while the <see cref="FilterQuery"/> is not empty, pop an item off from it and pass it to <see cref="CheckFileFilter"/>
         /// </summary>
         /// <returns>Default always returns true.  You should return true if you sucessfully passed each item in the queue to <see cref="CheckFileFilter"/> </returns>
