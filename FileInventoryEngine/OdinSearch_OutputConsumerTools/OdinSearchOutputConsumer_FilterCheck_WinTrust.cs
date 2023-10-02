@@ -51,8 +51,14 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <summary>
         /// If true, things that are trusted according to <see cref="FilterCheck_VerifyCertRoutine.TrustThis(FileSystemInfo)"/> are added to the list.  If false, those that aren't trusted are added to the list
         /// </summary>
-        public bool WantTrusted = false;
+        /// <remarks>Note this is backed in  <see cref="OdinSearch_OutputConsumer_FilterCheck.DesiredCheck"/></remarks>
+        public bool WantTrusted { get => DesiredCheck; set => DesiredCheck = value; }
 
+        /// <summary>
+        /// returns if the passed file system item's return value of <see cref="FilterCheck_VerifyCertRoutine.TrustThis(FileSystemInfo)"/> matches <see cref="WantTrusted"/>
+        /// </summary>
+        /// <param name="Info">File system item to check</param>
+        /// <returns>This returns if the routine called returns the WantTrusted Value</returns>
         public override bool FilterHandleRoutine(FileSystemInfo Info)
         {
             return (FilterCheck_VerifyCertRoutine.TrustThis(Info) == WantTrusted);
