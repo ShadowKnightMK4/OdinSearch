@@ -56,7 +56,7 @@ namespace OdinSearchEngine
                 pattern = pattern.Replace("\\*", ".*").Replace("\\?", ".");
                 /* this is the match anything regexpression for.
                  * This is hard coded to returning a clear regex list. The code that does the searching treats
-                 * it skipping the compare and treating it as a positivbematch.
+                 * it skipping the compare and treating it as a positive match.
                  * */
                 if (pattern == "^.*$")
                 {

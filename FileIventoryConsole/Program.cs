@@ -22,8 +22,52 @@ namespace FileIventoryConsole
             Console.WriteLine("Most of the testing code is in the unit tests. Try them out. ");
             Console.WriteLine("This console app can serve as an example of what to do or how to use.");
 
+            if (args.Length > 0)
+            {
 
 
+                if (!ArgHandling.DoTheThing(args))
+                {
+                    Console.Write("Quitting...\r\n");
+                    return;
+                }
+            }
+            else
+            {
+                ArgHandling.Usage();
+                return;
+            }
+            OdinSearch Search = new OdinSearch();
+            Search.DebugVerboseMode = false;
+            //var SearchDeal = new OdinSearch_OutputSimpleConsole();
+            var SearchDeal = new OdinSearch_OutputConsumer_ExternUnmangedPlugin();
+            SearchDeal[OdinSearch_OutputConsumer_ExternUnmangedPlugin.SetDllTarget] = "C:\\Users\\Thoma\\source\\repos\\FileInventory\\x64\\Debug\\ExternalComsPlugin.dll";
+
+
+            Search.AddSearchAnchor(ArgHandling.SearchAnchor);
+            Search.AddSearchTarget(ArgHandling.SearchTarget);
+
+            Console.WriteLine("Searching for things, this may take a while.");
+
+
+            Search.Search(SearchDeal);
+            while(true)
+            {
+                if (!Search.HasActiveSearchThreads)
+                {
+                    if (Search.IsZombied)
+                    {
+                        Search.WorkerThread_ResolveComs();
+                        break;
+                    }
+                    break;
+                }
+            }
+
+            Console.WriteLine("Search is finished....");
+            Console.WriteLine(string.Format("You have {0} file system items that matched", SearchDeal.TimesMatchCalled));
+            SearchDeal.Dispose();
+            return;
             OdinSearch SearchThis = new OdinSearch();
             SearchAnchor Desktop = new SearchAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
 
@@ -51,6 +95,7 @@ namespace FileIventoryConsole
             Console.WriteLine("{0} Files and Folders matched. {1} files and folders did not match.", Comsclass.TimesMatchCalled, Comsclass.TimesNoMatchCalled);
             //Console.WriteLine("Out of the matched files, {0} failed the filter check and were excluded.", results.FilteredResults);
             return;
+        
         }
     }
 }
