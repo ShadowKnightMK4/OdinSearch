@@ -2,7 +2,12 @@
   "profiles": {
     "FileInventoryConsole": {
       "commandName": "Project",
-      "commandLineArgs": "-anchor \"C:\\\\Windows\"  -anchor \"C:\\\\Program Files\""
+      "commandLineArgs": "/anyfile /searchall /enumsubs /matchfilenamestyle=5",
+      "nativeDebugging": true
+    },
+    "Profile 1": {
+      "commandName": "Project",
+      "commandLineArgs": "/filespec=*.dll;*.exe"
     }
   }
 }
