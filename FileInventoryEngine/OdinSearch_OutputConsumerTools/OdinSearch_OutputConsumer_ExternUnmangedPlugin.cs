@@ -17,6 +17,10 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
     public class OdinSearch_OutputConsumer_ExternUnmangedPlugin: OdinSearch_OutputConsumerBase
     {
 
+        /// <summary>
+        /// This is the DLL or Shared libraruy to load From
+        /// </summary>
+
         public const string SetDllTarget = "SetDllTarget";
         
         private nint GetProcAddr(nint Handle, string name)

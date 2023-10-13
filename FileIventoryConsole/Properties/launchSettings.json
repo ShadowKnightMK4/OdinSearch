@@ -3,7 +3,7 @@
     "FileInventoryConsole": {
       "commandName": "Project",
       "commandLineArgs": "/anyfile /searchall /enumsubs /matchfilenamestyle=5",
-      "nativeDebugging": true
+      "nativeDebugging": false
     },
     "Profile 1": {
       "commandName": "Project",

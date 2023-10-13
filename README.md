@@ -2,6 +2,9 @@
 OdinSearch is a tool written in C# that lets users search thru local file systems for matches. The engine provides an expandable achritector by letting developer expand on what the engine does with matching output. It's recommanded the user have some programming experience to use this.
 
 
+## About this Branch
+With the general workflow of OdinSearch, SearchAnchor/SearchTarget and a communication class kinda finalized, this branch works on offering a console app to use this software.
+
 
 ## Current Features
 1. Search thru the local file systems.  OdinSearch engine was built mainly to enable searching thru the files and folders on the machine its running on. 

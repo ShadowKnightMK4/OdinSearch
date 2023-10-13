@@ -40,9 +40,11 @@ namespace FileIventoryConsole
             OdinSearch Search = new OdinSearch();
             Search.DebugVerboseMode = false;
             //var SearchDeal = new OdinSearch_OutputSimpleConsole();
-            var SearchDeal = new OdinSearch_OutputConsumer_ExternUnmangedPlugin();
-            SearchDeal[OdinSearch_OutputConsumer_ExternUnmangedPlugin.SetDllTarget] = "C:\\Users\\Thoma\\source\\repos\\FileInventory\\x64\\Debug\\ExternalComsPlugin.dll";
-
+            //            var SearchDeal = new OdinSearch_OutputConsumer_ExternUnmangedPlugin();
+            var SearchDeal = new OdinSearch_OutputCSVWriter();
+            SearchDeal[OdinSearch_OutputCSVWriter.TargetSaveLocation] = "C:\\Dummy\\test.csv";
+//            SearchDeal[OdinSearch_OutputConsumer_ExternUnmangedPlugin.SetDllTarget] = "C:\\Users\\Thoma\\source\\repos\\FileInventory\\x64\\Debug\\ExternalComsPlugin.dll";
+            
 
             Search.AddSearchAnchor(ArgHandling.SearchAnchor);
             Search.AddSearchTarget(ArgHandling.SearchTarget);
@@ -53,6 +55,7 @@ namespace FileIventoryConsole
             Search.Search(SearchDeal);
             while(true)
             {
+                Search.WorkerThreadJoin();
                 if (!Search.HasActiveSearchThreads)
                 {
                     if (Search.IsZombied)
@@ -65,7 +68,7 @@ namespace FileIventoryConsole
             }
 
             Console.WriteLine("Search is finished....");
-            Console.WriteLine(string.Format("You have {0} file system items that matched", SearchDeal.TimesMatchCalled));
+            Console.WriteLine(string.Format("You have {0} file system items that matched.", SearchDeal.TimesMatchCalled));
             SearchDeal.Dispose();
             return;
             OdinSearch SearchThis = new OdinSearch();

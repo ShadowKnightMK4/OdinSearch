@@ -3,6 +3,11 @@
 #include <fstream>
 
 /*
+* This TestPlugin exports everything needing for a C# land OdinSearch_OutputConsumer_ExternUnmangedPlugin to hook into.
+* 
+* 
+*/
+/*
 * This example outputs matched files here
 */
 #define EXAMPLE_TEXT L"C:\\Dummy\\Output.txt"
