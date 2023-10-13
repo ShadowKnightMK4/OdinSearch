@@ -1183,12 +1183,12 @@ namespace OdinSearchEngine
 
                     // we loop thru and call search begin for each thread.
                     // if it returns true, we prematurly quit looping.
-                    bool DoNotNotifyTheRest = false;
+                    bool KeepCallingForThreads = true;
                     foreach (WorkerThreadWithCancelToken t in WorkerThreads)
                     {
-                        if (!DoNotNotifyTheRest)
+                        if (KeepCallingForThreads)
                         {
-                            DoNotNotifyTheRest = Coms.SearchBegin(DateTime.Now);
+                            KeepCallingForThreads = Coms.SearchBegin(DateTime.Now);
                         }
                         t.Thread.Start(t.Args);
                     }

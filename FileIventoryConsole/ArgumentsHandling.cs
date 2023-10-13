@@ -24,6 +24,8 @@ namespace FileInventoryConsole
      /// </summary>
     static class ArgHandling
     {
+
+        public static DirectoryInfo PluginFolder;
         public static SearchTarget SearchTarget = new SearchTarget();
         public static SearchAnchor SearchAnchor = new SearchAnchor();
         /// <summary>
@@ -219,6 +221,22 @@ namespace FileInventoryConsole
                         break;
                     }
                     continue;
+                }
+            }
+
+            if (Valid == true)
+            {
+                if (PluginFolder == null)
+                {
+                    try
+                    {
+                        PluginFolder = new DirectoryInfo(Environment.GetEnvironmentVariable("ODINSEARCH_PLUGIN_FOLDER"));
+                    }
+                    catch (ArgumentNullException)
+                    {
+                        var self = Path.GetDirectoryName(Assembly.GetCallingAssembly().Location);
+                        PluginFolder = new DirectoryInfo(Path.Combine(self, "Plugins"));
+                    }
                 }
             }
             return Valid;
