@@ -22,6 +22,9 @@ With the general workflow of OdinSearch, SearchAnchor/SearchTarget and a communi
 
 #3 IN PROGRESS.  CSV Support.  I'm planning to adding ability o pipe matches to an CVS file to let users open up in Excel or OpenOffice at a later date.
 
+#4 IN PROGRESS  External Plugin Support.  I'm playing with the idea of letting someone provide a C DLL for individual plugins for this console front end. - See the project "ExternalComsPlugin" in the solution file and the "OdinSearch_OutputConsumer_ExternUnmangedPlugin" in the C# "OdenSearch" project file
+
+
 ## Example Code
 ```
 using System;
