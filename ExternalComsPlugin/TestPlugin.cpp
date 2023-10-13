@@ -16,6 +16,26 @@ using namespace std;
 std::wfstream* OutText;
 
 extern "C" {
+
+    /// <summary>
+    /// As the protocol matures, release builds will have instances of it set in stone be assigned a version.  
+    /// Currently this is not actually called 
+    /// </summary>
+    /// <param name="CommicationVersion"></param>
+    /// <returns></returns>
+    bool __declspec(dllexport) PluginInit(DWORD CommicationVersion)
+    {
+        return TRUE;
+    }
+
+    /// <summary>
+    /// Something wants to set a custom arg for the plugin.
+    /// </summary>
+    /// <param name="name"></param>
+    void __declspec(dllexport) SetCustomArg(const wchar_t* name, LPVOID ArgValue)
+    {
+
+    }
     void __declspec(dllexport) WasNotMatched(const wchar_t* info)
     {
         return;
