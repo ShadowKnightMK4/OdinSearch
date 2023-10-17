@@ -8,7 +8,7 @@ OdinSearch is a tool written in C# that lets users search thru local file system
 
 2.  Customizable Match response.  What OdinSearch does with matching files depends on what commuication class is fed to it when begining the search.  It already has some prebuilt ones such as sending matches to the console that can act as a starting base.
 
-3. Ease of getting started and extensibility.    There's about 4 classes to become familier with  if all you need is searching and dealing with output. 
+3. Ease of getting started and extensibility.    There's about 4 classes to become familiar with  if all you need is searching and dealing with output. 
 
 
 ## TO DO Features
