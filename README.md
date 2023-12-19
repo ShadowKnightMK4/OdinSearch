@@ -19,14 +19,14 @@ OdinSearch is a tool written in C# that lets users search thru local file system
 
 ## TO DO Features (to be moved to In progress as needed)
 
-#2 IN PROGRESS:  SQL Support.  I'm planning on adding ability to pipe matches to an SQL file so at a later date, it can be opened in software of the developer's choice. This is going to take come time. Update as 
+#2 IN PROGRESS:  SQL Support.  I'm planning on adding ability to pipe matches to an SQL file so at a later date, it can be opened in software of the developer's choice. This is going to take some time. Plan to update as needed when I consider closer to being done 
 
 
 
 
 ## Tabled Features (may come back later)
 
-#1 Tabled for now :   Container Support.  I'm planning on adding to deal with searching thru container files such as zip files and check for matches also. The main reseach is integration of apparent search speed penalties.
+#1 Tabled for now :   Container Support.  I'm planning on adding to deal with searching thru container files such as zip files and check for matches also. The main issue is integration and apparent search speed penalties.
 
 
 ## Example Code
