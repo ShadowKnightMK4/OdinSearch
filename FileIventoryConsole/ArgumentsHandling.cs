@@ -24,6 +24,8 @@ namespace FileInventoryConsole
         public ArgumentExpectsFileSystemLocation(string message) : base(message) { }
     }
 
+
+
    
      /// <summary>
      /// This class is responsible for parsing into something the app understands
@@ -51,6 +53,16 @@ namespace FileInventoryConsole
             return QuotedString;
         }
         #region string consts
+
+        /// <summary>
+        /// Flag to set FileAttributes1
+        /// </summary>
+        const string FlagToSetFileAttributes = "/fileattrib=";
+
+        /// <summary>
+        /// Flag to indicate how to compare file attributes
+        /// </summary>
+        const string FlagToSetHowToCompareAttrib1 = "/fileattrib_check=";
         /// <summary>
         /// Flag to set the anchor1 for last modified before this date/time
         /// </summary>
@@ -227,6 +239,78 @@ namespace FileInventoryConsole
         }
         private bool ProcessAFlag(string[] arg, int step)
         { 
+            bool DealWithComparingFileAttribEnum(string EnumString, out SearchTarget.MatchStyleFileAttributes Result)
+            {
+                object tmp = 0;
+                Result = SearchTarget.MatchStyleFileAttributes.Skip;
+                if (Enum.TryParse(typeof(SearchTarget.MatchStyleString), EnumString, out tmp))
+                {
+
+
+
+                    Result = (SearchTarget.MatchStyleFileAttributes)tmp;
+
+                    if (SearchTarget.VerifyMatchStyleFileAttrib(Result) == false)
+                    {
+                        return false;
+                    }
+
+
+
+                    return true;
+                }
+                else
+                {
+                    Result = 0;
+                    EnumString = EnumString.ToLower();
+
+                    Result = 0;
+                    if (EnumString.Contains("matchany"))
+                    {
+                        Result |= SearchTarget.MatchStyleFileAttributes.MatchAny;
+                    }
+
+                    if (EnumString.Contains("matchall"))
+                    {
+                        Result |= SearchTarget.MatchStyleFileAttributes.MatchAll;
+                    }
+
+                    if (EnumString.Contains("invert"))
+                    {
+                        Result |= SearchTarget.MatchStyleFileAttributes.Invert;
+                    }
+
+                    if (EnumString.Contains("exacting"))
+                    {
+                        Result |= SearchTarget.MatchStyleFileAttributes.Exacting;
+                    }
+
+                    if (EnumString.Contains("skip"))
+                    {
+                        Result |= SearchTarget.MatchStyleFileAttributes.Skip;
+                    }
+
+                    if ( (Result == 0) || (SearchTarget.VerifyMatchStyleFileAttrib(Result) == false))
+                    {
+                        return false;
+                    }
+                    return true;
+
+                }
+                ;
+            }
+                bool DealWithFileAttribEnum(string EnumString, out FileAttributes Result)
+            {
+                object tmp = 0;
+                Result = FileAttributes.Normal;
+                if (Enum.TryParse(typeof(FileAttributes), EnumString, out tmp))
+                {
+                    Result = (FileAttributes) tmp;
+                    
+                    return true;
+                }
+                return false;
+            }
             // this first tries to strait use TryParse and then looks for the words in english
             bool DealWithStringEnum(string EnumString, out SearchTarget.MatchStyleString Result)
             {
@@ -379,7 +463,7 @@ namespace FileInventoryConsole
             // set how the user wants the output format to be sent
             if (low.StartsWith(FlagToSetOutStreamLocation))
             {
-                string low_part = low.Substring(FlagToSetOutStreamLocation.Length);
+                string low_part = arg[step].Substring(FlagToSetOutStreamLocation.Length);
                 if (low_part.Equals("stdout"))
                 {
                     TargetStream = null;
@@ -416,7 +500,7 @@ namespace FileInventoryConsole
             // set the wildcard the user wants checked agains the name
             if (low.StartsWith(FlagToSetFileCompareString))
             {
-                string low_part = low.Substring(FlagToSetFileCompareString.Length);
+                string low_part = arg[step].Substring(FlagToSetFileCompareString.Length);
                 if ( SplitWildcards(low_part, ProcesFlagWildcardMode.UseFileOut))
                 {
                     return true;
@@ -426,7 +510,7 @@ namespace FileInventoryConsole
             // set how the user wants the wildcard checked
             if (low.StartsWith(FlagToSetHowToCompareFileString))
             {
-                string low_part = low.Substring(FlagToSetHowToCompareFileString.Length);
+                string low_part = arg[step].Substring(FlagToSetHowToCompareFileString.Length);
                 if (DealWithStringEnum(low_part, out SearchTarget.FileNameMatching) )
                 {
                     return true;
@@ -436,7 +520,7 @@ namespace FileInventoryConsole
             // set wildcard that's comparaed the user wants the full path to the file checkedd
             if (low.StartsWith(FlagToSetFullPathCompareString))
             {
-                string low_part = low.Substring(FlagToSetFullPathCompareString.Length);
+                string low_part = arg[step].Substring(FlagToSetFullPathCompareString.Length);
                 if (SplitWildcards(low_part, ProcesFlagWildcardMode.UseDirectOut))
                 {
                     return true;
@@ -447,7 +531,7 @@ namespace FileInventoryConsole
             // set how the wildcard will check
             if (low.StartsWith(FlagToSetHowToCompareFullPathString))
             {
-                string low_part = low.Substring(FlagToSetHowToCompareFullPathString.Length);
+                string low_part = arg[step].Substring(FlagToSetHowToCompareFullPathString.Length);
                 if (DealWithStringEnum(low_part, out SearchTarget.DirectoryMatching))
                 {
                     return true;
@@ -457,7 +541,7 @@ namespace FileInventoryConsole
             // set last modified anchor1 to be no earlier than this
             if (low.StartsWith(FlagToSetNOLastModifiedEarlierTHan))
             {
-                string low_part = low.Substring(FlagToSetNOLastModifiedEarlierTHan.Length);
+                string low_part = arg[step].Substring(FlagToSetNOLastModifiedEarlierTHan.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.WriteAnchor))
                 {
                     SearchTarget.WriteAnchorCheck1 = SearchTarget.MatchStyleDateTime.NoEarlierThanThis;
@@ -468,7 +552,7 @@ namespace FileInventoryConsole
             
             if (low.StartsWith(FlagToSetLastModifiedNoLaterThan))
             {
-                string low_part = low.Substring(FlagToSetLastModifiedNoLaterThan.Length);
+                string low_part =arg[step].Substring(FlagToSetLastModifiedNoLaterThan.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.WriteAnchor2))
                 {
                     SearchTarget.WriteAnchorCheck2 = SearchTarget.MatchStyleDateTime.NoLaterThanThis;
@@ -480,7 +564,7 @@ namespace FileInventoryConsole
 
             if (low.StartsWith(FlagToSetFileWasLastAccessedBefore))
             {
-                string low_part = low.Substring(FlagToSetFileWasLastAccessedBefore.Length);
+                string low_part = arg[step]..Substring(FlagToSetFileWasLastAccessedBefore.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.AccessAnchor))
                 {
                     SearchTarget.AccessAnchorCheck1 = SearchTarget.MatchStyleDateTime.NoEarlierThanThis;
@@ -490,7 +574,7 @@ namespace FileInventoryConsole
 
             if (low.StartsWith(FlagToSetFileWasLastAccessedAfter))
             {
-                string low_part = low.Substring(FlagToSetFileWasLastAccessedAfter.Length);
+                string low_part = arg[step]..Substring(FlagToSetFileWasLastAccessedAfter.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.AccessAnchor2))
                 {
                     SearchTarget.AccessAnchorCheck2 = SearchTarget.MatchStyleDateTime.NoLaterThanThis;
@@ -503,7 +587,7 @@ namespace FileInventoryConsole
 
             if (low.StartsWith(FlagToSetCreationDateNoEarlier))
             {
-                string low_part = low.Substring(FlagToSetCreationDateNoEarlier.Length);
+                string low_part = arg[step]..Substring(FlagToSetCreationDateNoEarlier.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.CreationAnchor))
                 {
                     SearchTarget.CreationAnchorCheck1 = SearchTarget.MatchStyleDateTime.NoEarlierThanThis;
@@ -513,10 +597,27 @@ namespace FileInventoryConsole
 
             if (low.StartsWith(FlagToSetCreationDateNoLater))
             {
-                string low_part = low.Substring(FlagToSetCreationDateNoLater.Length);
+                string low_part = arg[step].Substring(FlagToSetCreationDateNoLater.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.CreationAnchor2))
                 {
                     SearchTarget.CreationAnchorCheck2 = SearchTarget.MatchStyleDateTime.NoLaterThanThis;
+                    return true;
+                }
+
+            }
+            if (low.StartsWith(FlagToSetFileAttributes))
+            {
+                string low_part = arg[step].Substring(FlagToSetFileAttributes.Length);
+                if (DealWithFileAttribEnum(low_part, out SearchTarget.AttributeMatching1))
+                {
+                    return true;
+                }
+            }
+            if (low.StartsWith(FlagToSetHowToCompareAttrib1))
+            {
+                string low_part = arg[step].Substring(FlagToSetHowToCompareAttrib1.Length);
+                if (DealWithComparingFileAttribEnum(low_part, out SearchTarget.AttribMatching1Style))
+                {
                     return true;
                 }
 

@@ -573,6 +573,59 @@ namespace ConsoleAppUnitTests
             Assert.IsTrue((test.SearchTarget.FileName.Count > 0) && (test.SearchTarget.FileName[0].Equals("hello.exe")));
         }
 
+        [TestMethod]
+        public void FileAttrib_arg_set_named()
+        {
+            
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Directory" }));
 
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Directory));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Archive" }));
+
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Archive));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Hidden" }));
+
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Hidden));
+        }
+
+        [TestMethod]
+        public void FileAttribChecker_arg_set_int()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib_check=1" }));
+            Assert.IsTrue(test.SearchTarget.AttribMatching1Style == OdinSearchEngine.SearchTarget.MatchStyleFileAttributes.MatchAny);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib_check=2" }));
+            Assert.IsTrue(test.SearchTarget.AttribMatching1Style == OdinSearchEngine.SearchTarget.MatchStyleFileAttributes.MatchAll);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib_check=4" }));
+            Assert.IsTrue(test.SearchTarget.AttribMatching1Style == OdinSearchEngine.SearchTarget.MatchStyleFileAttributes.Invert);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib_check=8" }));
+            Assert.IsTrue(test.SearchTarget.AttribMatching1Style == OdinSearchEngine.SearchTarget.MatchStyleFileAttributes.Exacting);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib_check=16" }));
+            Assert.IsTrue(test.SearchTarget.AttribMatching1Style == OdinSearchEngine.SearchTarget.MatchStyleFileAttributes.Skip);
+
+            // reserved flag fails it .
+            test = new ArgHandling();
+            Assert.IsFalse(test.DoTheThing(new string[] { "/fileattrib_check=32" }));
+            //Assert.IsTrue(test.SearchTarget.AttribMatching1Style == OdinSearchEngine.SearchTarget.MatchStyleFileAttributes.Reserved);
+            
+            
+            // should fail. has reserved flag
+            test = new ArgHandling();
+            Assert.IsFalse(test.DoTheThing(new string[] { "/fileattrib_check=34" }));
+
+        }
     }
 }
