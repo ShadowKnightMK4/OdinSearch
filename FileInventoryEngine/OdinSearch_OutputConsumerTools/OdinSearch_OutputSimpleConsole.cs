@@ -21,8 +21,23 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// </summary>
         public const string BlockStream = "STDERR";
 
+        /// <summary>
+        /// Optional and default is false:   If set to bool, we output *only* filename for matches rather than File Match *a @ this 
+        /// </summary>
+        /// <example>
+        /// A Match is found at C:\\Windows\\notepad.exe.
+        /// 
+        /// JUSTTHENAME Set would then cause this to output "C:\\Windows\\notepad.exe".
+        /// JUSTTHENAME unspecified or clear would calse this to output ' filematch "notepad.exe" @ "C:\\Windows\\notepad.exe"'
+        /// </example>
+        public const string OutputOnlyFileName = "JUSTTHENAME";
+
+#pragma warning disable IDE0052 // Remove unread private members
+        // Suppression due to the noise, these hold the streams that stdout and stderr deal with
         Stream outstream, errstream;
         TextWriter stdout, stderr;
+        bool OutputOnlyName = false;
+#pragma warning restore IDE0052
         public OdinSearch_OutputSimpleConsole()
         {
             this[MatchStream]  = Console.Out;
@@ -71,6 +86,19 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                 }
             }
 
+            if (Custom.Contains(OutputOnlyFileName))
+            {
+                bool result;
+                try
+                {
+                    result = (bool)this[OutputOnlyFileName];
+                }
+                catch (Exception e)
+                {
+                    throw new InvalidOperationException("Invalid argument for output control. Expected true or false value", e);
+                }
+                this.OutputOnlyName = result;
+            }
             return base.SearchBegin(Start);
 
         }
@@ -81,7 +109,14 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         }
         public override void Match(FileSystemInfo info)
         {
-            stdout.WriteLine("File Match: \"{0}\" @ \"{1}\"", info.Name, info.FullName);
+            if (!OutputOnlyName)
+            {
+                stdout.WriteLine("File Match: \"{0}\" @ \"{1}\"", info.Name, info.FullName);
+            }
+            else
+            {
+                stdout.WriteLine("{0}", info.FullName);
+            }
             base.Match(info);
         }
 

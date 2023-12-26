@@ -910,6 +910,15 @@ namespace OdinSearchEngine
             Reserved = 32
         }
 
+        /// <summary>
+        /// In case you need a sanity check against input
+        /// </summary>
+        /// <param name="e"></param>
+        /// <returns>true if it's a valid combo and false if not</returns>
+        public static bool VerifyMatchStyleStringValue(MatchStyleString e)
+        {
+            return (e is >= (MatchStyleString)1 and <= (MatchStyleString)64) && (e.HasFlag( MatchStyleString.ReservedUnused) == false);
+        }
         [Flags]
         /// <summary>
         /// Tell the search what to do with the string based search input

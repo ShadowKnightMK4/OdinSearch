@@ -6,7 +6,7 @@ There are 5 concepts to know of.
 SearchAnchor - Starting point of the Search. Each Starting point will get a thread to begin searching from there,
 SearchTarget - What to search for.
 MatchStyleString - certain searches can be controlled via this.
-NatcgStyleFileAttributes - controls how to compare file attributes
+MatchStyleFileAttributes - controls how to compare file attributes
 MatchStyleDateTime - controls the date time compare
 
 
@@ -29,7 +29,21 @@ MatchStyleDateTime
 	NoLaterThanThis=2	- The item in question must not have a date later than this
 
 
+/output=screen
+	send the output to the console screen stdout
 
+/outmode={x}
+	Choose a built in way to deal with matches.  
+
+/outmode=screen
+	Send Results 
+
+/outmode=CSV
+	Send Resu
+
+/out
+			
+/plugin={y}
 
 /filename=
 
@@ -55,9 +69,38 @@ Enable looking in the subfolders of roots
 
 Disable looking in subfolders in the root locations
 
+/consumer=%s
+
+specify the way OdinSearch will handle the matching results.  You may specify one of the strings below or a file location.
+
+
+Special Strings:
+
+
+File location format:
+%s1, %s2
+
+%s1 is the exact location of a sharead library to load.  It may be a matching .NET 7 library  or a C level library. 
+%s2 is the name of the class to load to handle matches.  The C Level library cannot have a class to load.  It's assumed to be a single class.
+
+Examples of this:
+
+C:\\NETPlugins\\BackupFilter.dll,BackupHandler				<- this loads that assembly and fetches an instance of the BackupHandler to deal with matches.
+
+C:\\NativePlugins\\DupFixer.dll								<- this loads a C level DLL and treats it as an external plugin.
+
+
+security considerations:
+If this app is built in a release build it will refuse to load native plugins that aren't trusted and managed plugins that aren't signed.
+
+
+
 
 /matchfilenamestyle=%d 
 
 Set the matchign style for comparing against the filename - use the number values from above for MatchStyleString.
 
-
+OdinSearch will also look for plugin stuff in this way
+*  First is there an ODINSEARCH_PLUGIN_FOLDER??
+	 if so, we use that location
+*  if not, we default to the current app's location and past a \\plugins folder

@@ -4,9 +4,12 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net7.0-windows</TargetFramework>
     <StartupObject>FileIventoryConsole.Program</StartupObject>
+    <FileVersion>0.9.0.0</FileVersion>
+    <AssemblyVersion>1.2.3.4</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\Banner.txt" />
     <None Remove="Resources\UsageText.txt" />
   </ItemGroup>
 
@@ -16,6 +19,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FileInventoryEngine\OdinSearchEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Banner.txt" />
   </ItemGroup>
 
 </Project>

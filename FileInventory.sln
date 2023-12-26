@@ -11,6 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		FileInventoryConcepts.txt = FileInventoryConcepts.txt
 		README.md = README.md
+		UnmanagedPluginDLL_Format.txt = UnmanagedPluginDLL_Format.txt
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UnitTests", "UnitTests", "{0569C557-86A3-4BAC-AB2F-EB97D4518667}"
@@ -24,6 +25,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfOdinSearch", "WpfOdinSearch\WpfOdinSearch.csproj", "{70FF4607-1424-42D5-A6DF-1002D4A8448F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExternalComsPlugin", "ExternalComsPlugin\ExternalComsPlugin.vcxproj", "{1603B8E3-1DDC-4B53-BCE2-661C00620887}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleAppUnitTests", "ConsoleAppUnitTests\ConsoleAppUnitTests.csproj", "{4D421B5F-2ECB-4289-A95D-1D447C8FC309}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -103,6 +106,18 @@ Global
 		{1603B8E3-1DDC-4B53-BCE2-661C00620887}.Release|x64.Build.0 = Release|x64
 		{1603B8E3-1DDC-4B53-BCE2-661C00620887}.Release|x86.ActiveCfg = Release|Win32
 		{1603B8E3-1DDC-4B53-BCE2-661C00620887}.Release|x86.Build.0 = Release|Win32
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Debug|x64.Build.0 = Debug|Any CPU
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Debug|x86.Build.0 = Debug|Any CPU
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Release|x64.ActiveCfg = Release|Any CPU
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Release|x64.Build.0 = Release|Any CPU
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Release|x86.ActiveCfg = Release|Any CPU
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -110,6 +125,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{A30F453B-AF1D-4A58-B858-6E4B2D71AB27} = {0569C557-86A3-4BAC-AB2F-EB97D4518667}
 		{8FBB6C71-2C2B-4C0F-9EBD-32AF0F07AFB5} = {0569C557-86A3-4BAC-AB2F-EB97D4518667}
+		{4D421B5F-2ECB-4289-A95D-1D447C8FC309} = {0569C557-86A3-4BAC-AB2F-EB97D4518667}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {98AA216C-BA54-46B3-8E60-9B64362AADCC}

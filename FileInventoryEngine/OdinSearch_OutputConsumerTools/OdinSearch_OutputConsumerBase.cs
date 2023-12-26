@@ -9,7 +9,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
 
     /// <summary>
-    /// A thinly wrapped <see cref="KeyNotFoundException"/> for argument access
+    /// A thinly wrapped <see cref="KeyNotFoundException"/> for argument access. Thrown when attempting to access an argument via the indexer that is not existing
     /// </summary>
     public class ArgumentNotFoundException : KeyNotFoundException
     { 
