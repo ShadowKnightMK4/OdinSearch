@@ -118,6 +118,39 @@ namespace OdinSearchEngine
             }
 
         }
+
+        /// <summary>
+        /// Add this collection of locations as anchors.
+        /// </summary>
+        /// <param name="Locations">Enumerator of a string collection</param>
+        /// <returns>true if everything was added and false if something was not able to be added</returns>
+        public bool AddAnchor(IEnumerable<DirectoryInfo> Locations)
+        {
+            foreach (DirectoryInfo I in Locations)
+            {
+                if (!AddAnchorCommonRoute(I, true))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        /// <summary>
+        /// Add this collection of locations as anchors.
+        /// </summary>
+        /// <param name="Locations">Enumerator of a string collection</param>
+        /// <returns>true if everything was added and false if something was not able to be added</returns>
+        public bool AddAnchor(IEnumerable<string> Locations)
+        {
+            foreach (string Spot in Locations)
+            {
+                if (!AddAnchor(Spot))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
         /// <summary>
         /// Add this location to the root locations to search
         /// </summary>

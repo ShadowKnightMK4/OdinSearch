@@ -77,7 +77,7 @@ extern "C" {
 
     void __declspec(dllexport) AllDone()
     {
-
+        OutText->close();
     }
 
 }

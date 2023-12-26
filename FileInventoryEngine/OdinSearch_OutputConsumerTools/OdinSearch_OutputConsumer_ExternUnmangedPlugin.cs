@@ -55,6 +55,8 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint ="FreeLibrary")]
         static extern bool FreeLibraryUnmanged(nint Target);
 #endif
+
+        
         public bool ResolvePointers(string TargetDll)
         {
 #if WINDOWS
@@ -64,6 +66,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             throw new NotImplementedException("Need to add code to load the shared library/ DLL.");
             return;
 #endif
+
             ExternAllDone = Marshal.GetDelegateForFunctionPointer<AllDonePtr>(GetProcAddr(DllHandle, "AllDone"));
             ExternBlock = Marshal.GetDelegateForFunctionPointer<BlockedPtr>(GetProcAddr(DllHandle, "Blocked"));
             ExternPending = Marshal.GetDelegateForFunctionPointer<HasPendingActionsPtr>(GetProcAddr(DllHandle, "HasPendingActions"));

@@ -94,10 +94,14 @@ namespace OdinSearchEngine
 
 
 
+
+        // this is turned on due to the val of the variable is unneeded, we just lock and unlock to synch stuff
+#pragma warning disable IDE0052 // Remove unread private members
         /// <summary>
         /// Locked when sending a match to the output aka one <see cref="OdinSearch_OutputConsumerBase"/> derived class and only if <see cref="ThreadSynchResults"/> is true
         /// </summary>
         readonly object ResultsLock = new object();
+#pragma warning restore IDE0052 
 
         /// <summary>
         /// Add Where to look here. Note that each anchor gets a worker thread.
@@ -1223,7 +1227,7 @@ namespace OdinSearchEngine
         /// <param name="Arg"></param>
         /// <returns></returns>
         /// <remarks>Honstestly just returns true with this current build.</remarks>
-        bool SanityChecks(WorkerThreadArgs Arg)
+        bool SanityChecks(WorkerThreadArgs _1)
         {
             // TODO:  Ensure conflicting filename and DirectoryName can actually match. For example, we're not attempting to compare contrarray
             //  settings in the filename array and directory path

@@ -16,12 +16,11 @@ namespace FileIventoryConsole
     /// </summary>
     static class Program
     {
-
-        static void Main(string[] args)
+        
+            static void Main(string[] args)
         {
-            Console.WriteLine("Most of the testing code is in the unit tests. Try them out. ");
-            Console.WriteLine("This console app can serve as an example of what to do or how to use.");
-
+            ArgHandling ArgHandling = new();
+            ArgHandling.DisplayBannerText();
             if (args.Length > 0)
             {
 
@@ -41,14 +40,23 @@ namespace FileIventoryConsole
             Search.DebugVerboseMode = false;
             //var SearchDeal = new OdinSearch_OutputSimpleConsole();
             //            var SearchDeal = new OdinSearch_OutputConsumer_ExternUnmangedPlugin();
-            var SearchDeal = new OdinSearch_OutputCSVWriter();
-            SearchDeal[OdinSearch_OutputCSVWriter.TargetSaveLocation] = "C:\\Dummy\\test.csv";
-//            SearchDeal[OdinSearch_OutputConsumer_ExternUnmangedPlugin.SetDllTarget] = "C:\\Users\\Thoma\\source\\repos\\FileInventory\\x64\\Debug\\ExternalComsPlugin.dll";
-            
 
+
+            OdinSearch_OutputConsumerBase SearchDeal;
             Search.AddSearchAnchor(ArgHandling.SearchAnchor);
             Search.AddSearchTarget(ArgHandling.SearchTarget);
 
+            if (ArgHandling.DesiredPlugin == null)
+            {
+                Console.WriteLine("No Handler specified.  Defaulting to showing matching results to stdout via OdinSearch_OutputSimpleConsole.");
+                SearchDeal = new OdinSearch_OutputSimpleConsole();
+                SearchDeal[OdinSearch_OutputSimpleConsole.OutputOnlyFileName] = true;   
+            }
+            else
+            {
+                SearchDeal = ArgHandling.DesiredPlugin;
+                Console.WriteLine("Handler " + ArgHandling.DesiredPlugin.GetType().Name + " in use");
+            }
             Console.WriteLine("Searching for things, this may take a while.");
 
 

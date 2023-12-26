@@ -282,17 +282,6 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                             {
                                 WriteDateComponent(val, Properties, "CreationTimeUtc", out stringval, unknown, true);
                                 break;
-                                if (Properties.Any(p => p.Name == "CreationTimeUtc"))
-                                { 
-                                    var pro = Properties.FirstOrDefault(p => p.Name == "CreationTimeUtc");
-                                    DateTime timewalker = (DateTime)pro.GetValue(info);
-                                    stringval = timewalker.Date.ToString();
-                                    stringval = stringval.Substring(0, stringval.IndexOf(' ') );
-                                }
-                                else
-                                {
-                                    stringval = unknown;
-                                }
                             }
                             break;
                         case WantCreationUTCTime:
@@ -300,17 +289,6 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                             {
                                 WriteDateComponent(val, Properties, "CreationTimeUtc", out stringval, unknown,false);
                                 break;
-                                if (Properties.Any(p => p.Name == "CreationTimeUtc"))
-                                {
-                                    var pro = Properties.FirstOrDefault(p => p.Name == "CreationTimeUtc");
-                                    DateTime timewalker = (DateTime)pro.GetValue(info);
-                                    stringval = timewalker.ToUniversalTime().ToString();
-                                    stringval = stringval.Substring(stringval.IndexOf(' ')+1);
-                                }
-                                else
-                                {
-                                    stringval = unknown;
-                                }
                             }
                             break;
                         case WantDirectoryLocation:
@@ -320,7 +298,6 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                                 {
                                     var pro = Properties.FirstOrDefault(p => p.Name == "Directory");
                                     stringval = (pro.GetValue(info)).ToString();
-                                    //stringval = Properties.FirstOrDefault(p => p.Name == "Directory").ToString();
                                 }
                                 else
                                 {
@@ -375,15 +352,6 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                             {
                                 WriteDateComponent(val, Properties, "LastAccessTimeUtc", out stringval, unknown, true);
                                 break;
-                                if (Properties.Any(p => p.Name == "LastAccessTimeUtc"))
-                                {
-                                    var pro = Properties.FirstOrDefault(p => p.Name == "LastAccessTimeUtc");
-                                    stringval = ((DateTime)pro.GetValue(info)).ToString();
-                                }
-                                else
-                                {
-                                    stringval = unknown;
-                                }
                             }
                             break;
                         case WantLastWriteUTCDate:
@@ -391,15 +359,6 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                             {
                                 WriteDateComponent(val, Properties, "LastWriteTimeUtc", out stringval, unknown, true);
                                 break;
-                                if (Properties.Any(p => p.Name == "LastWriteTimeUtc"))
-                                {
-                                    var pro = Properties.FirstOrDefault(p => p.Name == "LastWriteTimeUtc");
-                                    stringval = ((DateTime)pro.GetValue(info)).ToString();
-                                }
-                                else
-                                {
-                                    stringval = unknown;
-                                }
                             }
                             break;
 
@@ -408,15 +367,6 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                             {
                                 WriteDateComponent(val, Properties, "LastAccessTimeUtc", out stringval, unknown, false);
                                 break;
-                                if (Properties.Any(p => p.Name == "LastAccessTimeUtc"))
-                                {
-                                    var pro = Properties.FirstOrDefault(p => p.Name == "LastAccessTimeUtc");
-                                    stringval = ((DateTime)pro.GetValue(info)).ToString();
-                                }
-                                else
-                                {
-                                    stringval = unknown;
-                                }
                             }
                             break;
                         case WantLastWriteUTCTime:
@@ -424,15 +374,6 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                             {
                                 WriteDateComponent(val, Properties, "LastWriteTimeUtc", out stringval, unknown, false);
                                 break;
-                                if (Properties.Any(p => p.Name == "LastWriteTimeUtc"))
-                                {
-                                    var pro = Properties.FirstOrDefault(p => p.Name == "LastWriteTimeUtc");
-                                    stringval = ((DateTime)pro.GetValue(info)).ToString();
-                                }
-                                else
-                                {
-                                    stringval = unknown;
-                                }
                             }
                             break;
                         case WantNameWithExt:
@@ -491,15 +432,14 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             string TargetLocation = GetCustomParameter(TargetSaveLocation) as string ?? throw new InvalidOperationException("Missing required target location to save");
 
             CheckDefault();
-            this.TargetFile = new StreamWriter(File.OpenWrite(TargetLocation), Encoding.UTF8);
+            TargetFile = new StreamWriter(File.OpenWrite(TargetLocation), Encoding.UTF8);
             return false;
-            return base.SearchBegin(Start);
         }
 
         public override void AllDone()
         {
-            this.TargetFile.Flush();
-            this.TargetFile.Close();
+            TargetFile.Flush();
+            TargetFile.Close();
             base.AllDone();
         }
     }
