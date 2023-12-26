@@ -919,6 +919,17 @@ namespace OdinSearchEngine
         {
             return (e is >= (MatchStyleString)1 and <= (MatchStyleString)64) && (e.HasFlag( MatchStyleString.ReservedUnused) == false);
         }
+
+        /// <summary>
+        /// in case you need a sanity check against input
+        /// </summary>
+        /// <param name="e"></param>
+        /// <returns>true if it's a valid combo and false if not</returns>
+        public static bool VerifyMatchStyleFileAttrib(MatchStyleFileAttributes e)
+        {
+            return (e is >= (MatchStyleFileAttributes)1 and <= (MatchStyleFileAttributes)64) && (e.HasFlag(MatchStyleFileAttributes.Reserved) == false);
+        }
+
         [Flags]
         /// <summary>
         /// Tell the search what to do with the string based search input

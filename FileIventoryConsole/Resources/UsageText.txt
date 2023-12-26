@@ -1,106 +1,111 @@
 ﻿
-{0}.exe  /Arguments -flags
+{0}.exe  /Arguments
 
-There are 5 concepts to know of.
+Special Data Types to Know:
 
-SearchAnchor - Starting point of the Search. Each Starting point will get a thread to begin searching from there,
-SearchTarget - What to search for.
-MatchStyleString - certain searches can be controlled via this.
-MatchStyleFileAttributes - controls how to compare file attributes
-MatchStyleDateTime - controls the date time compare
+MatchStyleFileAttributes:
+	This controls how the app will compare a file attribute with a value specified.
+	One can add the wanted numbers together or just smoosh the words together to get the 
+	same effect.
 
+	MatchAny=1;			Positive effect means a match must contain at least one attribute.
+						Invert effect means at least one specified attribute must NOT be there.
+	MatchAll=2;			Positive effet means at any match found must have *all* attributes
+						Invert effect means any match found must have NONE of the set attributes 
+	Invert=4;			This inverts the indicated match effet (MatchAny or MatchAll)
+	Exacting=8;			This means the examined item must have the same attributes you specified.
+						Example:  Choosing Hidden and Directory Attribute + this would cause
+						a folder that's Hidden, a Directory and set to readonly to NOT MATCH.
+MatchStylesString:
+	This controls how the app will compare a filename or full file location against your
+	specified value.
+	One can add the wanted numbers together or just smoosh the words together to get the 
+	same effect.
 
-MatchStyleString
-	MatchAny=1		   - match at at least one in the list
-	MatchAll=2		   - match all items in the list
-	Invert=4		   - the final match is flipped -i.e.  we care if it is false rather than true
-	Skip = 16		   - Disable this match
-	CaseImportant = 32 - The matches in this list care about the character case - default is nope.
+	MatchAny=1;			Positive effect means a match must contain at least specified value.
+						Invert effect means at least one specified attribute must NOT be there.
+	MatchAll=2;			Positive effet means at any match found must have *all* specified values
+						Invert effect means any match found must have NONE of the values set. 
+	Invert=4;			This inverts the indicated match effet (MatchAny or MatchAll)
+	CaseImportant=32;	This means the match will case about the case such as CAT not matching cAt.
 
-MatchStyleFileAttributes
-	MatchAny=1			- Long as one attribute matches we happy
-	MatchAll=2			- Default if unspecified, must match all attributes in the list
-	Invert=4		    - the final match is flipped -i.e.  we care if it is false rather than true
-	Skip=16				- Disable this match
+DateTime:
+	This is a combination of a Date and Time such as "12/1/97" or "Aug 5, 2025".  
 
-MatchStyleDateTime
-	Disable=0		 	- Skip
-	NoEarlierThanThis=1	- The item in qustion must not have a date earlier than this
-	NoLaterThanThis=2	- The item in question must not have a date later than this
+	
+Arguments to use:
 
+/outstream={'stdout', 'stderr', file location}
+	This flag controlls *where* the app will send matches. Use /outstream=stdout or /outstream=stderr to send to that console stream.
+	One may also specify a file system location to save the output too such as "/outstream=X:\Results.txt" and it may also be
+	quoted.
 
-/output=screen
-	send the output to the console screen stdout
+/outformat= {'unicode', 'cvsfile'}
+	This flag controls *how* the app will send matches.  Use /outstream=unicode to send as unicode text and /outstream=cvsfile for the CSV /
+	comma delimited file.
 
-/outmode={x}
-	Choose a built in way to deal with matches.  
+/fullname={wildcard string}
+	This flag sets what the app will compare against the full exact location of the examing file system item.
+	Example: "/fullname=C:\Windows\*.exe" would let one match many exe file located in that folder.
+	The path may be quoted with " or '.
 
-/outmode=screen
-	Send Results 
-
-/outmode=CSV
-	Send Resu
-
-/out
-			
-/plugin={y}
-
-/filename=
-
-Indicate which wildcards to check for in the section of just the filename such as Notepad.exe.
-
-/exactfilecheck=
-Indicate which wildcards to check for in the section of the full path to the file item such as C:\Windows\Notepad.exe
-
-/anyfile
-
-Shorthand to match  any file that has a name that we can access.
-
-
-/searchall
-
-Shorthand to search all local ready drives at the root in the system and subfolders
-
-/enumsubs
-
-Enable looking in the subfolders of roots
-
-/-enumsubs
-
-Disable looking in subfolders in the root locations
-
-/consumer=%s
-
-specify the way OdinSearch will handle the matching results.  You may specify one of the strings below or a file location.
+/fullcompare={int, string}
+	This flag sets how the app wil compare the string set by /fullname to the examined file item.
+	int must be from the MatchStyleString format above or it's gonna be rejected.
+	string must match any combination of the MatchStyleString about or its gonna be rejected.
+	The path may be quoted with " or '.
 
 
-Special Strings:
+/filename={wildcard string}
+	This flag sets what the app will compare gainst the file item's name only.
+	Example: "/filename=*.dll"  would match files that have a .dll extension.
+
+/filecompare={int, string}
+	This flag sets how the app will compare the string set by /filename to the examined file item.
+	int must be from the MatchStyleString format above or it's gonna be rejected.
+	string must match any combination of the MatchStyleString about or its gonna be rejected.
 
 
-File location format:
-%s1, %s2
+/notcreatedbefore={datetime}
+	This flag instructs the app to discard any matches whose creation date is earlier than the 
+	specified time.
 
-%s1 is the exact location of a sharead library to load.  It may be a matching .NET 7 library  or a C level library. 
-%s2 is the name of the class to load to handle matches.  The C Level library cannot have a class to load.  It's assumed to be a single class.
+/notcreatedafter={datetime}
+	This flag tells the app to discard any matches whose creation date is after the specified time.
 
-Examples of this:
+/nolastmodifiedbefore={datetime}
+	This flag tells the software to discard matches whose last modified date is earlier than this.
 
-C:\\NETPlugins\\BackupFilter.dll,BackupHandler				<- this loads that assembly and fetches an instance of the BackupHandler to deal with matches.
+/lastmodifiedbefor={datetime}
+	This flag tells the app to discard matches who were changed *after* this indicated time.
 
-C:\\NativePlugins\\DupFixer.dll								<- this loads a C level DLL and treats it as an external plugin.
+/lastaccessedbefore={datetime}
+	This flag tells the app to ignore matches whose last access datetime is before the indicated one.
+
+/nolastaccessedbefore{datetime}
+	This flag tells the app to ignore files whose last access datetime is after this.
 
 
-security considerations:
-If this app is built in a release build it will refuse to load native plugins that aren't trusted and managed plugins that aren't signed.
+/fileattrib_check={int, string}
+	This sets what the app will be comparing examined file items with.
+	It can be an int or a string from the MatchStyleAttributes above.
 
 
+There is a plugin system also and this trumps the /outstream /outformat stuff. These 
+arguments are there to allow users to use them.
 
+/plugin={file location}
+	This will load an unmanaged (non .NET) shared library and use that to deal with matches
+	according to unmanaged plugin specifications.
+	It can be quoted.
+	
+	
+/managed={file location}
+	This will load a managed shared library to use and deal with managed.
+	It can be quoted.
 
-/matchfilenamestyle=%d 
+/managed_handler="classname"
+	This sets the class name that the app will use. 
 
-Set the matchign style for comparing against the filename - use the number values from above for MatchStyleString.
-
-OdinSearch will also look for plugin stuff in this way
-*  First is there an ODINSEARCH_PLUGIN_FOLDER??
-	 if so, we use that location
-*  if not, we default to the current app's location and past a \\plugins folder
+One final note:
+	One can have more flexibility by going and getting a copy of the source.
