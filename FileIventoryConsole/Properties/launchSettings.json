@@ -2,7 +2,7 @@
   "profiles": {
     "FileInventoryConsole": {
       "commandName": "Project",
-      "commandLineArgs": "/anyfile /searchall /enumsubs /matchfilenamestyle=5 /anchor=C:\\Windows /anchor=\"C:\\Program Files\"  /anchor=\"C:\\\\Windows;C:\\\\Documents and Settings\"  /plugin=ConsoleView \r\n\r\n/write1_date=\"12/2/2022\"      /write1_handle=1",
+      "commandLineArgs": "/anyfile /outformat=unicode /outstream=stdout /anchor=C:\\Euphoria",
       "nativeDebugging": false
     },
     "Profile 1": {
