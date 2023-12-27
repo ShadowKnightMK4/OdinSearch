@@ -1,7 +1,31 @@
-﻿
-{0}.exe  /Arguments
+﻿q
+{{0}}.exe  /Arguments
 
-Special Data Types to Know:
+Special Data Types to Know are listed below. Each value that is on the same line as another is equivelent. For example
+MatchAny and '1' are equivelent for MatchStyle Attributes
+
+File Attributes:
+	Thise are the file attributes you can search for. If you dond't know the
+	attribute to look for, it's ok to not set. You can specify the numbers in 
+	various combinations or smoosh them together. For example, if one
+	needs a System file that's ready to archive, they can use '36' or
+	pass 'AS' or 'SA' or pass System | Archive. 
+	ReadOnly='R'=1;
+	Hidden='H'=2;
+	System='S'=4;
+	Directory=Folder='D'=16;
+	Archive='A'=32;
+	Temporary=Temp='T'=256;
+	SparseFile='P'=512;
+	ReparsePoint='L'=1024;
+	Compressed=zip=comp='C'=2048;
+	Offline='O'=4096;
+	NotIndexed='I'=8192;
+	Encypted='E'=16384;
+	IntegrityStream='N'=32768;
+	NoScrubData=131072
+
+	
 
 MatchStyleFileAttributes:
 	This controls how the app will compare a file attribute with a value specified.
@@ -35,77 +59,97 @@ DateTime:
 	
 Arguments to use:
 
-/outstream={'stdout', 'stderr', file location}
+/outstream={{'stdout', 'stderr', file location}}
 	This flag controlls *where* the app will send matches. Use /outstream=stdout or /outstream=stderr to send to that console stream.
 	One may also specify a file system location to save the output too such as "/outstream=X:\Results.txt" and it may also be
 	quoted.
 
-/outformat= {'unicode', 'cvsfile'}
+/outformat= {{'unicode', 'cvsfile'}}
 	This flag controls *how* the app will send matches.  Use /outstream=unicode to send as unicode text and /outstream=cvsfile for the CSV /
 	comma delimited file.
 
-/fullname={wildcard string}
+/fullname={{wildcard string}}
 	This flag sets what the app will compare against the full exact location of the examing file system item.
 	Example: "/fullname=C:\Windows\*.exe" would let one match many exe file located in that folder.
 	The path may be quoted with " or '.
 
-/fullcompare={int, string}
+/fullcompare={{int, string}}
 	This flag sets how the app wil compare the string set by /fullname to the examined file item.
 	int must be from the MatchStyleString format above or it's gonna be rejected.
 	string must match any combination of the MatchStyleString about or its gonna be rejected.
 	The path may be quoted with " or '.
 
 
-/filename={wildcard string}
+/filename={{wildcard string}}
 	This flag sets what the app will compare gainst the file item's name only.
 	Example: "/filename=*.dll"  would match files that have a .dll extension.
 
-/filecompare={int, string}
+/filecompare={{int, string}
 	This flag sets how the app will compare the string set by /filename to the examined file item.
 	int must be from the MatchStyleString format above or it's gonna be rejected.
 	string must match any combination of the MatchStyleString about or its gonna be rejected.
 
 
-/notcreatedbefore={datetime}
+/notcreatedbefore={{datetime}
 	This flag instructs the app to discard any matches whose creation date is earlier than the 
 	specified time.
 
-/notcreatedafter={datetime}
+/notcreatedafter={{datetime}
 	This flag tells the app to discard any matches whose creation date is after the specified time.
 
-/nolastmodifiedbefore={datetime}
+/nolastmodifiedbefore={{datetime}}
 	This flag tells the software to discard matches whose last modified date is earlier than this.
 
-/lastmodifiedbefor={datetime}
+/lastmodifiedbefore={{datetime}}
 	This flag tells the app to discard matches who were changed *after* this indicated time.
 
-/lastaccessedbefore={datetime}
+/lastaccessedbefore={{datetime}}
 	This flag tells the app to ignore matches whose last access datetime is before the indicated one.
 
-/nolastaccessedbefore{datetime}
+/nolastaccessedbefore{{datetime}}
 	This flag tells the app to ignore files whose last access datetime is after this.
 
 
-/fileattrib_check={int, string}
+/fileattrib_check={{int, string}}
 	This sets what the app will be comparing examined file items with.
 	It can be an int or a string from the MatchStyleAttributes above.
+
+/fileattrib={{int, full file attribute names}}
+	This what file attribute to look for.  Accepts an inter based on the data
+	type above or such as "ReadOnlySystemEncrypted" for a read only system file
+	that's also encrypted.
+
+/A={{int, dir style attrubte}}
+	This what file attribute to look for.  Accepts an int based on the data
+	type above or such as "RSE" for a read only system file that's encrypterd.
 
 
 There is a plugin system also and this trumps the /outstream /outformat stuff. These 
 arguments are there to allow users to use them.
 
-/plugin={file location}
+/plugin={{file location}}
 	This will load an unmanaged (non .NET) shared library and use that to deal with matches
 	according to unmanaged plugin specifications.
 	It can be quoted.
 	
 	
-/managed={file location}
+/managed={{file location}}
 	This will load a managed shared library to use and deal with managed.
 	It can be quoted.
 
 /managed_handler="classname"
 	This sets the class name that the app will use. 
+
+/anyfile
+	This will tell the search to match anyfile we can possibly access.
+
+/anywhere
+	This tells the search to look thru the whole machine
+/subfolders
+	This tells the app to seach sub folders to rather than only just the list.
+
+/anchor={folder location}
+	This tells the app to add this to the list of starting points.
 
 One final note:
 	One can have more flexibility by going and getting a copy of the source.

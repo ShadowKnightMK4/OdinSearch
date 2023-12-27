@@ -1,6 +1,7 @@
 using FileInventoryConsole;
 using FileIventoryConsole;
 using Microsoft.VisualBasic;
+using Newtonsoft.Json.Bson;
 
 namespace ConsoleAppUnitTests
 {
@@ -31,9 +32,132 @@ namespace ConsoleAppUnitTests
             testme.DoTheThing(new string[] { });
         }
 
-        
+        [TestMethod]
+        public void Specialarg_anyfile_set()
+        {
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/anyfile" });
+            Assert.IsTrue(testme.was_anyfile_flag_set);
+        }
 
-        
+        [TestMethod]
+        public void specialarg_anywhere_set()
+        {
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/anywhere" });
+            Assert.IsTrue(testme.was_wholemachine_flag_set); ;
+        }
+
+        [TestMethod]
+        public void AnchorArg_Set_NoSpace()
+        {
+            string loc = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/anchor=" + loc});
+
+            Assert.AreEqual(testme.SearchAnchor.roots[0].ToString(), loc);
+        }
+
+        [TestMethod]
+        public void AnchorArg_Set_Space()
+        {
+            string loc = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/anchor=" + loc });
+
+            Assert.AreEqual(testme.SearchAnchor.roots[0].ToString(), loc);
+        }
+        [TestMethod]
+        public void AnchorArg_Set_NoSpaceQuoted()
+        {
+            string loc = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/anchor=" + '\"' + loc + "\"" });
+            loc = ArgHandling.Trim(loc);
+            Assert.AreEqual(testme.SearchAnchor.roots[0].ToString(), loc);
+        }
+
+        [TestMethod]
+        public void AnchorArg_Set_SpaceQuoted()
+        {
+            string loc = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/anchor=" + '\"' + loc + "\"" });
+            loc = ArgHandling.Trim(loc);
+            Assert.AreEqual(testme.SearchAnchor.roots[0].ToString(), loc);
+        }
+        [TestMethod]
+        public void Plugins_arg_SetUnmanaged()
+        {
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "-f" });
+            Assert.IsTrue(testme.AllowUntrustedPlugin);
+        }
+        [TestMethod]
+        public void Plugins_arg_AllowManaged_abs_path_no_quote_no_space()
+        {
+            string loc = "C:\\Plugins\\NetPlugin.dll";
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/managed=" + loc});
+            loc = ArgHandling.Trim(loc);
+            Assert.AreEqual(testme.ExternalPluginDll, loc);
+            Assert.AreEqual(testme.ExternalPluginName, string.Empty);
+        }
+
+        [TestMethod]
+        public void Plugins_arg_AllowManaged_abs_path_quote_space()
+        {
+            string loc = "\"C:\\Plugins and Stuff\\NetPlugin.dll\"";
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/managed="+loc });
+            loc = ArgHandling.Trim(loc);
+            Assert.AreEqual(testme.ExternalPluginDll, loc);
+            Assert.AreEqual(testme.ExternalPluginName, string.Empty);
+        }
+
+        [TestMethod]
+        public void Plugins_arg_AllowManaged_abs_path_no_quote_space()
+        {
+            string loc = "C:\\Plugins and Stuff\\NetPlugin.dll";
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/managed=" + loc });
+            loc = ArgHandling.Trim(loc);
+            Assert.AreEqual(testme.ExternalPluginDll, loc);
+            Assert.AreEqual(testme.ExternalPluginName, string.Empty);
+        }
+
+        [TestMethod]
+        public void Plugins_arg_AllowNative_abs_path_no_quote_no_space()
+        {
+            string loc = "C:\\Plugins\\CBasedPlugin.dll";
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/plugin=" + loc });
+            loc = ArgHandling.Trim(loc);
+            Assert.AreEqual(testme.ExternalPluginDll, loc);
+        }
+
+        [TestMethod]
+        public void Plugins_arg_AllowNative_abs_path_quote_space()
+        {
+            string loc = "\"C:\\Plugins and Stuff\\CBasedPlugin.dll\"";
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/plugin=" + loc });
+            loc = ArgHandling.Trim(loc);
+            Assert.AreEqual(testme.ExternalPluginDll, loc);
+        }
+
+        [TestMethod]
+        public void Plugins_arg_AllowNative_abs_path_no_quote_space()
+        {
+            string loc = "C:\\Plugins and Stuff\\CBasedPlugin.dll";
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/plugin=" + loc });
+            loc = ArgHandling.Trim(loc);
+            Assert.AreEqual(testme.ExternalPluginDll, loc);
+        }
+
+
+
         /// <summary>
         /// test for correct /outstream=stdout handling
         /// </summary>
@@ -399,7 +523,7 @@ namespace ConsoleAppUnitTests
         public void FULLNAME_arg_setno_wildcard_no_space_no_quote()
         {
             const string checkme = "C:\\Windows\\system32\\cmd.exe";
-            string lcheck = checkme.ToLower();
+            string lcheck = checkme;
             ArgHandling test = new ArgHandling();
             Assert.IsTrue(test.DoTheThing(new string[] { "/fullname=" + checkme }));
 
@@ -414,7 +538,7 @@ namespace ConsoleAppUnitTests
         {
 
             const string checkme = "C:\\Windows\\system32\\*.exe";
-            string lcheck = checkme.ToLower();
+            string lcheck = checkme;
             ArgHandling test = new ArgHandling();
             Assert.IsTrue(test.DoTheThing(new string[] { "/fullname=" + checkme }));
 
@@ -430,7 +554,7 @@ namespace ConsoleAppUnitTests
         public void FULLNAME_arg_set_yes_wildcard_yes_space_no_quote()
         {
             const string checkme = "C:\\windows\\system32\\* .exe";
-            string lcheck = checkme.ToLower();
+            string lcheck = checkme;
             ArgHandling test = new ArgHandling();
             Assert.IsTrue(test.DoTheThing(new string[] { "/fullname=" + checkme }));
 
@@ -449,7 +573,7 @@ namespace ConsoleAppUnitTests
         {
             const string checkme = "\"C:\\windows\\system32\\* 32.dll\"";
             // note quotes are trimmed off before assigning. don't forget this call
-            string lcheck = ArgHandling.Trim(checkme.ToLower());
+            string lcheck = ArgHandling.Trim(checkme);
             ArgHandling test = new ArgHandling();
             Assert.IsTrue(test.DoTheThing(new string[] { "/fullname=" + checkme }));
 
@@ -468,7 +592,7 @@ namespace ConsoleAppUnitTests
         {
             const string checkme = "\"C:\\testapps\\32*.exe\"";
             // note quotes are trimmed off before assigment, don't forget this call.
-            string lcheck = ArgHandling.Trim(checkme.ToLower());
+            string lcheck = ArgHandling.Trim(checkme);
             ArgHandling test = new ArgHandling();
             Assert.IsTrue(test.DoTheThing(new string[] { "/fullname=" + checkme }));
 
@@ -484,7 +608,7 @@ namespace ConsoleAppUnitTests
         {
             const string checkme = "\"C:\\Stuff\\cool.jpg\"";
             // note quotes are trimmed off before assigment, don't forget this call.
-            string lcheck = ArgHandling.Trim(checkme.ToLower());
+            string lcheck = ArgHandling.Trim(checkme);
             ArgHandling test = new ArgHandling();
             Assert.IsTrue(test.DoTheThing(new string[] { "/fullname=" + checkme }));
 
@@ -574,7 +698,7 @@ namespace ConsoleAppUnitTests
         }
 
         [TestMethod]
-        public void FileAttrib_arg_set_named()
+        public void FileAttrib_arg_set_named_Enums()
         {
             
             ArgHandling test = new ArgHandling();
@@ -591,6 +715,149 @@ namespace ConsoleAppUnitTests
             Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Hidden" }));
 
             Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Hidden));
+        }
+
+        public void FileAttrig_DirStyle_Arg_check()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=R" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.ReadOnly);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=H" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Hidden);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=S" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.System);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=D" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Directory);
+
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=A" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Archive);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=T" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Temporary);
+
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=P" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.SparseFile);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=L" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.ReparsePoint);
+
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=C" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Compressed);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=O" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Offline);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=I" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.NotContentIndexed);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=E" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Encrypted);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=N" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.IntegrityStream);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=U" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.NoScrubData);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=HSA" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == (FileAttributes.Hidden | FileAttributes.Archive | FileAttributes.System));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=SAH" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == (FileAttributes.Hidden | FileAttributes.Archive | FileAttributes.System));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/A=TCE" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == (FileAttributes.Temporary | FileAttributes.Compressed | FileAttributes.Encrypted));
+        }
+
+        [TestMethod]
+        public void FileAttrib_arg_set_as_int()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=1" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.ReadOnly);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=2" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Hidden);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=4" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.System);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=16" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Directory);
+
+            test = new ArgHandling();   
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=32" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Archive);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=256" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Temporary);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=512" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.SparseFile);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=1024" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.ReparsePoint);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=2048" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Compressed);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=4096" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Offline);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=8192" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.NotContentIndexed);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=16384" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.Encrypted);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=32768" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.IntegrityStream);
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=131072" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == FileAttributes.NoScrubData);
+
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=3" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == (FileAttributes.ReadOnly  | FileAttributes.Hidden));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=2304" }));
+            Assert.IsTrue(test.SearchTarget.AttributeMatching1 == (FileAttributes.Compressed | FileAttributes.Temporary));
         }
 
         [TestMethod]

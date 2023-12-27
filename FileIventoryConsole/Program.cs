@@ -23,12 +23,14 @@ namespace FileIventoryConsole
             ArgHandling.DisplayBannerText();
             if (args.Length > 0)
             {
-
-
                 if (!ArgHandling.DoTheThing(args))
                 {
                     Console.Write("Quitting...\r\n");
                     return;
+                }
+                else
+                {
+                    ArgHandling.FinalizeCommands();
                 }
             }
             else
@@ -48,6 +50,19 @@ namespace FileIventoryConsole
 
             if (ArgHandling.DesiredPlugin == null)
             {
+                Console.WriteLine("Fatal Error: No output was set. Note this should not be reached in normal execution.");
+                Console.Write("Quitting...\r\n");
+                return;
+            }
+            else
+            {
+                SearchDeal = ArgHandling.DesiredPlugin;
+            }
+
+
+            /*
+            if (ArgHandling.DesiredPlugin == null)
+            {
                 Console.WriteLine("No Handler specified.  Defaulting to showing matching results to stdout via OdinSearch_OutputSimpleConsole.");
                 SearchDeal = new OdinSearch_OutputSimpleConsole();
                 SearchDeal[OdinSearch_OutputSimpleConsole.OutputOnlyFileName] = true;   
@@ -57,7 +72,7 @@ namespace FileIventoryConsole
                 SearchDeal = ArgHandling.DesiredPlugin;
                 Console.WriteLine("Handler " + ArgHandling.DesiredPlugin.GetType().Name + " in use");
             }
-            Console.WriteLine("Searching for things, this may take a while.");
+            Console.WriteLine("Searching for things, this may take a while.");*/
 
 
             Search.Search(SearchDeal);

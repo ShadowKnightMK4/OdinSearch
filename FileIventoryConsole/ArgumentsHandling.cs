@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security.Principal;
 using System.Text;
 using System.Threading;
@@ -32,6 +33,9 @@ namespace FileInventoryConsole
      /// </summary>
     public class ArgHandling
     {
+        
+
+
         /// <summary>
         /// Trim space, '\'' chars and '\"' chars from a string
         /// </summary>
@@ -54,11 +58,42 @@ namespace FileInventoryConsole
         }
         #region string consts
 
+        #region FileAttrib String Consts for arg handling
+        const char CharReadOnly = 'R';
+        const char CharHidden = 'H';
+        const char CharSystem = 'S';
+        const char CharDirectory = 'D';
+        const char CharArch = 'A';
+        // char CharNormal  = 'N'
+        const char CharPPTemp = 'T';
+        const char CharPPSparse = 'P';
+        const char CharResparse = 'L';
+        const char CharCompressed = 'C';
+        const char CharOffLine = 'O';
+        const char CharNotIndex = 'I';
+        const char CharPPEncryted = 'E';
+        const char CharPPIntegritySTream = 'N';
+        const char CharPPNotScrubData = 'U';
+
+
+        #endregion
+
+        const string FlagSpecialAnyFile = "/anyfile";
+        const string FlagSpecialAnyWhere = "/anywhere";
+        const string FlagSetAnchor = "/anchor=";
+        const string FlagSetSpecifiedUnmanagedPlugin = "/plugin=";
+
+        const string FlagSetSpecifiedNETPlugin = "/managed=";
+
+        const string FlagToNetPluginClassName = "/class=";
+        const string FlagSetNoSignedMode = "-f";
+
         /// <summary>
-        /// Flag to set FileAttributes1
+        /// Flag to set FileAttributes1 from numbers or full attrib name
         /// </summary>
         const string FlagToSetFileAttributes = "/fileattrib=";
 
+        const string FlagToSetFileAttributeViaDir = "/A";
         /// <summary>
         /// Flag to indicate how to compare file attributes
         /// </summary>
@@ -109,6 +144,8 @@ namespace FileInventoryConsole
         const string FlagToSetFileWasLastAccessedBefore = "/lastaccessedbefore=";
 
         const string FlagToSetFileWasLastAccessedAfter = "/nolastaccessedbefore=";
+
+
         #endregion
         public enum TargetFormat
         {
@@ -174,15 +211,89 @@ namespace FileInventoryConsole
             return result;
         }
 
-        public  DirectoryInfo PluginFolder;
+        /// <summary>
+        /// Before parsing arguments, this resolves to a pluginfolder that we load relative plugins from.
+        /// 
+        /// First check is testing if the value of "ODINSEARCH_PLUGIN_FOLDER" in the enviroment both
+        /// exists and is a a folder.
+        /// 
+        /// If that doesn't we then get the folder the current running exe is in and try to plant a
+        /// "\\plugins\\" path there.   
+        /// 
+        /// If that fails we assign this to null and do not allow relative plugin paths.
+        /// </summary>
+        public DirectoryInfo PluginFolder;
+
+        /// <summary>
+        /// If set, we asscept relative plugin paths
+        /// </summary>
+        public bool AcceptRelativePlugin = false;
+
+        /// <summary>
+        /// ArgHandling is responsible for setting this to the matching coms class that will do the thing the user wants
+        /// </summary>
         public  OdinSearch_OutputConsumerBase DesiredPlugin = null;
+
+        /// <summary>
+        /// If we are loading an external plugin, this is the complete file location
+        /// </summary>
+        public string ExternalPluginDll;
+
+        /// <summary>
+        /// If we are treating <see cref="ExternalPluginDll"/> has unmanaged, this is null.
+        /// If we are treating it as managed, this is the class we will attempt to load.
+        /// </summary>
+        public string ExternalPluginName;
         public  SearchTarget SearchTarget = new SearchTarget();
         public  SearchAnchor SearchAnchor = new SearchAnchor(false);
-        
-        /// <summary>1
-        /// if start pos is not specified we default to all local drives
+
+        /// <summary>
+        /// triggers on /fullname or /filename
         /// </summary>
-         bool was_start_specified = false;
+        public bool was_filename_specified { get; private set; }
+        /// <summary>
+        /// triggers on /notcreatedafter or /notcreatedbefore.
+        /// </summary>
+        public bool was_creation_specified { get; private set; }
+
+        /// <summary>
+        /// triggers on /nolastmodifiedbefore or /nolastmodifiedbefore
+        /// </summary>
+        public bool was_lastchanged_specified { get; private set; }
+        
+        /// <summary>
+        /// triggers on /lastaccessedbefore and /nolastaccessedbefore.
+        /// </summary>
+        public bool was_lastaccessed_specified { get; private set; }
+        public bool was_filename_check_set { get; private set; }
+        /// <summary>
+        /// triggers on /plugin and /managed
+        /// </summary>
+        public bool is_plugin_set { get; private set; }
+    /// <summary>
+    /// triggers on /classname
+    /// </summary>
+    public bool PluginHasManagedClass { get; private set; }
+
+        public bool was_outformat_set { get; private set; }
+        public bool was_outstream_set { get; private set; }
+
+
+
+    /// <summary>
+    /// triggers on /file_attrib_check 
+    /// </summary>
+    public bool was_fileattrib_check_specified { get; private set; }
+
+        /// <summary>
+        /// triggers on /A and /fileattrib
+        /// </summary>
+        public bool was_fileattribs_set { get; private set; }
+        public bool was_anyfile_flag_set { get; private set; }
+        public bool was_start_point_set { get; private set; }
+        public bool was_wholemachine_flag_set { get; private set; }
+
+        public bool AllowUntrustedPlugin { get; private set; }
 
         /// <summary>
         /// display the embedded banner file and include the build version info.
@@ -191,7 +302,7 @@ namespace FileInventoryConsole
         {
             Version self = Assembly.GetExecutingAssembly().GetName().Version;
 
-            DisplayPackedInResourceText("Resources.Banner.txt", new string[] {self.Major.ToString(), self.Minor.ToString(), self.Build.ToString(), self.Revision.ToString()}, 1);
+            DisplayPackedInResourceText("Resources.Banner.txt", new string[] {self.Major.ToString(), self.Minor.ToString(), self.Build.ToString(), self.Revision.ToString()}, false, 1);
         }
 
         /// <summary>
@@ -199,7 +310,7 @@ namespace FileInventoryConsole
         /// </summary>
         public static void DisplayUsageText()
         {
-            DisplayPackedInResourceText("Resources.UsageText.txt", new string[] { Assembly.GetCallingAssembly().GetName().Name }, 0);
+            DisplayPackedInResourceText("Resources.UsageText.txt", new string[] { Assembly.GetCallingAssembly().GetName().Name }, true, 0);
         }
         /// <summary>
         /// Display the embedded text file to stdout (console)
@@ -207,7 +318,7 @@ namespace FileInventoryConsole
         /// <param name="ResourceSuffix">trailing of the resource</param>
         /// <param name="Args">argument  if any</param>
         /// <param name="offset">byte offset to begin (banner.txt fix). Note whole file is read. We trim this many characters from the left before sending to stdout</param>
-        static void DisplayPackedInResourceText(string ResourceSuffix, string[] Args, int offset=0)
+        static void DisplayPackedInResourceText(string ResourceSuffix, string[] Args, bool DisableFormatting, int offset = 0)
         {
             var Self = Assembly.GetCallingAssembly().GetManifestResourceNames();
             foreach (string s in Self)
@@ -224,7 +335,8 @@ namespace FileInventoryConsole
                             string output = Encoding.UTF8.GetString(B);
                             if (offset != 0)
                                 output = output.Substring(offset);
-                            output = string.Format(output, Args);
+                            if (!DisableFormatting)
+                                output = string.Format(output, Args);
                             Console.WriteLine(output);
                         }
                     }
@@ -237,8 +349,40 @@ namespace FileInventoryConsole
             UseFileOut = 1,
             UseDirectOut = 2
         }
+
+
+        /// <summary>
+        /// Process settings that start with '-'
+        /// </summary>
+        /// <param name="arg">from the <see cref="DoTheThing(string[])"/></param>
+        /// <param name="step">where to look</param>
+        /// <returns>return true if known and handled. returns false if unknown or not handled</returns>
+        /// <remarks>Note false terminates additional argument processing and causes the console app to display error message</remarks>
+        private bool ProcessASetting(string[] arg, int step)
+        {
+            string low = arg[step].ToLower();
+
+            if (low.StartsWith(FlagSetNoSignedMode))
+            {
+                this.AllowUntrustedPlugin = true;
+                return true;
+            }
+            return false;
+        }
+
+
+        /// <summary>
+        /// Process a argument that starts with '/'
+        /// </summary>
+        /// <param name="arg">from <see cref="DoTheThing(string[])"/></param>
+        /// <param name="step">where to look</param>
+        /// <returns>returns true if known and set ok. False if unknown.</returns>
+        /// <remarks>Note false terminates additional argument processing and causes the console app to display error message</remarks>
         private bool ProcessAFlag(string[] arg, int step)
         { 
+            /* this attacks the ussue by first attempting to try parsing.
+             * Should this fail, we resort to just case insensitive matching hardcoded enum values.
+             */
             bool DealWithComparingFileAttribEnum(string EnumString, out SearchTarget.MatchStyleFileAttributes Result)
             {
                 object tmp = 0;
@@ -297,20 +441,132 @@ namespace FileInventoryConsole
                     return true;
 
                 }
-                ;
+                
             }
-                bool DealWithFileAttribEnum(string EnumString, out FileAttributes Result)
+           /* this attacks the ussue by first attempting to try parsing.
+             * Should this fail, we resort to just case insensitive matching hardcoded enum values.
+                */
+
+            
+            bool DealWithFileAttribEnum(string EnumString, out FileAttributes Result, bool MimicDirFallback)
             {
                 object tmp = 0;
-                Result = FileAttributes.Normal;
+                Result = 0;
                 if (Enum.TryParse(typeof(FileAttributes), EnumString, out tmp))
                 {
-                    Result = (FileAttributes) tmp;
-                    
+                    Result = (FileAttributes)tmp;
+
                     return true;
                 }
-                return false;
+                else
+                {
+
+                    if (MimicDirFallback)
+                    {
+                        if (EnumString.Contains(CharReadOnly))
+                        {
+                            Result |= FileAttributes.ReadOnly;
+                        }
+
+                        if (EnumString.Contains(CharHidden))
+                        {
+                            Result |= FileAttributes.Hidden;
+                        }
+
+                        if (EnumString.Contains(CharSystem))
+                        {
+                            Result |= FileAttributes.System;
+                        }
+
+
+                        if (EnumString.Contains(CharDirectory))
+                        {
+                            Result |= FileAttributes.Directory;
+                        }
+
+
+                        if (EnumString.Contains(CharArch))
+                        {
+                            Result |= FileAttributes.Archive;
+                        }
+
+                        /* docs say device is reserved for future.
+                        if (EnumString.Contains(CharDevice))
+                        {
+                            Result |= FileAttributes.Device;
+                        }*/
+
+                        /* for completless sake
+                        if (EnumString.Contains(CharNormal))
+                        {
+                            Result |= FileAttributes.Normal;
+                        }*/
+
+                        if (EnumString.Contains(CharPPTemp))
+                        {
+                            Result |= FileAttributes.Temporary;
+                        }
+
+                        if (EnumString.Contains(CharPPSparse))
+                        {
+                            Result |= FileAttributes.SparseFile;
+                        }
+
+
+                        if (EnumString.Contains(CharResparse))
+                        {
+                            Result |= FileAttributes.ReparsePoint;
+                        }
+
+
+                        if (EnumString.Contains(CharCompressed))
+                        {
+                            Result |= FileAttributes.Compressed;
+                        }
+
+                        if (EnumString.Contains(CharOffLine))
+                        {
+                            Result |= FileAttributes.Offline;
+                        }
+
+
+
+                        if (EnumString.Contains(CharNotIndex))
+                        {
+                            Result |= FileAttributes.NotContentIndexed;
+                        }
+
+                        
+                        if (EnumString.Contains(CharPPEncryted))
+                        {
+                            Result |= FileAttributes.Encrypted;
+                        }
+
+                        if (EnumString.Contains(CharPPIntegritySTream))
+                        {
+                            Result |= FileAttributes.IntegrityStream;
+                        }
+
+                        if (EnumString.Contains(CharPPNotScrubData))
+                        {
+                            Result |= FileAttributes.NoScrubData;
+                        }
+                    }
+                    else
+                    {
+
+                    }
+                    if (Result != 0)
+                    {
+                        return true;
+                    }
+
+                    return false;
+                }
+                
+
             }
+            
             // this first tries to strait use TryParse and then looks for the words in english
             bool DealWithStringEnum(string EnumString, out SearchTarget.MatchStyleString Result)
             {
@@ -407,6 +663,18 @@ namespace FileInventoryConsole
                 }
                 return false;
             }
+
+            bool HandleSingleFilePath(string Path, out string loc)
+            {
+                if (Path != null)
+                {
+                    Path = ArgHandling.Trim(Path);
+                    loc = Path;
+                    return true;
+                }
+                loc = null;
+                return false;
+            }
             // used to split '*.dll;*.exe' into multiple search targets for SeachTarget
             bool SplitWildcards(string target, ProcesFlagWildcardMode usefile)
             {
@@ -444,6 +712,7 @@ namespace FileInventoryConsole
             // set how the user wants the output format do be done.
             if (low.StartsWith(FlagToSetOutputFormat))
             {
+                
                 string low_part = low[FlagToSetOutputFormat.Length..];
                 switch (low_part)
                 {
@@ -457,23 +726,33 @@ namespace FileInventoryConsole
                         UserFormat = TargetFormat.Error;
                         return false;
                 }
+                was_outformat_set = true;
                 return true;
+            }
+
+            if (low.StartsWith(FlagSpecialAnyFile))
+            {
+                was_anyfile_flag_set = true; return true;
+
             }
 
             // set how the user wants the output format to be sent
             if (low.StartsWith(FlagToSetOutStreamLocation))
             {
+                
                 string low_part = arg[step].Substring(FlagToSetOutStreamLocation.Length);
                 if (low_part.Equals("stdout"))
                 {
                     TargetStream = null;
                     TargetStreamHandling = ConsoleLines.Stdout;
+                    was_outstream_set = true;
                     return true;
                 }
                 if (low_part.Equals("stderr"))
                 {
                     TargetStream = null;
                     TargetStreamHandling = ConsoleLines.Stderr;
+                    was_outstream_set = true;
                     return true;
                 }
 
@@ -483,12 +762,14 @@ namespace FileInventoryConsole
                     {
                         TargetStream = File.OpenWrite(low_part.Substring(1, low_part.Length-2));
                         TargetStreamHandling = ConsoleLines.NoRedirect;
+                        was_outstream_set = true;
                         return true;
                     }
                     else
                     {
                         TargetStream = File.OpenWrite(low_part);
                         TargetStreamHandling = ConsoleLines.NoRedirect;
+                        was_outstream_set = true;
                         return true;
                     }
 
@@ -503,6 +784,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetFileCompareString.Length);
                 if ( SplitWildcards(low_part, ProcesFlagWildcardMode.UseFileOut))
                 {
+                    was_filename_specified = true;
                     return true;
                 }
             }
@@ -513,6 +795,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetHowToCompareFileString.Length);
                 if (DealWithStringEnum(low_part, out SearchTarget.FileNameMatching) )
                 {
+                    was_filename_check_set = true;
                     return true;
                 }
             }
@@ -523,17 +806,20 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetFullPathCompareString.Length);
                 if (SplitWildcards(low_part, ProcesFlagWildcardMode.UseDirectOut))
                 {
+                    was_filename_specified = true;
                     return true;
                 }
             }
 
 
             // set how the wildcard will check
+            
             if (low.StartsWith(FlagToSetHowToCompareFullPathString))
             {
                 string low_part = arg[step].Substring(FlagToSetHowToCompareFullPathString.Length);
                 if (DealWithStringEnum(low_part, out SearchTarget.DirectoryMatching))
                 {
+                    was_filename_check_set = true;
                     return true;
                 }
             }
@@ -544,6 +830,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetNOLastModifiedEarlierTHan.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.WriteAnchor))
                 {
+                    was_lastchanged_specified = true;
                     SearchTarget.WriteAnchorCheck1 = SearchTarget.MatchStyleDateTime.NoEarlierThanThis;
                     return true;
                 }
@@ -555,6 +842,7 @@ namespace FileInventoryConsole
                 string low_part =arg[step].Substring(FlagToSetLastModifiedNoLaterThan.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.WriteAnchor2))
                 {
+                    was_lastchanged_specified = true;
                     SearchTarget.WriteAnchorCheck2 = SearchTarget.MatchStyleDateTime.NoLaterThanThis;
                     return true;
                 }
@@ -564,9 +852,10 @@ namespace FileInventoryConsole
 
             if (low.StartsWith(FlagToSetFileWasLastAccessedBefore))
             {
-                string low_part = arg[step]..Substring(FlagToSetFileWasLastAccessedBefore.Length);
+                string low_part = arg[step].Substring(FlagToSetFileWasLastAccessedBefore.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.AccessAnchor))
                 {
+                    was_lastaccessed_specified = true;
                     SearchTarget.AccessAnchorCheck1 = SearchTarget.MatchStyleDateTime.NoEarlierThanThis;
                     return true;
                 }
@@ -574,9 +863,10 @@ namespace FileInventoryConsole
 
             if (low.StartsWith(FlagToSetFileWasLastAccessedAfter))
             {
-                string low_part = arg[step]..Substring(FlagToSetFileWasLastAccessedAfter.Length);
+                string low_part = arg[step].Substring(FlagToSetFileWasLastAccessedAfter.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.AccessAnchor2))
                 {
+                    was_lastaccessed_specified = true;
                     SearchTarget.AccessAnchorCheck2 = SearchTarget.MatchStyleDateTime.NoLaterThanThis;
                     return true;
                 }
@@ -587,9 +877,10 @@ namespace FileInventoryConsole
 
             if (low.StartsWith(FlagToSetCreationDateNoEarlier))
             {
-                string low_part = arg[step]..Substring(FlagToSetCreationDateNoEarlier.Length);
+                string low_part = arg[step].Substring(FlagToSetCreationDateNoEarlier.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.CreationAnchor))
                 {
+                    was_creation_specified = true;
                     SearchTarget.CreationAnchorCheck1 = SearchTarget.MatchStyleDateTime.NoEarlierThanThis;
                     return true;
                 }
@@ -600,6 +891,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetCreationDateNoLater.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.CreationAnchor2))
                 {
+                    was_creation_specified = true;
                     SearchTarget.CreationAnchorCheck2 = SearchTarget.MatchStyleDateTime.NoLaterThanThis;
                     return true;
                 }
@@ -608,8 +900,19 @@ namespace FileInventoryConsole
             if (low.StartsWith(FlagToSetFileAttributes))
             {
                 string low_part = arg[step].Substring(FlagToSetFileAttributes.Length);
-                if (DealWithFileAttribEnum(low_part, out SearchTarget.AttributeMatching1))
+                if (DealWithFileAttribEnum(low_part, out SearchTarget.AttributeMatching1, false))
                 {
+                    was_fileattribs_set = true;
+                    return true;
+                }
+            }
+
+            if (low.StartsWith(FlagToSetFileAttributeViaDir))
+            {
+                string low_part = arg[step].Substring(FlagToSetFileAttributeViaDir.Length);
+                if (DealWithFileAttribEnum(low_part, out SearchTarget.AttributeMatching1, true))
+                {
+                    was_fileattribs_set = true;
                     return true;
                 }
             }
@@ -618,11 +921,61 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetHowToCompareAttrib1.Length);
                 if (DealWithComparingFileAttribEnum(low_part, out SearchTarget.AttribMatching1Style))
                 {
+                    was_fileattrib_check_specified = true;
                     return true;
                 }
 
             }
 
+            if (low.StartsWith(FlagSetSpecifiedUnmanagedPlugin))
+            {
+                string low_part = arg[step].Substring(FlagSetSpecifiedUnmanagedPlugin.Length);
+                ExternalPluginDll = ArgHandling.Trim(low_part);
+                ExternalPluginName = null;
+                is_plugin_set = true;
+                this.PluginHasManagedClass = false;
+                return true;
+            }
+
+            if (low.StartsWith(FlagSetSpecifiedNETPlugin))
+            {
+                string low_part = arg[step].Substring(FlagSetSpecifiedNETPlugin.Length);
+                ExternalPluginDll = ArgHandling.Trim(low_part);
+                ExternalPluginName = string.Empty;
+                is_plugin_set = true;
+                
+                return true;
+            }
+
+            if (low.StartsWith(FlagToNetPluginClassName))
+            {
+                string low_part = arg[step].Substring(FlagSetSpecifiedNETPlugin.Length);
+                ExternalPluginName = low_part;
+                PluginHasManagedClass = true;
+                return true;
+            }
+
+            if (low.StartsWith(FlagSpecialAnyWhere))
+            {
+                was_wholemachine_flag_set = true;
+                return true;
+            }
+
+            if (low.StartsWith(FlagSetAnchor))
+            {
+                string low_part = arg[step].Substring(FlagSetAnchor.Length);
+                low_part = Trim(low_part);
+                if (Directory.Exists(low_part))
+                {
+                    SearchAnchor.AddAnchor(low_part);
+                    was_start_point_set = true;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
 
             return false;
         }
@@ -645,48 +998,137 @@ namespace FileInventoryConsole
         }
 
 
-         OdinSearch_OutputConsumerBase DefaultSpecialPluginHandler(string name)
-        {
-            switch (name.ToLower())
-            {
-                case "consoleview":
-                case "console":  return new OdinSearch_OutputSimpleConsole();
 
-            }
-            return null;
-        }
 
-        private  OdinSearch_OutputConsumerBase process_plugin(string plugin)
+        private  OdinSearch_OutputConsumerBase ResolveOutFormatAndPlugins()
         {
             OdinSearch_OutputConsumerBase ret = null;
-            string target_class = null;
-            int loc = plugin.IndexOf(',');
-            string pluginlocation;
-            ret = DefaultSpecialPluginHandler(plugin);
-            if (ret != null)
+            if (!is_plugin_set)
             {
-                return ret;
-            }
-            if (loc != -1)
-            {
-                pluginlocation = plugin.Substring(0, loc);
-                target_class = plugin.Substring(loc + 1);
+                switch (TargetStreamHandling)
+                {
+                    case ConsoleLines.NoRedirect:
+                        ret = new OdinSearch_OutputSimpleConsole();
+                        ret[OdinSearch_OutputSimpleConsole.MatchStream] = this.TargetStream;
+                        break;
+                    case ConsoleLines.Stdout:
+                        ret = new OdinSearch_OutputSimpleConsole();
+                        ret[OdinSearch_OutputSimpleConsole.MatchStream] = Console.Out;
+                        break;
+                    case ConsoleLines.Stderr:
+                        ret = new OdinSearch_OutputSimpleConsole();
+                        ret[OdinSearch_OutputSimpleConsole.MatchStream] = Console.Error;
+                        break;
+                    default:
+                        return null;
+                 }
             }
             else
             {
-                pluginlocation = plugin.Substring(0, loc);
-                target_class = null;
+                if (PluginHasManagedClass == false)
+                {
+                    ret = new OdinSearch_OutputConsumer_ExternUnmangedPlugin();
+                    ret[OdinSearch_OutputConsumer_ExternUnmangedPlugin.SetDllTarget] = this.DesiredPlugin;
+                }
+                else
+                {
+                    throw new NotImplementedException("managed plugin not done yet");
+                }
             }
+            
             return ret;
         }
 
-        public  void ApplyDefaults()
+        /// <summary>
+        /// After parsing with <see cref="DoTheThing(string[])"/>, this finalizez stuff
+        /// </summary>
+        public  void FinalizeCommands()
         {
             if (SearchAnchor == null)
             {
                 SearchAnchor = new SearchAnchor();
                 SearchAnchor.EnumSubFolders = true;
             }
+
+            if (SearchTarget == null)
+            {
+                SearchTarget = new SearchTarget();
+                
+            }
+
+            if (!was_anyfile_flag_set)
+            {
+                if (!was_filename_check_set)
+                {
+                    SearchTarget.FileName.Add(SearchTarget.MatchAnyFile);
+                }
+
+                if (!was_fileattribs_set)
+                {
+                    SearchTarget.AttributeMatching1 = FileAttributes.Normal;
+                }
+
+                if (!was_fileattrib_check_specified)
+                {
+                    if (was_fileattribs_set == true)
+                    {
+                        SearchTarget.AttribMatching1Style = SearchTarget.MatchStyleFileAttributes.MatchAll;
+                    }
+                    else
+                    {
+                        SearchTarget.AttribMatching1Style = SearchTarget.MatchStyleFileAttributes.Skip;
+                    }
+
+                }
+
+                if (!was_creation_specified)
+                {
+                    SearchTarget.CreationAnchorCheck1 = SearchTarget.MatchStyleDateTime.Disable;
+                }
+
+                if (!was_lastaccessed_specified)
+                {
+                    SearchTarget.AccessAnchorCheck1 = SearchTarget.MatchStyleDateTime.Disable;
+                }
+
+                if (!was_lastchanged_specified)
+                {
+                    SearchTarget.WriteAnchorCheck1 = SearchTarget.MatchStyleDateTime.Disable;
+                }
+            }
+            else
+            {
+                SearchTarget = new SearchTarget();
+                SearchTarget.FileName.Add(SearchTarget.MatchAnyFile);
+                SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
+                SearchTarget.FileNameMatching = SearchTarget.MatchStyleString.Skip;
+                SearchTarget.AttributeMatching1 = SearchTarget.AttributeMatching2 = FileAttributes.Normal;
+                SearchTarget.AttribMatching1Style = SearchTarget.AttribMatching2Style = SearchTarget.MatchStyleFileAttributes.Skip;
+                SearchTarget.AccessAnchorCheck1 = SearchTarget.AccessAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
+                SearchTarget.WriteAnchorCheck1 = SearchTarget.WriteAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
+                SearchTarget.CreationAnchorCheck1 = SearchTarget.CreationAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
+                SearchTarget.CheckFileSize = false;
+                SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
+            }
+          
+            if (!was_outformat_set)
+            {
+                this.TargetStreamHandling = ConsoleLines.Stdout;
+                TargetStream = null;
+            }
+
+            if (!was_outformat_set)
+            {
+                this.UserFormat = TargetFormat.Unicode;
+            }
+
+            if (!was_start_point_set)
+            {
+                SearchAnchor = new SearchAnchor();
+                SearchAnchor.EnumSubFolders = true;
+            }
+            DesiredPlugin = ResolveOutFormatAndPlugins();
+
         }
         public bool DoTheThing(string[] Args)
         {
@@ -703,6 +1145,16 @@ namespace FileInventoryConsole
                         break;
                     }
                     continue;
+                }
+                if (Args[step][0] == '-') // its a specicial setting
+                {
+                    if (!ProcessASetting(Args, step))
+                    {
+                        Console.WriteLine("Unexpected fail handling this token \"" + Args[step] + "\"");
+                        Valid = false;
+                        break;
+
+                    }
                 }
             }
 
