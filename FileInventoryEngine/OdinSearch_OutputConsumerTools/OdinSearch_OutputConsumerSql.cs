@@ -288,9 +288,10 @@ connection.Open();
             return connection;
         }
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
             connection.Dispose();
+            base.Dispose(disposing);
         }
         public override void Blocked(string Blocked)
         {

@@ -706,8 +706,20 @@ namespace ConsoleAppUnitTests
 
             Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Directory));
 
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Directory, Archive" }));
+
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == (FileAttributes.Directory | FileAttributes.Archive)));
+
+
+
             test = new ArgHandling();
             Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Archive" }));
+
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Archive));
+
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=archive" }));
 
             Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Archive));
 
@@ -715,6 +727,74 @@ namespace ConsoleAppUnitTests
             Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Hidden" }));
 
             Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Hidden));
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=ReadOnly" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.ReadOnly));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=readonly, arch, sys" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == (FileAttributes.ReadOnly | FileAttributes.Archive | FileAttributes.System)));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Hidden" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Hidden));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=System" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.System));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Directory" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Directory));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Archive" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Archive));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Device" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Device));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Normal" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Normal));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Temporary" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Temporary));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=SparseFile" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.SparseFile));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=ReparsePoint" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.ReparsePoint));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Compressed" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Compressed));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Offline" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Offline));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=NotContentIndexed" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.NotContentIndexed));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=Encrypted" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.Encrypted));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=IntegrityStream" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.IntegrityStream));
+
+            test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/fileattrib=NoScrubData" }));
+            Assert.IsTrue((test.SearchTarget.AttributeMatching1 == FileAttributes.NoScrubData));
+
         }
 
         public void FileAttrig_DirStyle_Arg_check()

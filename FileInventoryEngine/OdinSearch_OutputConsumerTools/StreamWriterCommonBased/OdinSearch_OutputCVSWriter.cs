@@ -1,20 +1,18 @@
-﻿using Microsoft.VisualBasic;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net.Http.Headers;
-using System.Net.WebSockets;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 
-namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
+namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBased
 {
-    public class OdinSearch_OutputCSVWriter : OdinSearch_OutputConsumerBase
+    /// <summary>
+    /// 
+    /// </summary>
+    public class OdinSearchOutputCVSWriter : OdinSearch_OutputConsumerStreamWriter
     {
-
         /// <summary>
         /// Want Attributes in the list "Directory, Hidden".
         /// </summary>
@@ -47,11 +45,11 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             bool AnyAssigned = false;
             var Names = GetCustomParameterNames();
 
-            
-            foreach ( var Name in Names ) 
-            { 
+
+            foreach (var Name in Names)
+            {
                 string low = Name.ToLower();
-                switch ( low )
+                switch (low)
                 {
                     case WantCreationUTCDate:
                     case WantCreationUTCTime:
@@ -74,7 +72,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             {
                 DefaultCustomSettings();
             }
-            
+
         }
 
 
@@ -85,12 +83,12 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         {
             StringBuilder line = new StringBuilder();
             var Names = GetCustomParameterNames();
-            foreach ( var Name in Names )
+            foreach (var Name in Names)
             {
                 bool val = false;
                 string val_as = GetCustomParameter(Name) as string;
 
-                if ((Name.ToLowerInvariant().StartsWith("want")))
+                if (Name.ToLowerInvariant().StartsWith("want"))
                 {
                     if (val_as == null)
                     {
@@ -160,13 +158,13 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                         line.Append(',');
 
                     }
-                }   
-                
+                }
+
 
             }
 
             line.Length -= 1;
-            TargetFile.WriteLine(line.ToString());
+            WriteToOutStream(line.ToString() + "\r\n");
         }
         /// <summary>
         /// if we have no custom settings assigned, this is the default
@@ -187,14 +185,15 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             this[WantNameWithExt] = true;
             this[WantSize] = true;
             this[DefaultMIAVAl] = "Unknown";
+
         }
 
         /// <summary>
         /// Required custom arg write the CSV file to here.
         /// </summary>
-        public const string TargetSaveLocation = "TargetSaveLocation";
+
         FileSystemInfo First = null;
-        StreamWriter TargetFile = null;
+
 
 
         /*
@@ -209,8 +208,8 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
          */
         private void WriteItemValues(FileSystemInfo info)
         {
-            
-            void WriteDateComponent(bool val, PropertyInfo[] Properties, string PropertyName, out string stringval, string unknown,  bool ExtractDateIfTrueOtherWiseExtractTime)
+
+            void WriteDateComponent(bool val, PropertyInfo[] Properties, string PropertyName, out string stringval, string unknown, bool ExtractDateIfTrueOtherWiseExtractTime)
             {
                 stringval = null;
                 if (val)
@@ -221,21 +220,21 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                         DateTime timewalker = (DateTime)pro.GetValue(info);
                         if (ExtractDateIfTrueOtherWiseExtractTime)
                         {
-                            
+
                             stringval = timewalker.Date.ToString();
                             stringval = stringval.Substring(0, stringval.IndexOf(' '));
                         }
                         else
                         {
                             stringval = timewalker.ToUniversalTime().ToString();
-                            stringval = stringval.Substring(stringval.IndexOf(' ')+1);
+                            stringval = stringval.Substring(stringval.IndexOf(' ') + 1);
                         }
                     }
                     else
                     {
                         stringval = unknown;
                     }
-                    stringval = "" + ""+stringval+"";
+                    stringval = "" + "" + stringval + "";
                 }
             }
             StringBuilder line = new StringBuilder();
@@ -253,12 +252,12 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             }
             foreach (string name in Names)
             {
-                
+
                 if (name.ToLowerInvariant().StartsWith("want"))
                 {
                     bool val = (bool)GetCustomParameter(name);
-                    string stringval=null;
-                 
+                    string stringval = null;
+
                     switch (name)
                     {
                         case WantAttributes:
@@ -267,7 +266,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                                 if (Properties.Any(p => p.Name == "Attributes"))
                                 {
                                     var pro = Properties.FirstOrDefault(p => p.Name == "Attributes");
-                                    stringval = Enum.GetName(pro.PropertyType,pro.GetValue(info));
+                                    stringval = Enum.GetName(pro.PropertyType, pro.GetValue(info));
 
                                 }
                                 else
@@ -277,7 +276,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                             }
                             break;
                         case WantCreationUTCDate:
-                            
+
                             if (val)
                             {
                                 WriteDateComponent(val, Properties, "CreationTimeUtc", out stringval, unknown, true);
@@ -287,7 +286,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                         case WantCreationUTCTime:
                             if (val)
                             {
-                                WriteDateComponent(val, Properties, "CreationTimeUtc", out stringval, unknown,false);
+                                WriteDateComponent(val, Properties, "CreationTimeUtc", out stringval, unknown, false);
                                 break;
                             }
                             break;
@@ -297,7 +296,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                                 if (Properties.Any(p => p.Name == "Directory"))
                                 {
                                     var pro = Properties.FirstOrDefault(p => p.Name == "Directory");
-                                    stringval = (pro.GetValue(info)).ToString();
+                                    stringval = pro.GetValue(info).ToString();
                                 }
                                 else
                                 {
@@ -311,7 +310,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                                 if (Properties.Any(p => p.Name == "FullName"))
                                 {
                                     var pro = Properties.FirstOrDefault(p => p.Name == "FullName");
-                                    stringval = (pro.GetValue(info)).ToString();
+                                    stringval = pro.GetValue(info).ToString();
                                 }
                                 else
                                 {
@@ -325,7 +324,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                                 if (Properties.Any(p => p.Name == "Extension"))
                                 {
                                     var pro = Properties.FirstOrDefault(p => p.Name == "Extension");
-                                    stringval = (pro.GetValue(info)).ToString();
+                                    stringval = pro.GetValue(info).ToString();
                                 }
                                 else
                                 {
@@ -382,7 +381,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                                 if (Properties.Any(p => p.Name == "Name"))
                                 {
                                     var pro = Properties.FirstOrDefault(p => p.Name == "Name");
-                                    stringval = (pro.GetValue(info)).ToString();
+                                    stringval = pro.GetValue(info).ToString();
                                 }
                                 else
                                 {
@@ -405,12 +404,12 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                             }
                             break;
                     }
-                    line.AppendFormat("=\"{0}\",",stringval);
+                    line.AppendFormat("=\"{0}\",", stringval);
                 }
             }
             line.Length -= 1;
 
-            TargetFile.WriteLine(line.ToString());
+            WriteToOutStream(line.ToString() + "\r\n");
         }
 
         public override void Match(FileSystemInfo info)
@@ -429,18 +428,30 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 
         public override bool SearchBegin(DateTime Start)
         {
-            string TargetLocation = GetCustomParameter(TargetSaveLocation) as string ?? throw new InvalidOperationException("Missing required target location to save");
+
 
             CheckDefault();
-            TargetFile = new StreamWriter(File.OpenWrite(TargetLocation), Encoding.UTF8);
-            return false;
+            return base.SearchBegin(Start);
         }
 
         public override void AllDone()
         {
-            TargetFile.Flush();
-            TargetFile.Close();
             base.AllDone();
         }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+
+            }
+            base.Dispose(disposing);
+        }
+
+        ~OdinSearchOutputCVSWriter() 
+        {
+            Dispose(false);
+        }
+
     }
 }

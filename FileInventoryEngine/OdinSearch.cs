@@ -557,7 +557,7 @@ namespace OdinSearchEngine
             {
                 throw new InvalidOperationException(JoinNonEmptyWorkerThreadListBeforeCallingSearch);
             }
-            // This is here to also guard against premature starting
+            // This is here to also guard against premature starting and throwing an exception.
             Thread.Sleep(200);
             WorkerThreads.ForEach(
                 p => {
@@ -657,7 +657,7 @@ namespace OdinSearchEngine
                 bool CompareMe = false;
                 MatchAll = false;
                 MatchAny = false;
-                if ((MatchStyleString.MatchAll | MatchStyleString.MatchAny | HowToCompare) == 0)
+                if ((MatchStyleString.MatchAll & MatchStyleString.MatchAny & HowToCompare) == 0)
                 {
                     HowToCompare |= MatchStyleString.MatchAll;
                 }

@@ -12,6 +12,8 @@ using System.Text;
 using System.Threading;
 using OdinSearchEngine;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBased;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace FileInventoryConsole
 {
@@ -554,6 +556,93 @@ namespace FileInventoryConsole
                     }
                     else
                     {
+                        EnumString = EnumString.ToLower();
+
+                        if (EnumString.Contains("directory") || EnumString.Contains("dir") )
+                        {
+                            Result |= FileAttributes.Directory;
+                        }
+
+                        if (EnumString.Contains("readonly") || EnumString.Contains("read"))
+                        {
+                            Result |= FileAttributes.ReadOnly;
+                        }
+
+                        if (EnumString.Contains("hidden") || EnumString.Contains("hid"))
+                        {
+                            Result |= FileAttributes.Hidden;
+                        }
+
+                        if (EnumString.Contains("system") || EnumString.Contains("sys"))
+                        {
+                            Result |= FileAttributes.System;
+                        }
+
+                        if (EnumString.Contains("directory") || EnumString.Contains("dir"))
+                        {
+                            Result |= FileAttributes.Directory;
+                        }
+
+                        if (EnumString.Contains("archive") || EnumString.Contains("arc"))
+                        {
+                            Result |= FileAttributes.Archive;
+                        }
+
+                        if (EnumString.Contains("device") || EnumString.Contains("dev"))
+                        {
+                            Result |= FileAttributes.Device;
+                        }
+
+                        if (EnumString.Contains("normal") || EnumString.Contains("norm"))
+                        {
+                            Result |= FileAttributes.Normal;
+                        }
+
+                        if (EnumString.Contains("temporary") || EnumString.Contains("temp"))
+                        {
+                            Result |= FileAttributes.Temporary;
+                        }
+
+                        if (EnumString.Contains("sparsefile") || EnumString.Contains("sparse"))
+                        {
+                            Result |= FileAttributes.SparseFile;
+                        }
+
+                        if (EnumString.Contains("reparsepoint") || EnumString.Contains("reparse"))
+                        {
+                            Result |= FileAttributes.ReparsePoint;
+                        }
+
+                        if (EnumString.Contains("compressed") || EnumString.Contains("comp"))
+                        {
+                            Result |= FileAttributes.Compressed;
+                        }
+
+                        if (EnumString.Contains("offline") || EnumString.Contains("off"))
+                        {
+                            Result |= FileAttributes.Offline;
+                        }
+
+                        if (EnumString.Contains("notcontentindexed") || EnumString.Contains("notcont"))
+                        {
+                            Result |= FileAttributes.NotContentIndexed;
+                        }
+
+                        if (EnumString.Contains("encrypted") || EnumString.Contains("enc"))
+                        {
+                            Result |= FileAttributes.Encrypted;
+                        }
+
+                        if (EnumString.Contains("integritystream") || EnumString.Contains("integ"))
+                        {
+                            Result |= FileAttributes.IntegrityStream;
+                        }
+
+                        if (EnumString.Contains("noscrubdata") || EnumString.Contains("noscrub"))
+                        {
+                            Result |= FileAttributes.NoScrubData;
+                        }
+
 
                     }
                     if (Result != 0)
@@ -1005,11 +1094,27 @@ namespace FileInventoryConsole
             OdinSearch_OutputConsumerBase ret = null;
             if (!is_plugin_set)
             {
+                
+                
                 switch (TargetStreamHandling)
                 {
                     case ConsoleLines.NoRedirect:
-                        ret = new OdinSearch_OutputSimpleConsole();
-                        ret[OdinSearch_OutputSimpleConsole.MatchStream] = this.TargetStream;
+                        switch (UserFormat)
+                        {
+                            case TargetFormat.Unicode:
+                                ret = new OdinSearch_OutputSimpleConsole();
+                                ret[OdinSearch_OutputSimpleConsole.MatchStream] = this.TargetStream;
+                                ret[OdinSearch_OutputSimpleConsole.FlushAlways] = true;
+                                break;
+                            case TargetFormat.CVSFile:
+                                ret = new OdinSearchOutputCVSWriter();
+                                ret[OdinSearchOutputCVSWriter.MatchStream] = this.TargetStream;
+                                ret[OdinSearchOutputCVSWriter.FlushAlways] = true;
+                                break;
+                        }
+                        
+                        
+
                         break;
                     case ConsoleLines.Stdout:
                         ret = new OdinSearch_OutputSimpleConsole();
@@ -1111,7 +1216,7 @@ namespace FileInventoryConsole
                 SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
             }
           
-            if (!was_outformat_set)
+            if (!was_outstream_set)
             {
                 this.TargetStreamHandling = ConsoleLines.Stdout;
                 TargetStream = null;
@@ -1120,6 +1225,10 @@ namespace FileInventoryConsole
             if (!was_outformat_set)
             {
                 this.UserFormat = TargetFormat.Unicode;
+            }
+            else
+            {
+
             }
 
             if (!was_start_point_set)
