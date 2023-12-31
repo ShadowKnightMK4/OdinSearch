@@ -221,13 +221,19 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         {
             SearchOver = true;
         }
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         /// <summary>
-        /// Default class disposal, will invoke <see cref="ResolvePendingActions"/>
+        /// Default class disposal. Invokes resolve pending actions. Argument is false within the finalizer (
         /// </summary>
-        public virtual void Dispose()
+        /// <param name="disposing">true means called by public disposal (managed and unmanaged dispose please), false means explicit call to Dispose (do not deal with managed resources, deal with unmanaged resources)</param>
+        protected virtual void Dispose(bool disposing)
         {
             ResolvePendingActions();
-            GC.SuppressFinalize(this);
             Disposed = true;
         }
     }

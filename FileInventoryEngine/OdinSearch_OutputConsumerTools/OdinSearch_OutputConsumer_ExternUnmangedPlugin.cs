@@ -55,7 +55,6 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint ="FreeLibrary")]
         static extern bool FreeLibraryUnmanged(nint Target);
 #endif
-
         
         public bool ResolvePointers(string TargetDll)
         {
@@ -83,6 +82,10 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         AllDonePtr ExternAllDone = null;
         public override void AllDone()
         {
+            if ( (Disposed))
+            {
+                throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
+            }
             if (ExternAllDone != null)
                 ExternAllDone();
             base.AllDone();
@@ -92,6 +95,11 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         BlockedPtr ExternBlock = null;
         public override void Blocked(string Blocked)
         {
+            if ((Disposed))
+            {
+                throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
+            }
+
             if (ExternBlock != null)
                 ExternBlock(Blocked);
             base.Blocked(Blocked);
@@ -101,6 +109,11 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         HasPendingActionsPtr ExternPending = null;
         public override bool HasPendingActions()
         {
+            if ((Disposed))
+            {
+                throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
+            }
+
             if (ExternPending != null)
                 return ExternPending();
             return base.HasPendingActions();
@@ -116,6 +129,11 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <remarks>Passes the full path as a unicode string. It's up to the external routine to do what it needs to do</remarks>
         public override void Match(FileSystemInfo info)
         {
+            if ((Disposed))
+            {
+                throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
+            }
+
             if (ExternMatch != null)
                 ExternMatch(info.FullName);
             base.Match(info);
@@ -124,6 +142,11 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         MessagePtr ExternMessage = null;
         public override void Messaging(string Message)
         {
+            if ((Disposed))
+            {
+                throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
+            }
+
             if (ExternMessage != null)
                 ExternMessage(Message);
             else
@@ -134,6 +157,11 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         ResolveActionPtr ExternResolve = null;
         public override bool ResolvePendingActions()
         {
+            if ((Disposed))
+            {
+                throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
+            }
+
             if (ExternResolve != null)
                 return ExternResolve();
             return base.ResolvePendingActions();
@@ -148,6 +176,11 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <returns></returns>
         public override bool SearchBegin(DateTime Start)
         {
+            if ((Disposed))
+            {
+                throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
+            }
+
             if (ExternSearch == null)
             {
                 this.ResolvePointers(GetCustomParameter(SetDllTarget) as string);
@@ -167,19 +200,31 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <param name="info"></param>
         public override void WasNotMatched(FileSystemInfo info)
         {
+            if ((Disposed))
+            {
+                throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
+            }
+
             ExternWasNotMatched?.Invoke(info.FullName);
 
             base.WasNotMatched(info);
         }
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            if (DllHandle != 0)
+            if (!Disposed)
             {
-                FreeLibrary(DllHandle);
+                if (disposing)
+                {
+                    if (DllHandle != 0)
+                    {
+                        FreeLibrary(DllHandle);
+                    }
+                    base.Dispose();
+                }
             }
-            base.Dispose();
-            GC.SuppressFinalize(this);
+            base.Dispose(disposing);
         }
+
     }
 }

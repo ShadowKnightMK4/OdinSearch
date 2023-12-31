@@ -16,9 +16,22 @@ namespace FileIventoryConsole
     /// </summary>
     static class Program
     {
-        
-            static void Main(string[] args)
+#if DEBUG
+        static bool IsDebugMode = true;
+#else
+        static bool IsDebugMode = false;
+#endif
+        static void Main(string[] args)
         {
+            if (IsDebugMode)
+            {
+                Console.Write("DEBUG BUILD: ");
+                foreach (string arg in args)
+                {
+                    Console.WriteLine(arg);
+                }
+                Console.WriteLine("END DEBUG INFO:");
+            }
             ArgHandling ArgHandling = new();
             ArgHandling.DisplayBannerText();
             if (args.Length > 0)
