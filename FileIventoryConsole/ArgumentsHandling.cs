@@ -36,7 +36,7 @@ namespace FileInventoryConsole
     public class ArgHandling
     {
         
-
+        #region STATIC TOOLS
 
         /// <summary>
         /// Trim space, '\'' chars and '\"' chars from a string
@@ -58,6 +58,7 @@ namespace FileInventoryConsole
             QuotedString = trimquotes(QuotedString, 'c');
             return QuotedString;
         }
+        #endregion
         #region string consts
 
         #region FileAttrib String Consts for arg handling
@@ -80,41 +81,60 @@ namespace FileInventoryConsole
 
         #endregion
 
+        #region special flags
+        /// <summary>
+        /// Special flag to act as a shortcut to match any filename
+        /// </summary>
         const string FlagSpecialAnyFile = "/anyfile";
+        /// <summary>
+        /// Special flag to act as a shortcut to match any locaiton
+        /// </summary>
         const string FlagSpecialAnyWhere = "/anywhere";
+        #endregion
+
+
         const string FlagSetAnchor = "/anchor=";
+
+        #region PLUGINS
         const string FlagSetSpecifiedUnmanagedPlugin = "/plugin=";
 
         const string FlagSetSpecifiedNETPlugin = "/managed=";
 
         const string FlagToNetPluginClassName = "/class=";
         const string FlagSetNoSignedMode = "-f";
-
+        #endregion
         /// <summary>
         /// Flag to set FileAttributes1 from numbers or full attrib name
         /// </summary>
         const string FlagToSetFileAttributes = "/fileattrib=";
 
-        const string FlagToSetFileAttributeViaDir = "/A";
+        /// <summary>
+        /// flag to set file attributes 1 via a 'dir' command style
+        /// </summary>
+        const string FlagToSetFileAttributeViaDir = "/a";
         /// <summary>
         /// Flag to indicate how to compare file attributes
         /// </summary>
         const string FlagToSetHowToCompareAttrib1 = "/fileattrib_check=";
         /// <summary>
-        /// Flag to set the anchor1 for last modified before this date/time
+        /// Flag to set the anchor2 for last modified before this date/time
+        /// <remarks>The code handling this flag should set <see cref="SearchTarget.WriteAnchor2"/></remarks> and <see cref="SearchTarget.WriteAnchorCheck2"/>
         /// </summary>
         const string FlagToSetLastModifiedNoLaterThan = "/lastmodifiedbefore=";
         /// <summary>
-        /// Flag to set anchor2 to match files not last modified before this date /time
+        /// Flag to set anchor1 to match files not last modified before this date /time
+        /// <remarks>The code handling this flag should set <see cref="SearchTarget.WriteAnchor"/></remarks> and <see cref="SearchTarget.WriteAnchorCheck1"/>
         /// </summary>
         const string FlagToSetNOLastModifiedEarlierTHan = "/nolastmodifiedbefore=";
         /// <summary>
         /// Flag to set creation1 anchor to rejust files created before
+        /// <remarks>The code handling this flag should set <see cref="SearchTarget.CreationAnchor"/> and <see cref="SearchTarget.CreationAnchorCheck1"/></remarks>
         /// </summary>
         const string FlagToSetCreationDateNoEarlier = "/notcreatedbefore=";
-        
+
         /// <summary>
         /// FLag to set creation2 anchor to reject files created after
+        /// /// <remarks>The code handling this flag should set <see cref="SearchTarget.CreationAnchor"/> and <see cref="SearchTarget.CreationAnchorCheck2"/></remarks>
         /// </summary>
         const string FlagToSetCreationDateNoLater = "/notcreatedafter=";
 
@@ -143,77 +163,76 @@ namespace FileInventoryConsole
         /// </summary>
         const string FlagToSetHowToCompareFullPathString = "/fullcompare=";
 
+        /// <summary>
+        /// This is the flag that's used to set to look for files that weren't accessed before this time.
+        /// <remarks>code handling this should set <see cref="SearchTarget.AccessAnchor"/> to the date time and <see cref="SearchTarget.AccessAnchorCheck1"/> to <see cref="SearchTarget.MatchStyleDateTime.NoEarlierThanThis"/></remarks> 
+        /// </summary>
         const string FlagToSetFileWasLastAccessedBefore = "/lastaccessedbefore=";
 
+        /// <summary>
+        /// This is the flag that's used to set to look for files that weren't accessed before this time.
+        /// <remarks>code handling this should set <see cref="SearchTarget.AccessAnchor2"/> to the date time and <see cref="SearchTarget.AccessAnchorCheck2"/> to <see cref="SearchTarget.MatchStyleDateTime.NoLaterThanThis"/></remarks> 
+        /// </summary>
         const string FlagToSetFileWasLastAccessedAfter = "/nolastaccessedbefore=";
 
 
         #endregion
+
+        /// <summary>
+        /// this enum is the encoding we emit to the output
+        /// </summary>
         public enum TargetFormat
         {
+            // error, should fail
             Error=0,
+            // the excal CSV fle
             CVSFile = 1,
+            // unicode text
             Unicode = 2
         }
 
+
+        /// <summary>
+        /// Due to an issue of figuring how to seemlessly use Console.out vs a stream.
+        /// This is an enum to control which to use
+        /// </summary>
         public enum ConsoleLines
         {
-            // use the stream
+            /// <summary>
+            /// use the stream set by <see cref="TargetStream"/>
+            /// </summary>
             NoRedirect =0,
+            /// <summary>
+            /// Use stdout
+            /// </summary>
             Stdout = 1,
+
+            /// <summary>
+            /// use stderr
+            /// </summary>
             Stderr =2
         }
 
         
+        /// <summary>
+        /// Can be set to specify where to send matching output
+        /// </summary>
         public  FileStream TargetStream;
-        public  ConsoleLines TargetStreamHandling;
-
-        public  TargetFormat UserFormat = TargetFormat.Error;
-        Dictionary<string, object> FoundCustomArgs = new Dictionary<string, object>();
-        static List<string> process_possible_multi_folder(string t)
-        {
-            bool InString = false;
-           var result = new List<string>();
-            StringBuilder stepper = new();
-            for (int i = 0; i < t.Length; i++)
-            {
-                if (InString == false)
-                {
-                    if (t[i] == '\"')
-                    {
-                        InString = true;
-                        continue;
-                    }
-                    else
-                    {
-                        if (t[i] == ';')
-                        {
-                            result.Add(stepper.ToString());
-                            stepper.Clear();
-                        }
-                        else
-                        {
-                            stepper.Append(t[i]);
-                        }
-                    }
-                }
-                else
-                {
-                    if (t[i] == '\"')
-                    {
-                        InString = false;
-                        continue;
-                    }
-                }
-            }
-            if (stepper.Length > 0)
-            {
-                result.Add(stepper.ToString());
-            }
-            return result;
-        }
 
         /// <summary>
+        /// Controls how to interact with <see cref="TargetStream"/>
+        /// </summary>
+        public  ConsoleLines TargetStreamHandling;
+
+        /// <summary>
+        /// Indicates which format to send to <see cref="TargetStream"/>
+        /// </summary>
+        public  TargetFormat UserFormat = TargetFormat.Error;
+        Dictionary<string, object> FoundCustomArgs = new Dictionary<string, object>();
+        
+
+        /// <summary>
+        /// TODO:
         /// Before parsing arguments, this resolves to a pluginfolder that we load relative plugins from.
         /// 
         /// First check is testing if the value of "ODINSEARCH_PLUGIN_FOLDER" in the enviroment both
@@ -227,12 +246,12 @@ namespace FileInventoryConsole
         public DirectoryInfo PluginFolder;
 
         /// <summary>
-        /// If set, we asscept relative plugin paths
+        /// If set, we accept relative plugin paths
         /// </summary>
         public bool AcceptRelativePlugin = false;
 
         /// <summary>
-        /// ArgHandling is responsible for setting this to the matching coms class that will do the thing the user wants
+        /// Once done, this is the Coms class to use in the search
         /// </summary>
         public  OdinSearch_OutputConsumerBase DesiredPlugin = null;
 
@@ -246,7 +265,14 @@ namespace FileInventoryConsole
         /// If we are treating it as managed, this is the class we will attempt to load.
         /// </summary>
         public string ExternalPluginName;
+
+        /// <summary>
+        /// Is set to be what to search for on finish
+        /// </summary>
         public  SearchTarget SearchTarget = new SearchTarget();
+        /// <summary>
+        /// is set to be what to serach fon on finish
+        /// </summary>
         public  SearchAnchor SearchAnchor = new SearchAnchor(false);
 
         /// <summary>
@@ -277,6 +303,7 @@ namespace FileInventoryConsole
     /// </summary>
     public bool PluginHasManagedClass { get; private set; }
 
+        
         public bool was_outformat_set { get; private set; }
         public bool was_outstream_set { get; private set; }
 
@@ -925,6 +952,7 @@ namespace FileInventoryConsole
                 }
             }
             
+            // we should set WRiteAnchor2 and WriteAnchor2Check for this one.
             
             if (low.StartsWith(FlagToSetLastModifiedNoLaterThan))
             {
@@ -939,6 +967,7 @@ namespace FileInventoryConsole
 
 
 
+            // this should set Access Check1 and Access Anchor
             if (low.StartsWith(FlagToSetFileWasLastAccessedBefore))
             {
                 string low_part = arg[step].Substring(FlagToSetFileWasLastAccessedBefore.Length);
@@ -950,6 +979,7 @@ namespace FileInventoryConsole
                 }
             }
 
+            // this should set access anchor2 and access check 2
             if (low.StartsWith(FlagToSetFileWasLastAccessedAfter))
             {
                 string low_part = arg[step].Substring(FlagToSetFileWasLastAccessedAfter.Length);
@@ -1161,8 +1191,9 @@ namespace FileInventoryConsole
                 
             }
 
-            if (!was_anyfile_flag_set)
+            if ( (was_filename_specified == true) || (was_anyfile_flag_set == false))
             {
+
                 if (!was_filename_check_set)
                 {
                     SearchTarget.FileName.Add(SearchTarget.MatchAnyFile);
@@ -1201,6 +1232,9 @@ namespace FileInventoryConsole
                     SearchTarget.WriteAnchorCheck1 = SearchTarget.MatchStyleDateTime.Disable;
                 }
             }
+            /*if  ( (was_anyfile_flag_set == false) && )
+            {
+            }*/
             else
             {
                 SearchTarget = new SearchTarget();

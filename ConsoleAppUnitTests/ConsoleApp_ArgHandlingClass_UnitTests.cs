@@ -2,9 +2,359 @@ using FileInventoryConsole;
 using FileIventoryConsole;
 using Microsoft.VisualBasic;
 using Newtonsoft.Json.Bson;
+using NuGet.Frameworks;
 
 namespace ConsoleAppUnitTests
 {
+    [TestClass]
+    public class ConsoleApp_ArgHandlingCombos_UnitTest
+    {
+        #region FILEATTRIB_FLAGS
+        [TestMethod]
+        public void ComboTest_SettingFileAttrib_NOATTRIB_NO_SPEC()
+        {
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "-F"}));
+            Assert.IsFalse(testme.was_fileattribs_set);
+            Assert.IsFalse(testme.was_fileattrib_check_specified);
+            // note the attributes are fully tested at other places.
+            if ( !(testme.SearchTarget.AttributeMatching1 == 0) || (testme.SearchTarget.AttributeMatching1 == FileAttributes.Normal))
+            {
+                Assert.Fail("SEARCHTARGET was not set properly. Expacted 0 or FileAttribute Normal.  Check Arg Handling first. If Standard changed in SearchTarget, update this");
+            }
+            Assert.IsTrue(testme.SearchTarget.AttribMatching1Style == OdinSearchEngine.SearchTarget.MatchStyleFileAttributes.Skip);
+        }
+
+
+        [TestMethod]
+        public void ComboTest_SettingFileAttrib_withspec()
+        {
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/A=DA", "/fileattrib_check=8" }));
+            Assert.IsTrue(testme.was_fileattribs_set);
+            Assert.IsTrue(testme.was_fileattrib_check_specified);
+            // note the attributes are fully tested at other places.
+            Assert.IsTrue(testme.SearchTarget.AttributeMatching1 == (FileAttributes.Directory | FileAttributes.Archive));
+            Assert.IsTrue(testme.SearchTarget.AttribMatching1Style == OdinSearchEngine.SearchTarget.MatchStyleFileAttributes.Exacting);
+        }
+
+
+
+        [TestMethod]
+        public void ComboTest_SettingFileAttrib_without_spec()
+        {
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/A=D"}));
+            Assert.IsTrue(testme.was_fileattribs_set);
+            Assert.IsFalse(testme.was_fileattrib_check_specified);
+            testme.FinalizeCommands();
+            // note the attributes are fully tested at other places.
+            Assert.IsTrue(testme.SearchTarget.AttributeMatching1 == FileAttributes.Directory);
+            Assert.IsTrue(testme.SearchTarget.AttribMatching1Style == OdinSearchEngine.SearchTarget.MatchStyleFileAttributes.MatchAll);
+        }
+        #endregion
+        #region ACCESS CHECK
+        [TestMethod]
+        public void ComboTest_NoLastAccessedBeforeNO_AccesssedBeforeNO()
+
+        {
+            DateTime Default = new DateTime();
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "-F" }));
+            Assert.IsFalse(testme.was_lastaccessed_specified);
+
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor.Day, Default.Day);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor.Month, Default.Month);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor.Year, Default.Year);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
+
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor2.Day, Default.Day);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor2.Month, Default.Month);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor2.Year, Default.Year);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchorCheck2, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
+        }
+
+
+
+        [TestMethod]
+        public void ComboTest_NoLastAccessedBeforeNo_AccesssedBeforeYes()
+
+        {
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] {  "/nolastaccessedbefore=" + afterdate }));
+            Assert.IsTrue(testme.was_lastaccessed_specified);
+
+            Assert.AreEqual(testme.SearchTarget.AccessAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
+
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor2.Day, 31);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor2.Month, 12);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor2.Year, 2022);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchorCheck2, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoLaterThanThis);
+        }
+
+
+
+        [TestMethod]
+        public void ComboTest_NoLastAccessedBeforeYes_AccesssedBeforeNo()
+
+        {
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/lastaccessedbefore=" + beforedate}));
+            Assert.IsTrue(testme.was_lastaccessed_specified);
+
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor.Day, 1);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor.Month, 1);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor.Year, 2000);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoEarlierThanThis);
+
+            Assert.AreEqual(testme.SearchTarget.AccessAnchorCheck2, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
+        }
+
+
+
+        [TestMethod]
+        public void ComboTest_NoLastAccessedBeforeYes_AccesssedBeforeYes()
+
+        {
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/lastaccessedbefore=" + beforedate, "/nolastaccessedbefore=" + afterdate }));
+            Assert.IsTrue(testme.was_lastaccessed_specified);
+
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor.Day, 1);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor.Month, 1);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor.Year, 2000);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoEarlierThanThis);
+
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor2.Day, 31);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor2.Month, 12);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchor2.Year, 2022);
+            Assert.AreEqual(testme.SearchTarget.AccessAnchorCheck2, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoLaterThanThis);
+        }
+
+        #endregion
+        #region LASTMODIFIED CHECK
+        [TestMethod]
+        public void ComboTest_NoLastModifiedBeforeNo_LastModifiedBeforeNo()
+
+        {
+            DateTime Default = new DateTime();
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "-F"}));
+            Assert.IsFalse(testme.was_lastchanged_specified );
+
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor.Day, Default.Day);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor.Month, Default.Month) ;
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor.Year, Default.Year);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
+
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor2.Day, Default.Day);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor2.Month, Default.Month);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor2.Year, Default.Year);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchorCheck2, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
+        }
+
+        [TestMethod]
+        public void ComboTest_NoLastModifiedBeforeYes_LastModifiedBeforeNo()
+
+        {
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/nolastmodifiedbefore=" + beforedate}));
+            Assert.IsTrue(testme.was_lastchanged_specified);
+
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor.Day, 1);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor.Month, 1);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor.Year, 2000);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoEarlierThanThis);
+
+            Assert.AreEqual(testme.SearchTarget.WriteAnchorCheck2, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
+        }
+
+
+        [TestMethod]
+        public void ComboTest_NoLastModifiedBeforeNo_LastModifiedBeforeYes()
+
+        {
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/lastmodifiedbefore=" + afterdate }));
+            Assert.IsTrue(testme.was_lastchanged_specified);
+
+            Assert.AreEqual(testme.SearchTarget.WriteAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
+
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor2.Day, 31);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor2.Month, 12);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor2.Year, 2022);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchorCheck2, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoLaterThanThis);
+        }
+
+
+
+        [TestMethod]
+        public void ComboTest_NoLastModifiedBeforeYes_LastModifiedBeforeYes()
+        
+        {
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/nolastmodifiedbefore=" + beforedate, "/lastmodifiedbefore=" + afterdate }));
+            Assert.IsTrue(testme.was_lastchanged_specified);
+
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor.Day, 1);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor.Month, 1);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor.Year, 2000);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoEarlierThanThis);
+
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor2.Day, 31);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor2.Month, 12);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor2.Year, 2022);
+            Assert.AreEqual(testme.SearchTarget.WriteAnchorCheck2, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoLaterThanThis);
+        }
+        #endregion
+        #region CREATIONDATE_ CHECK
+        [TestMethod]
+        public void ComboTest_NotCreatedBeforeNo_NotCreatedAfterNo()
+        {
+            DateTime DefaultOne = new();
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] {"-F"}));
+            Assert.IsFalse(testme.was_creation_specified);
+
+
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor.Day, DefaultOne.Day);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor.Month, DefaultOne.Month);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor.Year, DefaultOne.Year);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor2.Day, DefaultOne.Day);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor2.Month, DefaultOne.Month);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor2.Year, DefaultOne.Year);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchorCheck2, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
+        }
+
+
+        [TestMethod]
+        public void ComboTest_NotCreatedBeforeYes_NotCreatedAfterNo()
+        {
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/notcreatedbefore=" + beforedate}));
+            Assert.IsTrue(testme.was_creation_specified);
+
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor.Day, 1);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor.Month, 1);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor.Year, 2000);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoEarlierThanThis);
+           
+        }
+
+
+        [TestMethod]
+        public void ComboTest_NotCreatedBeforeNo_NotCreatedAfterYes()
+        {
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/notcreatedafter=" + afterdate }));
+            Assert.IsTrue(testme.was_creation_specified);
+
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor2.Day, 31);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor2.Month, 12);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor2.Year, 2022);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchorCheck2, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoLaterThanThis);
+        }
+
+
+        [TestMethod]
+        public void ComboTest_NotCreatedBeforeYes_NotCreatedAfterYes()
+        {
+            string beforedate = "Jan 1, 2000";
+            string afterdate = "Dec 31, 2022";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/notcreatedbefore=" + beforedate , "/notcreatedafter=" +afterdate}));
+            Assert.IsTrue(testme.was_creation_specified);
+
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor.Day, 1);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor.Month, 1);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor.Year, 2000);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoEarlierThanThis);
+
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor2.Day, 31);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor2.Month, 12);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchor2.Year, 2022);
+            Assert.AreEqual(testme.SearchTarget.CreationAnchorCheck2, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoLaterThanThis);
+        }
+        #endregion
+        #region FILENAME FULLNAME CHECK
+        [TestMethod]
+        public void ComboTest_FileNameYes_FullName_Yes()
+        {
+            string fullname_arg = "C:\\Windows\\something.exe";
+            string filename_arg = "Something.exe";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/fullname=" + fullname_arg, "/filename=" + filename_arg }));
+            Assert.AreEqual(testme.SearchTarget.FileName[0], filename_arg);
+            Assert.AreEqual(testme.SearchTarget.DirectoryPath[0], fullname_arg);
+        }
+
+        [TestMethod]
+        public void ComboTest_FileNameYes_FullName_No()
+        {
+            string fullname_arg = "C:\\Windows\\something.exe";
+            string filename_arg = "Something.exe";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/filename=" + filename_arg }));
+            Assert.AreEqual(testme.SearchTarget.FileName[0], filename_arg);
+            Assert.AreEqual(testme.SearchTarget.DirectoryPath.Count, 0); 
+
+        }
+
+        [TestMethod]
+        public void ComboTest_FileNameNo_FullName_Yes()
+        {
+            string fullname_arg = "C:\\Windows\\something.exe";
+            string filename_arg = "Something.exe";
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/fullname=" + fullname_arg}));
+            Assert.AreEqual(testme.SearchTarget.FileName.Count, 0);
+            Assert.AreEqual(testme.SearchTarget.DirectoryPath[0], fullname_arg);
+
+        }
+
+        [TestMethod]
+        public void ComboTest_FileNameNo_FullName_No()
+        {
+            string fullname_arg = "C:\\Windows\\something.exe";
+            string filename_arg = "Something.exe";
+            ArgHandling testme = new ArgHandling();
+            // need something safe but does not actuallly matter here. 
+            Assert.IsTrue(testme.DoTheThing(new string[] { "-F" }));
+
+            if (testme.was_anyfile_flag_set == true)
+            {
+                Console.WriteLine("Warning: was anyflag_set set incorrect. Functioanlliy is ok long as FinalizeCommand() will be called before using the results");
+            }
+            Assert.IsFalse(testme.was_filename_specified);
+            Assert.AreEqual(testme.SearchTarget.FileName.Count, 0);
+            Assert.AreEqual(testme.SearchTarget.DirectoryPath.Count, 0);
+        }
+
+        #endregion
+    }
     [TestClass]
     public class ConsoleApp_ArgHandlingClass_UnitTests
     {
@@ -696,6 +1046,7 @@ namespace ConsoleAppUnitTests
 
             Assert.IsTrue((test.SearchTarget.FileName.Count > 0) && (test.SearchTarget.FileName[0].Equals("hello.exe")));
         }
+
 
         [TestMethod]
         public void FileAttrib_arg_set_named_Enums()

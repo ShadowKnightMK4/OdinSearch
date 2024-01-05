@@ -121,7 +121,7 @@ Arguments to use:
 
 /A={{int, dir style attrubte}}
 	This what file attribute to look for.  Accepts an int based on the data
-	type above or such as "RSE" for a read only system file that's encrypterd.
+	type above or such as "RSE" for a read only system file that's encrypted.
 
 
 There is a plugin system also and this trumps the /outstream /outformat stuff. These 
@@ -141,7 +141,7 @@ arguments are there to allow users to use them.
 	This sets the class name that the app will use. 
 
 /anyfile
-	This will tell the search to match anyfile we can possibly access.
+	This will tell the search to match anyfile name we can possibly access.
 
 /anywhere
 	This tells the search to look thru the whole machine
@@ -153,3 +153,16 @@ arguments are there to allow users to use them.
 
 One final note:
 	One can have more flexibility by going and getting a copy of the source.
+
+
+
+Default Settings if you don't specify the flag. Please note the flags are intendeted
+to be precise but let the user type as few as needed to get the point accross.
+
+Lack of /fullname and /filename default to functionally /anyfile flag if unspecified.
+Lack of /notcreatedbefore and /nocreatedafter default to skipping that date time check.
+Lack of /lastmodifiedbefore /nolastmodifiedbefore default to skipping that date time check.
+Lack of /nolastaccessedbefore /lastaccessedbefore default to skipping that date time check.
+Lack of /A or /fileattrib defaults to skipping the file attrbute check.
+Lack of /fileattrib_check will default to matching *ALL* of what you specified with attributes
+TODO: Lack of /anywhere or /anchor= default
