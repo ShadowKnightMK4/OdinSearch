@@ -90,8 +90,19 @@ namespace FileInventoryConsole
         /// Special flag to act as a shortcut to match any locaiton
         /// </summary>
         const string FlagSpecialAnyWhere = "/anywhere";
+
+        const string FlagEnumSubfolder = "/subfolders";
         #endregion
 
+        /// <summary>
+        /// string used check if <see cref="OdinSearch_OutputConsole"/> will output only the name. Ignored if not using that class. Currently only for outputing as unicode text
+        /// </summary>
+
+        const string FlagUnicodeSet_StrictFileName = "-justname";
+
+        /// <summary>
+        /// string used to check for setting anchors.
+        /// </summary>
 
         const string FlagSetAnchor = "/anchor=";
 
@@ -278,34 +289,34 @@ namespace FileInventoryConsole
         /// <summary>
         /// triggers on /fullname or /filename
         /// </summary>
-        public bool was_filename_specified { get; private set; }
+        public bool WasFileNameSet { get; private set; }
         /// <summary>
         /// triggers on /notcreatedafter or /notcreatedbefore.
         /// </summary>
-        public bool was_creation_specified { get; private set; }
+        public bool WasCreationDateSet { get; private set; }
 
         /// <summary>
         /// triggers on /nolastmodifiedbefore or /nolastmodifiedbefore
         /// </summary>
-        public bool was_lastchanged_specified { get; private set; }
+        public bool WasLastChangedDateSet { get; private set; }
         
         /// <summary>
         /// triggers on /lastaccessedbefore and /nolastaccessedbefore.
         /// </summary>
-        public bool was_lastaccessed_specified { get; private set; }
-        public bool was_filename_check_set { get; private set; }
+        public bool WasLastAccessDateSet { get; private set; }
+        
         /// <summary>
         /// triggers on /plugin and /managed
         /// </summary>
-        public bool is_plugin_set { get; private set; }
+        public bool WasPluginSet { get; private set; }
     /// <summary>
     /// triggers on /classname
     /// </summary>
     public bool PluginHasManagedClass { get; private set; }
 
         
-        public bool was_outformat_set { get; private set; }
-        public bool was_outstream_set { get; private set; }
+        public bool WasOutFormatSet { get; private set; }
+        public bool WasOutStreamSet { get; private set; }
 
 
 
@@ -324,6 +335,14 @@ namespace FileInventoryConsole
 
         public bool AllowUntrustedPlugin { get; private set; }
 
+
+        /// <summary>
+        /// did the user note they want only just the matching location?
+        /// </summary>
+        public bool FlagJustFileName { get; private set; }
+        public bool WantSubFoldersAlso { get; private set; }
+        public bool WasFileCompareSet { get; private set; }
+
         /// <summary>
         /// display the embedded banner file and include the build version info.
         /// </summary>
@@ -339,7 +358,7 @@ namespace FileInventoryConsole
         /// </summary>
         public static void DisplayUsageText()
         {
-            DisplayPackedInResourceText("Resources.UsageText.txt", new string[] { Assembly.GetCallingAssembly().GetName().Name }, true, 0);
+            DisplayPackedInResourceText("Resources.UsageText.txt", new string[] { Assembly.GetCallingAssembly().GetName().Name }, true, 1);
         }
         /// <summary>
         /// Display the embedded text file to stdout (console)
@@ -394,6 +413,12 @@ namespace FileInventoryConsole
             if (low.StartsWith(FlagSetNoSignedMode))
             {
                 this.AllowUntrustedPlugin = true;
+                return true;
+            }
+
+            if (low.StartsWith(FlagUnicodeSet_StrictFileName))
+            {
+                this.FlagJustFileName = true;
                 return true;
             }
             return false;
@@ -780,6 +805,35 @@ namespace FileInventoryConsole
                 return false;
             }
 
+            bool HandlePossibleMultipleFilePath(string source, SearchAnchor r)
+            {
+                if (string.IsNullOrEmpty(source))
+                {
+                    return false;
+                }
+                else
+                {
+                    StringBuilder sb = new();
+                    for (int i = 0; i < source.Length;i++)
+                    {
+                        if (source[i] == ';')
+                        {
+                            sb.Replace(sb.ToString(),Trim(sb.ToString()));
+                            r.AddAnchor(sb.ToString());
+                            sb.Clear();
+                        }
+                        else
+                        {
+                            sb.Append(source[i]);
+
+
+
+                        }
+                        
+                    }
+                    return true;
+                }
+            }
             bool HandleSingleFilePath(string Path, out string loc)
             {
                 if (Path != null)
@@ -842,7 +896,7 @@ namespace FileInventoryConsole
                         UserFormat = TargetFormat.Error;
                         return false;
                 }
-                was_outformat_set = true;
+                WasOutFormatSet = true;
                 return true;
             }
 
@@ -861,14 +915,14 @@ namespace FileInventoryConsole
                 {
                     TargetStream = null;
                     TargetStreamHandling = ConsoleLines.Stdout;
-                    was_outstream_set = true;
+                    WasOutStreamSet = true;
                     return true;
                 }
                 if (low_part.Equals("stderr"))
                 {
                     TargetStream = null;
                     TargetStreamHandling = ConsoleLines.Stderr;
-                    was_outstream_set = true;
+                    WasOutStreamSet = true;
                     return true;
                 }
 
@@ -878,14 +932,14 @@ namespace FileInventoryConsole
                     {
                         TargetStream = File.OpenWrite(low_part.Substring(1, low_part.Length-2));
                         TargetStreamHandling = ConsoleLines.NoRedirect;
-                        was_outstream_set = true;
+                        WasOutStreamSet = true;
                         return true;
                     }
                     else
                     {
                         TargetStream = File.OpenWrite(low_part);
                         TargetStreamHandling = ConsoleLines.NoRedirect;
-                        was_outstream_set = true;
+                        WasOutStreamSet = true;
                         return true;
                     }
 
@@ -900,9 +954,16 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetFileCompareString.Length);
                 if ( SplitWildcards(low_part, ProcesFlagWildcardMode.UseFileOut))
                 {
-                    was_filename_specified = true;
+                    WasFileNameSet = true;
                     return true;
                 }
+            }
+
+            if (low.StartsWith(FlagEnumSubfolder))
+            {
+                SearchAnchor.EnumSubFoldersDefault = true;
+                this.WantSubFoldersAlso = true;
+                return true;
             }
 
             // set how the user wants the wildcard checked
@@ -911,7 +972,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetHowToCompareFileString.Length);
                 if (DealWithStringEnum(low_part, out SearchTarget.FileNameMatching) )
                 {
-                    was_filename_check_set = true;
+                    WasFileCompareSet = true;
                     return true;
                 }
             }
@@ -922,7 +983,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetFullPathCompareString.Length);
                 if (SplitWildcards(low_part, ProcesFlagWildcardMode.UseDirectOut))
                 {
-                    was_filename_specified = true;
+                    WasFileNameSet = true;
                     return true;
                 }
             }
@@ -935,7 +996,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetHowToCompareFullPathString.Length);
                 if (DealWithStringEnum(low_part, out SearchTarget.DirectoryMatching))
                 {
-                    was_filename_check_set = true;
+                    WasFileNameSet = true;
                     return true;
                 }
             }
@@ -946,7 +1007,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetNOLastModifiedEarlierTHan.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.WriteAnchor))
                 {
-                    was_lastchanged_specified = true;
+                    WasLastChangedDateSet = true;
                     SearchTarget.WriteAnchorCheck1 = SearchTarget.MatchStyleDateTime.NoEarlierThanThis;
                     return true;
                 }
@@ -959,7 +1020,7 @@ namespace FileInventoryConsole
                 string low_part =arg[step].Substring(FlagToSetLastModifiedNoLaterThan.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.WriteAnchor2))
                 {
-                    was_lastchanged_specified = true;
+                    WasLastChangedDateSet = true;
                     SearchTarget.WriteAnchorCheck2 = SearchTarget.MatchStyleDateTime.NoLaterThanThis;
                     return true;
                 }
@@ -973,7 +1034,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetFileWasLastAccessedBefore.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.AccessAnchor))
                 {
-                    was_lastaccessed_specified = true;
+                    WasLastAccessDateSet = true;
                     SearchTarget.AccessAnchorCheck1 = SearchTarget.MatchStyleDateTime.NoEarlierThanThis;
                     return true;
                 }
@@ -985,7 +1046,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetFileWasLastAccessedAfter.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.AccessAnchor2))
                 {
-                    was_lastaccessed_specified = true;
+                    WasLastAccessDateSet = true;
                     SearchTarget.AccessAnchorCheck2 = SearchTarget.MatchStyleDateTime.NoLaterThanThis;
                     return true;
                 }
@@ -999,7 +1060,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetCreationDateNoEarlier.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.CreationAnchor))
                 {
-                    was_creation_specified = true;
+                    WasCreationDateSet = true;
                     SearchTarget.CreationAnchorCheck1 = SearchTarget.MatchStyleDateTime.NoEarlierThanThis;
                     return true;
                 }
@@ -1010,7 +1071,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagToSetCreationDateNoLater.Length);
                 if (HandleConvertedToDate(low_part, out SearchTarget.CreationAnchor2))
                 {
-                    was_creation_specified = true;
+                    WasCreationDateSet = true;
                     SearchTarget.CreationAnchorCheck2 = SearchTarget.MatchStyleDateTime.NoLaterThanThis;
                     return true;
                 }
@@ -1026,15 +1087,7 @@ namespace FileInventoryConsole
                 }
             }
 
-            if (low.StartsWith(FlagToSetFileAttributeViaDir))
-            {
-                string low_part = arg[step].Substring(FlagToSetFileAttributeViaDir.Length);
-                if (DealWithFileAttribEnum(low_part, out SearchTarget.AttributeMatching1, true))
-                {
-                    was_fileattribs_set = true;
-                    return true;
-                }
-            }
+          
             if (low.StartsWith(FlagToSetHowToCompareAttrib1))
             {
                 string low_part = arg[step].Substring(FlagToSetHowToCompareAttrib1.Length);
@@ -1051,7 +1104,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagSetSpecifiedUnmanagedPlugin.Length);
                 ExternalPluginDll = ArgHandling.Trim(low_part);
                 ExternalPluginName = null;
-                is_plugin_set = true;
+                WasPluginSet = true;
                 this.PluginHasManagedClass = false;
                 return true;
             }
@@ -1061,7 +1114,7 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagSetSpecifiedNETPlugin.Length);
                 ExternalPluginDll = ArgHandling.Trim(low_part);
                 ExternalPluginName = string.Empty;
-                is_plugin_set = true;
+                WasPluginSet = true;
                 
                 return true;
             }
@@ -1092,7 +1145,28 @@ namespace FileInventoryConsole
                 }
                 else
                 {
-                    return false;
+                    if (!low_part.Contains(';'))
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        return HandlePossibleMultipleFilePath(low_part, SearchAnchor);
+                    }
+                }
+            }
+
+            /*
+             * this check is due to both commands starting with the same letter
+             * Should you move this to where anchor is checked afterwards. Ensure the && test is kept
+             * */
+            if (low.StartsWith(FlagToSetFileAttributeViaDir) && (low.Contains(FlagSetAnchor) == false))
+            {
+                string low_part = arg[step].Substring(FlagToSetFileAttributeViaDir.Length);
+                if (DealWithFileAttribEnum(low_part, out SearchTarget.AttributeMatching1, true))
+                {
+                    was_fileattribs_set = true;
+                    return true;
                 }
             }
 
@@ -1122,7 +1196,7 @@ namespace FileInventoryConsole
         private  OdinSearch_OutputConsumerBase ResolveOutFormatAndPlugins()
         {
             OdinSearch_OutputConsumerBase ret = null;
-            if (!is_plugin_set)
+            if (!WasPluginSet)
             {
                 
                 
@@ -1132,9 +1206,10 @@ namespace FileInventoryConsole
                         switch (UserFormat)
                         {
                             case TargetFormat.Unicode:
-                                ret = new OdinSearch_OutputSimpleConsole();
-                                ret[OdinSearch_OutputSimpleConsole.MatchStream] = this.TargetStream;
-                                ret[OdinSearch_OutputSimpleConsole.FlushAlways] = true;
+                                ret = new OdinSearch_OutputConsole();
+                                ret[OdinSearch_OutputConsole.MatchStream] = this.TargetStream;
+                                ret[OdinSearch_OutputConsole.FlushAlways] = true;
+                                ret[OdinSearch_OutputConsole.OutputOnlyFileName] = FlagJustFileName;
                                 break;
                             case TargetFormat.CVSFile:
                                 ret = new OdinSearchOutputCVSWriter();
@@ -1147,12 +1222,19 @@ namespace FileInventoryConsole
 
                         break;
                     case ConsoleLines.Stdout:
-                        ret = new OdinSearch_OutputSimpleConsole();
-                        ret[OdinSearch_OutputSimpleConsole.MatchStream] = Console.Out;
+                        ret = new OdinSearch_OutputConsole();
+                        ret[OdinSearch_OutputConsole.MatchStream] = Console.Out;
+                        ret[OdinSearch_OutputConsole.FlushAlways] = true;
+                        ret[OdinSearch_OutputConsole.OutputOnlyFileName] = FlagJustFileName;
+
                         break;
                     case ConsoleLines.Stderr:
-                        ret = new OdinSearch_OutputSimpleConsole();
-                        ret[OdinSearch_OutputSimpleConsole.MatchStream] = Console.Error;
+                        ret = new OdinSearch_OutputConsole();
+                        ret[OdinSearch_OutputConsole.MatchStream] = Console.Error;
+                        ret[OdinSearch_OutputConsole.FlushAlways] = true;
+                        ret[OdinSearch_OutputConsole.OutputOnlyFileName] = FlagJustFileName;
+
+
                         break;
                     default:
                         return null;
@@ -1191,10 +1273,12 @@ namespace FileInventoryConsole
                 
             }
 
-            if ( (was_filename_specified == true) || (was_anyfile_flag_set == false))
+            
+
+            if ( (WasFileNameSet == true) || (was_anyfile_flag_set == false))
             {
 
-                if (!was_filename_check_set)
+                if (!WasFileNameSet)
                 {
                     SearchTarget.FileName.Add(SearchTarget.MatchAnyFile);
                 }
@@ -1217,19 +1301,34 @@ namespace FileInventoryConsole
 
                 }
 
-                if (!was_creation_specified)
+                if (!WasCreationDateSet)
                 {
                     SearchTarget.CreationAnchorCheck1 = SearchTarget.MatchStyleDateTime.Disable;
                 }
 
-                if (!was_lastaccessed_specified)
+                if (!WasLastAccessDateSet)
                 {
                     SearchTarget.AccessAnchorCheck1 = SearchTarget.MatchStyleDateTime.Disable;
                 }
 
-                if (!was_lastchanged_specified)
+                if (!WasLastChangedDateSet)
                 {
                     SearchTarget.WriteAnchorCheck1 = SearchTarget.MatchStyleDateTime.Disable;
+                }
+
+                if (!WasFileCompareSet)
+                {
+                    if (SearchTarget.FileName.Contains(SearchTarget.MatchAnyFile) == false)
+                    {
+                        if (SearchTarget.FileName.Count > 1)
+                        {
+                            SearchTarget.AttribMatching1Style = SearchTarget.MatchStyleFileAttributes.MatchAny;
+                        }
+                        else
+                        {
+                            SearchTarget.AttribMatching1Style = SearchTarget.MatchStyleFileAttributes.MatchAll;
+                        }
+                    }
                 }
             }
             /*if  ( (was_anyfile_flag_set == false) && )
@@ -1250,13 +1349,13 @@ namespace FileInventoryConsole
                 SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
             }
           
-            if (!was_outstream_set)
+            if (!WasOutStreamSet)
             {
                 this.TargetStreamHandling = ConsoleLines.Stdout;
                 TargetStream = null;
             }
 
-            if (!was_outformat_set)
+            if (!WasOutFormatSet)
             {
                 this.UserFormat = TargetFormat.Unicode;
             }
@@ -1265,11 +1364,20 @@ namespace FileInventoryConsole
 
             }
 
-            if (!was_start_point_set)
+            if ((was_wholemachine_flag_set) || (!was_start_point_set))
             {
-                SearchAnchor = new SearchAnchor();
+                //if (was_wholemachine_flag_set)
+                {
+                    SearchAnchor = new SearchAnchor();
+                    SearchAnchor.EnumSubFolders = true;
+                }
+                
+            }
+            if (WantSubFoldersAlso)
+            {
                 SearchAnchor.EnumSubFolders = true;
             }
+             
             DesiredPlugin = ResolveOutFormatAndPlugins();
 
         }

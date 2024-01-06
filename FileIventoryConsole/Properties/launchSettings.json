@@ -1,13 +1,8 @@
 {
   "profiles": {
-    "ApPU FileInventoryConsole": {
-      "commandName": "Project",
-      "commandLineArgs": "/outstream=\"C:\\TestScrubLocation\\unicode.txt\" /anyfile /anchor=C:\\Euphoria",
-      "nativeDebugging": false
-    },
     "B": {
       "commandName": "Project",
-      "commandLineArgs": "/outstream=\"C:\\TestScrubLocation\\unicode.csv\" /anyfile /anchor=C:\\Euphoria /outformat=cvsfile",
+      "commandLineArgs": "FileInventoryConsole.exe /filename=*.dll;*.exe /anywhere /subfolders /outstream=C:\\temp\\\\Output.txt",
       "nativeDebugging": false
     }
   }

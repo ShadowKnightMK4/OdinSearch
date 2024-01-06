@@ -32,11 +32,12 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBase
         protected bool OutputOnlyName = false;
 
         public override void Match(FileSystemInfo info)
+        
         {
             string fin;
             if (!OutputOnlyName)
             {
-                fin = string.Format("File Match: \"{0}\" @ \"{1}\"", info.Name, info.FullName);
+                fin = string.Format("File Match: \"{0}\" @ \"{1}\"\r\n", info.Name, info.FullName);
             }
             else
             {

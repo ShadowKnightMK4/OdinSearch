@@ -43,7 +43,14 @@ namespace FileIventoryConsole
                 }
                 else
                 {
+
                     ArgHandling.FinalizeCommands();
+                    if ( (ArgHandling.was_start_point_set == false) && (ArgHandling.was_wholemachine_flag_set == false))
+                    {
+                        Console.WriteLine("Error: Please specify a starting point via /anchor= or /anywhere");
+                        ArgHandling.Usage();
+                        return;
+                    }
                 }
             }
             else
@@ -87,7 +94,7 @@ namespace FileIventoryConsole
             }
             Console.WriteLine("Searching for things, this may take a while.");*/
 
-
+            Console.WriteLine("Searching for things, this may take a while.");
             Search.Search(SearchDeal);
             while(true)
             {

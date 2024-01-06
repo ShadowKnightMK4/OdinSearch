@@ -657,9 +657,12 @@ namespace OdinSearchEngine
                 bool CompareMe = false;
                 MatchAll = false;
                 MatchAny = false;
-                if ((MatchStyleString.MatchAll & MatchStyleString.MatchAny & HowToCompare) == 0)
+                if (!HowToCompare.HasFlag(MatchStyleString.MatchAll))
                 {
-                    HowToCompare |= MatchStyleString.MatchAll;
+                    if (!HowToCompare.HasFlag(MatchStyleString.MatchAny))
+                    {
+                        HowToCompare |= MatchStyleString.MatchAll;
+                    }
                 }
                 // a plan regex list for this code means we sucessfully match any file. Also skip.
                 if ((HowToCompare == MatchStyleString.Skip) || (TestValues.Count == 0))

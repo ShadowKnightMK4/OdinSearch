@@ -1,5 +1,4 @@
-﻿q
-{{0}}.exe  /Arguments
+﻿FileInventoryConsole.exe  /Arguments -Flags
 
 Special Data Types to Know are listed below. Each value that is on the same line as another is equivelent. For example
 MatchAny and '1' are equivelent for MatchStyle Attributes
@@ -151,12 +150,11 @@ arguments are there to allow users to use them.
 /anchor={folder location}
 	This tells the app to add this to the list of starting points.
 
-One final note:
-	One can have more flexibility by going and getting a copy of the source.
+-ONLYNAME
+	This is valid only for /outformat=Unicode.  If set, the matches are {filename}followed by an enter key.
 
 
-
-Default Settings if you don't specify the flag. Please note the flags are intendeted
+Default Settings are below if you don't specify the flag. Please note the flags are intentend
 to be precise but let the user type as few as needed to get the point accross.
 
 Lack of /fullname and /filename default to functionally /anyfile flag if unspecified.
@@ -165,4 +163,10 @@ Lack of /lastmodifiedbefore /nolastmodifiedbefore default to skipping that date 
 Lack of /nolastaccessedbefore /lastaccessedbefore default to skipping that date time check.
 Lack of /A or /fileattrib defaults to skipping the file attrbute check.
 Lack of /fileattrib_check will default to matching *ALL* of what you specified with attributes
-TODO: Lack of /anywhere or /anchor= default
+Lack of /anywhere or /anchor= will ask you to specify a starting point.
+Should BOTH /anywhere and /anchor= be set, the /anchor setting is discarded as it's already going to be searched due to /anywhere
+
+
+One final note:
+	One can have more flexibility by going and getting a copy of the source.
+
