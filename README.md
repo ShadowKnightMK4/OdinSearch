@@ -1,8 +1,12 @@
-## About OdinSearch.
-OdinSearch is a tool written in C# that lets users search thru local file systems for matches. The engine provides an expandable achritector by letting developer expand on what the engine does with matching output. It's recommanded the user have some programming experience to use this.
+## Important
+The main branch is lagging some due to working on the milestone plan. Once that's done i.e. there's a precompiled project up on this GitHub project, the main branch will be updated to include the stuff written for the 'end user' milestone plan.
 
 ## Current Milestone Plan
 The main milestone this project is currently working towards is something that's precompiled and ready for an end user to use rather than needing to tinker in Visual Studio. The current progress tracker for this located [here.](https://github.com/ShadowKnightMK4/OdinSearch/milestone/1) and the branch that holds this is located [here.](https://github.com/ShadowKnightMK4/OdinSearch/tree/ConsoleFrontEnd)
+
+## About OdinSearch.
+OdinSearch is a tool written in C# that lets users search thru local file systems for matches. The engine provides an expandable achritector by letting developer expand on what the engine does with matching output. It's recommanded the user have some programming experience to use this.
+
 
 
 ## Current Features
