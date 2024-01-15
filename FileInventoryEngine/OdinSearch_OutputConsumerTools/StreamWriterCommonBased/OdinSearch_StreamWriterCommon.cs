@@ -186,7 +186,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBase
                 TargetEncoding = this[CharEncoding] as Encoding;
                 if (TargetEncoding == null)
                 {
-                    throw new InvalidOperationException("Invalid argument for Encoding flag. Spected a Encoding C# object such as Encoding.UTF8. Leave unset for UTF8");
+                    throw new InvalidOperationException("Invalid argument for Encoding flag. Expected a Encoding C# object such as Encoding.UTF8. Leave unset for UTF8");
                 }
             }
             else

@@ -88,7 +88,13 @@ Arguments to use:
 	int must be from the MatchStyleString format above or it's gonna be rejected.
 	string must match any combination of the MatchStyleString about or its gonna be rejected.
 
+/minfilesize={int}
+	This flag sets the smallest acceptable file size match.
+	Will never match a folder.
 
+/maxfilesize={int}	
+	This flag sets the largerst acceptable file size match.
+	Will never match a folder. 
 /notcreatedbefore={{datetime}
 	This flag instructs the app to discard any matches whose creation date is earlier than the 
 	specified time.
@@ -153,9 +159,13 @@ arguments are there to allow users to use them.
 -ONLYNAME
 	This is valid only for /outformat=Unicode.  If set, the matches are {filename}followed by an enter key.
 
+/explain
+	This setting tells the app to write to the console what settings you are searching for in English without
+	executing it.
 
-Default Settings are below if you don't specify the flag. Please note the flags are intentend
-to be precise but let the user type as few as needed to get the point accross.
+
+Default Settings are below if you don't specify the flag. Please note these choices are intended
+to let the user be precise but allow them to type as few as commands to get the point accross.
 
 Lack of /fullname and /filename default to functionally /anyfile flag if unspecified.
 Lack of /notcreatedbefore and /nocreatedafter default to skipping that date time check.
@@ -163,7 +173,8 @@ Lack of /lastmodifiedbefore /nolastmodifiedbefore default to skipping that date 
 Lack of /nolastaccessedbefore /lastaccessedbefore default to skipping that date time check.
 Lack of /A or /fileattrib defaults to skipping the file attrbute check.
 Lack of /fileattrib_check will default to matching *ALL* of what you specified with attributes
-Lack of /anywhere or /anchor= will ask you to specify a starting point.
+Lack of /anywhere or /anchor= Will report an error and remind you to set a starting point.
+Lack of /minfilesize or /maxfilesize will have the search not care about the size at all.
 Should BOTH /anywhere and /anchor= be set, the /anchor setting is discarded as it's already going to be searched due to /anywhere
 
 

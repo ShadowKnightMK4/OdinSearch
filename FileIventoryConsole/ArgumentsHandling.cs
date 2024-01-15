@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -17,6 +18,8 @@ using static System.Net.Mime.MediaTypeNames;
 
 namespace FileInventoryConsole
 {
+
+    
     class ArgumentUnknown : Exception
     {
         public ArgumentUnknown(string message) : base(message) { }
@@ -28,7 +31,320 @@ namespace FileInventoryConsole
     }
 
 
+    internal static class ArgHandling_tools
+    {
 
+    }
+
+
+    /// <summary>
+    /// With the uniquieness of the /explain flag, this class is dedicated to handle the implemntaiton of the code
+    /// that does the /explain. Note that <see cref="ArgHandling.DisplayExplain()"/> calls <see cref="ArgHandlingExplainHandling.DisplayExplain(SearchTarget, SearchAnchor)"/> here
+    /// </summary>
+    internal static class ArgHandlingExplainHandling
+    {
+
+        /// <summary>
+        /// Indicates if we're checking <see cref="SearchTarget.FileName"/> or <see cref="SearchTarget.DirectoryPath"/>
+        /// </summary>
+        enum ExplainStringMatchFlag
+        {
+            FileMode = 1,
+            DirMode = 2
+        };
+
+        /// <summary>
+        /// Controls the string that <see cref="ExplainDateTimeMatch(SearchTarget, ExplainDateTimeFlag)"/> will send out
+        /// </summary>
+        enum ExplainDateTimeFlag
+        {
+            Creation1 = 1,
+            Access1 = 3,
+            Modified1 = 5,
+
+        }
+
+
+        /// <summary>
+        /// Explain to stdout what this seach will do.
+        /// </summary>
+        /// <param name="SearchTarget"></param>
+        /// <param name="SearchAnchor"></param>
+        public static void DisplayExplain(SearchTarget SearchTarget, SearchAnchor SearchAnchor)
+        {
+
+            Console.Write("We are searching for ");
+            ExplainFileAttibMatch(SearchTarget);
+            ExplainStringMatch(ExplainStringMatchFlag.FileMode, SearchTarget);
+            ExplainStringMatch(ExplainStringMatchFlag.DirMode, SearchTarget);
+            ExplainDateTimeMatch(SearchTarget, ExplainDateTimeFlag.Creation1);
+            ExplainDateTimeMatch(SearchTarget, ExplainDateTimeFlag.Access1);
+            ExplainDateTimeMatch(SearchTarget, ExplainDateTimeFlag.Modified1);
+            ExplainAnchors(SearchAnchor);
+            ExplainSize(SearchTarget);
+        }
+
+        static string[] size_strings = { "B", "KB", "MB", "GB", "PB", "EB", "PB" };
+        static string ExplainSizeVal(long val)
+        {
+            long vis_display = val;
+            int offset = 0;
+            while ( (vis_display > 1024) && (offset < size_strings.Length) ) 
+            {
+                vis_display /= 1024;
+                offset++;
+            }
+            return vis_display.ToString() + size_strings[offset];
+        }
+        static void ExplainSize(SearchTarget Target)
+        {
+            
+            if (!Target.CheckFileSize)
+            {
+                Console.WriteLine("The match does not care about the file size (if any).");
+            }
+            else
+            {
+                Console.WriteLine(string.Format("The match is looking for file sizes between ({0}, {1})", ExplainSizeVal(Target.FileSizeMin), ExplainSizeVal(Target.FileSizeMax)));
+            }
+        }
+
+        static void ExplainAnchors(SearchAnchor Anchor)
+        {
+            if (Anchor.roots.Count == 0)
+            {
+                Console.WriteLine("Warning: The search does not have a defined starting point. Don't forget to specify one with /anywhere or /anchor");
+            }
+            if (Anchor.roots.Count != 0)
+            {
+                Console.Write("The match will start looking in ");
+                if (Anchor.roots.Count > 1)
+                {
+                    Console.Write("these locations (");
+                }
+                else
+                {
+                    Console.Write("this location (");
+                }
+                for (int i = 0; i < Anchor.roots.Count; i++)
+                {
+                    Console.Write(Anchor.roots[i].FullName.ToString());
+                    if (!(i == Anchor.roots.Count - 1))
+                    {
+                        Console.Write(", ");
+                    }
+                }
+                Console.WriteLine(")");
+
+
+            }
+        }
+        /// <summary>
+        /// This makes aassumes that the arg processing will set the date time currently as its does, should that change, this will need to be updated 
+        /// </summary>
+        /// <param name="Target"></param>
+        /// <param name="mode"></param>
+        static void ExplainDateTimeMatch(SearchTarget Target, ExplainDateTimeFlag mode)
+        {
+            string DateTimeType;
+            SearchTarget.MatchStyleDateTime ActionMode1;
+            SearchTarget.MatchStyleDateTime ActionMode2;
+            DateTime Val1;
+            DateTime Val2;
+            void ProcessActionMode(bool OneIfTrue)
+            {
+                string modestring;
+                string finaldate;
+
+                if (OneIfTrue)
+                {
+                    if (ActionMode1 == SearchTarget.MatchStyleDateTime.NoEarlierThanThis)
+                    {
+                        modestring = "no earlier";
+                    }
+                    else
+                    {
+                        modestring = "no later";
+                    }
+                    finaldate = Val1.ToString();
+                }
+                else
+                {
+                    if (ActionMode2 == SearchTarget.MatchStyleDateTime.NoEarlierThanThis)
+                    {
+                        modestring = "no earlier";
+                    }
+                    else
+                    {
+                        modestring = "no later";
+                    }
+                    finaldate = Val2.ToString();
+                }
+
+
+                Console.Write(string.Format("wants file items that were {0} {1} than {2}.", DateTimeType, modestring, finaldate));
+            }
+            switch (mode)
+            {
+                case ExplainDateTimeFlag.Access1:
+                    DateTimeType = "accessed";
+                    Val1 = Target.AccessAnchor;
+                    Val2 = Target.AccessAnchor2;
+                    ActionMode1 = Target.AccessAnchorCheck1;
+                    ActionMode2 = Target.AccessAnchorCheck2;
+                    break;
+                case ExplainDateTimeFlag.Creation1:
+                    DateTimeType = "created";
+                    Val1 = Target.CreationAnchor;
+                    Val2 = Target.CreationAnchor2;
+                    ActionMode1 = Target.CreationAnchorCheck1;
+                    ActionMode2 = Target.CreationAnchorCheck2;
+                    break;
+                case ExplainDateTimeFlag.Modified1:
+                    DateTimeType = "last changed";
+                    Val1 = Target.WriteAnchor;
+                    Val2 = Target.WriteAnchor2;
+                    ActionMode1 = Target.WriteAnchorCheck1;
+                    ActionMode2 = Target.WriteAnchorCheck2;
+                    break;
+                default:
+                    throw new NotImplementedException("Error: Assumed SearchTarget.MatchStyleDateTime was only 3 possible states. If that's nolonger true, the explain code for datetime needs to be updated.");
+            }
+
+            Console.Write("The match ");
+
+
+            if ((ActionMode1 == ActionMode2) && (ActionMode1 == SearchTarget.MatchStyleDateTime.Disable))
+            {
+                Console.WriteLine(string.Format("does not care about when the file system item was {0}.", DateTimeType));
+            }
+            else
+            {
+                ProcessActionMode(false);
+                ProcessActionMode(true);
+            }
+
+        }
+        static void ExplainFileAttibMatch(SearchTarget Target)
+        {
+            if (Target.AttribMatching1Style.HasFlag(SearchTarget.MatchStyleFileAttributes.Skip) ||
+                ((Target.AttributeMatching1 == FileAttributes.Normal) || (Target.AttributeMatching1 == 0)))
+            {
+                Console.Write("file or directories with no special attributes set.");
+            }
+            else
+            {
+                if (Target.AttributeMatching1.HasFlag(FileAttributes.Directory))
+                {
+                    Console.Write("directories ");
+                }
+                else
+                {
+                    Console.Write("files ");
+                }
+
+                string ex = string.Empty;
+                if (Target.AttribMatching1Style.HasFlag(SearchTarget.MatchStyleFileAttributes.Exacting))
+                    ex = "ONLY";
+                Console.WriteLine(string.Format("with {0} these attributes as defined in the system: ({1}).", ex, Target.AttributeMatching1.ToString()));
+
+            }
+        }
+        static void ExplainStringMatch(ExplainStringMatchFlag String, SearchTarget Target)
+        {
+            List<string> GenMatch;
+            SearchTarget.MatchStyleString GenStyle;
+            if (String == ExplainStringMatchFlag.FileMode)
+            {
+                GenMatch = Target.FileName;
+                GenStyle = Target.FileNameMatching;
+            }
+            else
+            {
+                GenMatch = Target.DirectoryPath;
+                GenStyle = Target.DirectoryMatching;
+            }
+            if ((GenStyle == SearchTarget.MatchStyleString.Skip) ||
+                (GenMatch.Count == 0) ||
+                (GenMatch.Contains(SearchTarget.MatchAnyFile)))
+            {
+                Console.Write("The match does not care about comparing something ");
+                if (String == ExplainStringMatchFlag.FileMode)
+                {
+                    Console.WriteLine("against the file system item's name at all.");
+                }
+                else
+                {
+                    Console.WriteLine("against the file sytem item's exact location and name at all.");
+                }
+            }
+            else
+            {
+                Console.Write("The ");
+                if (GenStyle.HasFlag(SearchTarget.MatchStyleString.Invert))
+                {
+                    Console.Write("negative ");
+                }
+                if (String == ExplainStringMatchFlag.FileMode)
+                {
+                    Console.Write("file ");
+                }
+                else
+                {
+                    Console.Write("full ");
+                }
+
+
+                Console.Write("location match will compare the item's name against ");
+                if (GenMatch.Count == 1)
+                    Console.Write("this string (");
+                else
+                    Console.Write("these strings (");
+                for (int i = 0; i < GenMatch.Count; i++)
+                {
+                    Console.Write(GenMatch[i].ToString());
+                    if (!(i == GenMatch.Count - 1))
+                    {
+                        Console.Write(", ");
+                    }
+                }
+                Console.WriteLine("). ");
+
+                Console.Write("The ");
+                if (String == ExplainStringMatchFlag.FileMode)
+                {
+                    Console.Write("file ");
+                }
+                else
+                {
+                    Console.Write("full ");
+                }
+
+                Console.Write("match ");
+                if (GenStyle.HasFlag(SearchTarget.MatchStyleString.CaseImportant))
+                {
+                    Console.Write("is case SENSITIVE, and ");
+                }
+                else
+                {
+                    Console.Write("does not case about case of letters, and ");
+                }
+
+                Console.Write("must match ");
+                if (GenStyle.HasFlag(SearchTarget.MatchStyleString.MatchAll))
+                {
+                    Console.Write("all ");
+                }
+                else
+                {
+                    Console.Write("any ");
+                }
+
+                Console.WriteLine("of the search strings");
+            }
+
+        }
+    }
    
      /// <summary>
      /// This class is responsible for parsing into something the app understands
@@ -91,22 +407,28 @@ namespace FileInventoryConsole
         /// </summary>
         const string FlagSpecialAnyWhere = "/anywhere";
 
+        /// <summary>
+        /// Default is just top level. Include this flag to op into looking at sub folders too.
+        /// </summary>
         const string FlagEnumSubfolder = "/subfolders";
         #endregion
 
         /// <summary>
-        /// string used check if <see cref="OdinSearch_OutputConsole"/> will output only the name. Ignored if not using that class. Currently only for outputing as unicode text
+        /// This string is used set if <see cref="OdinSearch_OutputConsole"/> will output only the name. Ignored if not using that class. Currently only for outputing as unicode text
         /// </summary>
 
         const string FlagUnicodeSet_StrictFileName = "-justname";
 
         /// <summary>
-        /// string used to check for setting anchors.
+        /// String used to check for setting anchors.
         /// </summary>
 
         const string FlagSetAnchor = "/anchor=";
 
         #region PLUGINS
+        /// <summary>
+        /// an unmanaged plugin is one that exports a C level linkage.
+        /// </summary>
         const string FlagSetSpecifiedUnmanagedPlugin = "/plugin=";
 
         const string FlagSetSpecifiedNETPlugin = "/managed=";
@@ -187,6 +509,13 @@ namespace FileInventoryConsole
         const string FlagToSetFileWasLastAccessedAfter = "/nolastaccessedbefore=";
 
 
+        const string FlagToSetMinFileSize = "/minfilesize=";
+
+        const string FlagToSetMaxFileSize = "/maxfilesize=";
+        /// <summary>
+        /// This special flag is used to generate in english what the search will do.
+        /// </summary>
+        const string FlagToSetExplainSettingsToUser = "/explain";
         #endregion
 
         /// <summary>
@@ -342,7 +671,18 @@ namespace FileInventoryConsole
         public bool FlagJustFileName { get; private set; }
         public bool WantSubFoldersAlso { get; private set; }
         public bool WasFileCompareSet { get; private set; }
+        public bool WantUserExplaination { get; private set; }
 
+
+
+        /// <summary>
+        /// This is used to emit a string to the console that explains what we're seaching for. Note /explain 
+        /// <remarks>Call *AFTER* calling <see cref="FinalizeCommands"/>
+        /// </summary>
+        public void DisplayExplain()
+        {
+            ArgHandlingExplainHandling.DisplayExplain(SearchTarget, SearchAnchor);
+        }
         /// <summary>
         /// display the embedded banner file and include the build version info.
         /// </summary>
@@ -434,6 +774,80 @@ namespace FileInventoryConsole
         /// <remarks>Note false terminates additional argument processing and causes the console app to display error message</remarks>
         private bool ProcessAFlag(string[] arg, int step)
         { 
+
+            // deal with str that's an int or something like 5MB or 2KB or 20GB
+            bool DealWithFileSizeParsing(string str, out long finalSize)
+            {
+                long ret = 0;
+                if (long.TryParse(str, out ret))
+                {
+                    finalSize = ret;
+                    return true;
+                }
+                else
+                {
+                    str = str.Trim().ToLower();
+                    if (str.Length > 2)
+                    {
+                        if (str.EndsWith("kb"))
+                        {
+                            str = str.Substring(0, str.Length - 2);
+                            if (long.TryParse(str, out ret))
+                            {
+                                finalSize = ret*1024;
+                                return true;
+                            }
+                        }
+
+                        if (str.EndsWith("mb"))
+                        {
+                            str = str.Substring(0, str.Length - 2);
+                            if (long.TryParse(str, out ret))
+                            {
+                                finalSize = ret * 1024 * 1024;
+                                return true;
+                            }
+                        }
+
+                        if (str.EndsWith("gb"))
+                        {
+                            str = str.Substring(0, str.Length - 2);
+                            if (long.TryParse(str, out ret))
+                            {
+                                finalSize = ret * 1024 * 1024 * 1024;
+                                return true;
+                            }
+                        }
+
+                        if (str.EndsWith("tb"))
+                        {
+                            str = str.Substring(0, str.Length - 2);
+                            if (long.TryParse(str, out ret))
+                            {
+                                finalSize = ret * 1024 * 1024 * 1024 *1024;
+                                return true;
+                            }
+                        }
+
+                        if (str.EndsWith("pb"))
+                        {
+                            str = str.Substring(0, str.Length - 2);
+                            if (long.TryParse(str, out ret))
+                            {
+                                finalSize = ret * 1024 * 1024 * 1024 * 1024 * 1024;
+                                return true;
+                            }
+                        }
+                        finalSize = 0;
+                        return false;
+                    }
+                    else
+                    {
+                        finalSize = 0;
+                        return false;
+                    }
+                }
+            }
             /* this attacks the ussue by first attempting to try parsing.
              * Should this fail, we resort to just case insensitive matching hardcoded enum values.
              */
@@ -948,6 +1362,12 @@ namespace FileInventoryConsole
                 return false;
             }
 
+            if (low.StartsWith(FlagToSetExplainSettingsToUser))
+            {
+                WantUserExplaination = true;
+                return true;
+            }
+
             // set the wildcard the user wants checked agains the name
             if (low.StartsWith(FlagToSetFileCompareString))
             {
@@ -957,6 +1377,11 @@ namespace FileInventoryConsole
                     WasFileNameSet = true;
                     return true;
                 }
+            }
+
+            if (low.StartsWith(FlagToSetExplainSettingsToUser))
+            {
+                this.WantUserExplaination = true;
             }
 
             if (low.StartsWith(FlagEnumSubfolder))
@@ -1133,6 +1558,55 @@ namespace FileInventoryConsole
                 return true;
             }
 
+            if (low.StartsWith(FlagToSetMinFileSize))
+            {
+                long filesize = 0;
+                string low_part = arg[step].Substring(FlagToSetMinFileSize.Length);
+                
+
+                if (long.TryParse(low_part, out filesize))
+                {
+                    SearchTarget.FileSizeMin = filesize;
+                    SearchTarget.CheckFileSize = true;
+                    return true;
+                }
+                else
+                {
+                    if (DealWithFileSizeParsing(low_part, out filesize))
+                    {
+                        SearchTarget.FileSizeMin = filesize;
+                        SearchTarget.CheckFileSize = true;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            if (low.StartsWith(FlagToSetMaxFileSize))
+            {
+                long filesize = 0;
+                string low_part = arg[step].Substring(FlagToSetMaxFileSize.Length);
+
+
+                if (long.TryParse(low_part, out filesize))
+                {
+                    SearchTarget.FileSizeMax = filesize;
+                    SearchTarget.CheckFileSize = true;
+                    return true;
+                }
+                else
+                {
+                    if (DealWithFileSizeParsing(low_part, out filesize))
+                    {
+                        SearchTarget.FileSizeMax = filesize;
+                        SearchTarget.CheckFileSize = true;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
             if (low.StartsWith(FlagSetAnchor))
             {
                 string low_part = arg[step].Substring(FlagSetAnchor.Length);
@@ -1151,7 +1625,15 @@ namespace FileInventoryConsole
                     }
                     else
                     {
-                        return HandlePossibleMultipleFilePath(low_part, SearchAnchor);
+                        if (HandlePossibleMultipleFilePath(low_part, SearchAnchor))
+                        {
+                            was_start_point_set = true;
+                            return true;
+                        }
+                        else
+                        {
+                            return false;
+                        }
                     }
                 }
             }
@@ -1244,10 +1726,10 @@ namespace FileInventoryConsole
             {
                 if (PluginHasManagedClass == false)
                 {
-                    ret = new OdinSearch_OutputConsumer_ExternUnmangedPlugin();
-                    ret[OdinSearch_OutputConsumer_ExternUnmangedPlugin.SetDllTarget] = this.DesiredPlugin;
+                    //ret = new OdinSearch_OutputConsumer_ExternUnmangedPlugin();
+                    //ret[OdinSearch_OutputConsumer_ExternUnmangedPlugin.SetDllTarget] = this.DesiredPlugin;
                 }
-                else
+                //else
                 {
                     throw new NotImplementedException("managed plugin not done yet");
                 }

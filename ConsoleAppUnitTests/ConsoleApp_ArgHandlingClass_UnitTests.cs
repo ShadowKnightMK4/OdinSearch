@@ -16,6 +16,179 @@ namespace ConsoleAppUnitTests
     }
 
     [TestClass]
+    public class ConsoleApp_ArgHandling_FileSize_UnitTests
+    {
+        [TestMethod]
+        public void setMINFileSize_NoNumber()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsFalse(test.DoTheThing(new string[] { "/minfilesize=" }));
+
+            Assert.IsTrue(test.SearchTarget.CheckFileSize == false);
+        }
+
+
+        [TestMethod]
+        public void setMINFileSize_JustTheSuffix()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsFalse(test.DoTheThing(new string[] { "/minfilesize=GB" }));
+
+            Assert.IsTrue(test.SearchTarget.CheckFileSize == false);
+        }
+
+        [TestMethod]
+        public void setMAXFileSize_NoNumber()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsFalse(test.DoTheThing(new string[] { "/maxfilesize=" }));
+
+            Assert.IsTrue(test.SearchTarget.CheckFileSize == false);
+        }
+
+
+        [TestMethod]
+        public void setMAXFileSize_JustTheSuffix()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsFalse(test.DoTheThing(new string[] { "/minfilesize=GB" }));
+
+            Assert.IsTrue(test.SearchTarget.CheckFileSize == false);
+        }
+
+
+
+        [TestMethod]
+        public void setMINfilesize_bytes()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/minfilesize=12" }));
+
+            Assert.IsTrue(test.SearchTarget.FileSizeMin == 12);
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+
+        [TestMethod]
+        public void setMINfilesize_bytes_kilo()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/minfilesize=12KB" }));
+
+            Assert.IsTrue(test.SearchTarget.FileSizeMin == (12 * 1024));
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+
+        [TestMethod]
+        public void setMINfilesize_bytes_mega()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/minfilesize=12MB" }));
+
+            Assert.IsTrue(test.SearchTarget.FileSizeMin == (12 * 1024 * 1024));
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+
+        [TestMethod]
+        public void setMINfilesize_bytes_giga()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/minfilesize=12GB" }));
+
+            Assert.IsTrue(((UInt128)test.SearchTarget.FileSizeMin) == (((UInt128)12 * (UInt128)1024 * (UInt128)1024 * (UInt128)1024)));
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+        [TestMethod]
+        public void setMINfilesize_bytes_tb()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/minfilesize=12TB" }));
+
+            Assert.IsTrue(((UInt128)test.SearchTarget.FileSizeMin) == (((UInt128)12 * (UInt128)1024 * (UInt128)1024 * (UInt128)1024 * (UInt128)1024)));
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+        [TestMethod]
+        public void setMINfilesize_bytes_pb()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/minfilesize=12PB" }));
+
+            Assert.IsTrue(((UInt128)test.SearchTarget.FileSizeMin) == (((UInt128)12 * (UInt128)1024 * (UInt128)1024 * (UInt128)1024 * (UInt128)1024) * (UInt128)1024));
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+
+        
+        [TestMethod]
+        public void setMAXfilesize_bytes()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/maxfilesize=12" }));
+
+            Assert.IsTrue(test.SearchTarget.FileSizeMax == 12);
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+
+        [TestMethod]
+        public void setMAXfilesize_bytes_kilo()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/maxfilesize=12KB" }));
+
+            Assert.IsTrue(test.SearchTarget.FileSizeMax == (12*1024));
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+
+        [TestMethod]
+        public void setMAXfilesize_bytes_mega()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/maxfilesize=12MB" }));
+
+            Assert.IsTrue(test.SearchTarget.FileSizeMax == (12 * 1024 * 1024));
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+
+        [TestMethod]
+        public void setMAXfilesize_bytes_giga()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/maxfilesize=12GB" }));
+
+            Assert.IsTrue(((UInt128)test.SearchTarget.FileSizeMax) == (((UInt128)12 * (UInt128)1024 * (UInt128)1024 * (UInt128)1024)));
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+        [TestMethod]
+        public void setMAXfilesize_bytes_tb()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/maxfilesize=12TB" }));
+
+            Assert.IsTrue(((UInt128)test.SearchTarget.FileSizeMax) == (((UInt128)12 * (UInt128)1024 * (UInt128)1024 * (UInt128)1024 * (UInt128)1024)));
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+        [TestMethod]
+        public void setMAXfilesize_bytes_pb()
+        {
+            ArgHandling test = new ArgHandling();
+            Assert.IsTrue(test.DoTheThing(new string[] { "/maxfilesize=12PB" }));
+
+            Assert.IsTrue(((UInt128)test.SearchTarget.FileSizeMax) == (((UInt128)12 * (UInt128)1024 * (UInt128)1024 * (UInt128)1024 * (UInt128)1024) * (UInt128)1024));
+            Assert.IsTrue(test.SearchTarget.CheckFileSize);
+        }
+
+    }
+
+    [TestClass]
     public class ConsoleApp_ArgHandling_FileName_UnitTests
     {
 
