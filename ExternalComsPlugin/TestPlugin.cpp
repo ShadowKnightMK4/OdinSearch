@@ -17,6 +17,8 @@ std::wfstream* OutText;
 
 extern "C" {
 
+
+    
     /// <summary>
     /// As the protocol matures, release builds will have instances of it set in stone be assigned a version.  
     /// Currently this is not actually called 
@@ -29,7 +31,7 @@ extern "C" {
     }
 
     /// <summary>
-    /// Something wants to set a custom arg for the plugin.
+    /// Something wants to set a custom arg for the plugin. Not currently supported on the unmanaged side
     /// </summary>
     /// <param name="name"></param>
     void __declspec(dllexport) SetCustomArg(const wchar_t* name, LPVOID ArgValue)

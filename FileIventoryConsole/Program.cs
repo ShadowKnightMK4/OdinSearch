@@ -8,6 +8,7 @@ using FileInventoryConsole;
 using System.Data.Sql;
 using System.Text;
 using System.Reflection;
+using System.ComponentModel.Design;
 
 namespace FileIventoryConsole
 {   
@@ -16,6 +17,14 @@ namespace FileIventoryConsole
     /// </summary>
     static class Program
     {
+        static void DisplayArguments(string[] args)
+        {
+            foreach (string arg in args)
+            {
+                Console.WriteLine(arg);
+            }
+        }
+
 #if DEBUG
         static bool IsDebugMode = true;
 #else
@@ -25,11 +34,8 @@ namespace FileIventoryConsole
         {
             if (IsDebugMode)
             {
-                Console.Write("DEBUG BUILD: ");
-                foreach (string arg in args)
-                {
-                    Console.WriteLine(arg);
-                }
+                Console.WriteLine("DEBUG BUILD: ");
+                DisplayArguments(args);
                 Console.WriteLine("END DEBUG INFO:");
             }
             ArgHandling ArgHandling = new();
@@ -44,11 +50,30 @@ namespace FileIventoryConsole
                 else
                 {
 
+                    
                     ArgHandling.FinalizeCommands();
-                    if ( (ArgHandling.was_start_point_set == false) && (ArgHandling.was_wholemachine_flag_set == false))
+
+                    if (!ArgHandling.WantUserExplaination)
                     {
-                        Console.WriteLine("Error: Please specify a starting point via /anchor= or /anywhere");
-                        ArgHandling.Usage();
+                        if ((ArgHandling.was_start_point_set == false) && (ArgHandling.was_wholemachine_flag_set == false))
+                        {
+                            ArgHandling.Usage();
+
+                            Console.WriteLine("*******************");
+                            Console.WriteLine("Error: Please specify a starting point via /anchor= or /anywhere");
+                            Console.WriteLine("*******************");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("*******************");
+                        Console.WriteLine("Arguments were parses as follows with one on each line. If it's weird, check \" chars");
+                        DisplayArguments(args);
+                        Console.WriteLine("*******************");
+                        Console.WriteLine("Explaining what the arguments will do. To execute the commands drop the /explain flag");
+                        Console.WriteLine("*******************\r\n");
+                        ArgHandling.DisplayExplain();
                         return;
                     }
                 }

@@ -2,8 +2,9 @@
   "profiles": {
     "B": {
       "commandName": "Project",
-      "commandLineArgs": "FileInventoryConsole.exe /filename=*.dll;*.exe /anywhere /subfolders /outstream=C:\\temp\\\\Output.txt",
-      "nativeDebugging": false
+      "commandLineArgs": "/filename=\"*.exe*\"  /anchor=C:\\Euphoria  /subfolders /A=A /fileattrib_check=8 /minfilesize=4KB /maxfilesize=12GB /explain",
+      "nativeDebugging": false,
+      "remoteDebugEnabled": false
     }
   }
 }

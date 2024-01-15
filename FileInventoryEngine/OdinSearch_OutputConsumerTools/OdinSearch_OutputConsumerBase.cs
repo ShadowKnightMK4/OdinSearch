@@ -194,7 +194,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         }
 
         /// <summary>
-        /// Text output that's now a block or a file match
+        /// Text output that's not a block or a file match
         /// </summary>
         /// <param name="Message"></param>
         public virtual void Messaging(string Message)

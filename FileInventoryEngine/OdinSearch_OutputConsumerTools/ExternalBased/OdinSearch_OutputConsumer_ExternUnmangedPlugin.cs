@@ -8,13 +8,198 @@ using System.Runtime.Intrinsics.X86;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
+using static OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased.OdinSearch_OutputConsumer_PluginDelegates_Unmanaged1;
+
+namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
 {
+
     /// <summary>
-    /// Load a Dll holding an implementaion of our <see cref="OdinSearch_OutputConsumerBase"/> class with a few changes
+    /// This is thrown by <see cref="OdinSearch_OutputConsumer_UnmanagedPlugin"/> when the plugin reports it's not supported
+    /// </summary>
+    public class UnsupportedPluginException : Exception
+    {
+        public UnsupportedPluginException(string message) : base(message)
+        {
+        }
+    }
+    /// <summary>
+    /// This thing is reponsible for loading and handling the plugin protocol.
+    /// </summary>
+    internal sealed class UnmanagedPlugin_Loader : IDisposable
+    {
+        public enum PluginVersion : int
+        {
+            Version1 = 0
+        }
+
+        public readonly PluginVersion Version = PluginVersion.Version1;
+
+        public UnmanagedPlugin_Loader(string TargetDll)
+        {
+            DllContainer = NativeLibrary.Load(TargetDll);
+            nint ptr = NativeLibrary.GetExport(DllContainer, "PluginInit");
+
+
+            if (ptr != 0)
+            {
+                InitPlugin = Marshal.GetDelegateForFunctionPointer<InitPluginPtr>(ptr);
+                if (InitPlugin(Version) == 0)
+                {
+                    throw new UnsupportedPluginException("Plugin reports it does not support our protocol.");
+                }
+                else
+                {
+                    resolve_plugin();
+                }
+            }
+        }
+
+        nint DllContainer;
+
+        public void Dispose()
+        {
+            if (DllContainer != 0)
+            {
+                ExternCleanupPluginPtr?.Invoke();
+
+                NativeLibrary.Free(DllContainer);
+                DllContainer = 0;
+            }
+        }
+
+
+        #region version1
+
+        public AllDonePtr ExternAllDone = null;
+        public BlockedPtr ExternBlocked = null;
+        public HasPendingActionsPtr ExternPending = null;
+        public MatchPtr ExternMatch = null;
+        public MessagePtr ExternMessage = null;
+        public ResolveActionPtr ExternResolve = null;
+        public SeachBeginPtr ExternSearch = null;
+        public WasNotMatchedPtr ExternWasNotMatched = null;
+
+        void resolve_plugin()
+        {
+            ExternAllDone = Marshal.GetDelegateForFunctionPointer<AllDonePtr>(NativeLibrary.GetExport(DllContainer, "AllDone"));
+            ExternBlocked = Marshal.GetDelegateForFunctionPointer<BlockedPtr>(NativeLibrary.GetExport(DllContainer, "Blocked"));
+            ExternPending = Marshal.GetDelegateForFunctionPointer<HasPendingActionsPtr>(NativeLibrary.GetExport(DllContainer, "HasPendingActions"));
+            ExternMatch = Marshal.GetDelegateForFunctionPointer<MatchPtr>(NativeLibrary.GetExport(DllContainer, "Match"));
+            ExternMessage = Marshal.GetDelegateForFunctionPointer<MessagePtr>(NativeLibrary.GetExport(DllContainer, "Messaging"));
+            ExternResolve = Marshal.GetDelegateForFunctionPointer<ResolveActionPtr>(NativeLibrary.GetExport(DllContainer, "ResolvePendingActions"));
+            ExternSearch = Marshal.GetDelegateForFunctionPointer<SeachBeginPtr>(NativeLibrary.GetExport(DllContainer, "SearchBegin"));
+            ExternWasNotMatched = Marshal.GetDelegateForFunctionPointer<WasNotMatchedPtr>(NativeLibrary.GetExport(DllContainer, "WasNotMatched"));
+        }
+
+        #endregion
+
+
+        #region delgates types
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="supportedversion">min version the caller (that's us) supports</param>
+        /// <returns>your code should return non zero if ok and 0 if unsupported </returns>
+        delegate uint InitPluginPtr(PluginVersion supportedversion);
+
+        delegate void CleanUpPluginPtr();
+        CleanUpPluginPtr ExternCleanupPluginPtr = null;
+        #endregion
+
+        InitPluginPtr InitPlugin;
+    }
+
+
+
+
+    /// <summary>
     /// 
     /// </summary>
-    public class OdinSearch_OutputConsumer_ExternUnmangedPlugin: OdinSearch_OutputConsumerBase
+    public class OdinSearch_OutputConsumer_UnmanagedPlugin : OdinSearch_OutputConsumerBase
+    {
+        public OdinSearch_OutputConsumer_UnmanagedPlugin()
+        {
+
+        }
+
+        public override void AllDone()
+        {
+            ExternHandler.ExternAllDone();
+            base.AllDone();
+        }
+
+        public override void Match(FileSystemInfo info)
+        {
+            ExternHandler.ExternMatch(info.FullName);
+        }
+
+        public override void WasNotMatched(FileSystemInfo info)
+        {
+            ExternHandler.ExternWasNotMatched(info.FullName);
+        }
+
+
+        public override bool ResolvePendingActions()
+        {
+            if (ExternHandler.ExternPending != null)
+            {
+                return ExternHandler.ExternPending();
+            }
+            return base.ResolvePendingActions();
+        }
+        public override void Messaging(string Message)
+        {
+            ExternHandler.ExternMessage(Message);
+        }
+        public override bool SearchBegin(DateTime Start)
+        {
+            return ExternHandler.ExternSearch(Start.Ticks);
+        }
+
+        public override bool HasPendingActions()
+        {
+            if (ExternHandler.ExternPending != null)
+            {
+                return ExternHandler.ExternPending();
+            }
+            return base.HasPendingActions();
+        }
+        public override void Blocked(string Blocked)
+        {
+            ExternHandler.ExternBlocked(Blocked);
+            base.Blocked(Blocked);
+        }
+        public void SetPluginLocation(string PluginLocation)
+        {
+            if (ExternHandler != null)
+            {
+                ExternHandler.Dispose();
+
+            }
+            ExternHandler = new UnmanagedPlugin_Loader(PluginLocation);
+        }
+
+        UnmanagedPlugin_Loader ExternHandler;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (!disposing)
+            {
+                ExternHandler.Dispose();
+                ExternHandler = null;
+            }
+            base.Dispose(disposing);
+        }
+    }
+
+
+
+    /// <summary>
+    /// Load a Dll holding an implementaion of our <see cref="OdinSearch_OutputConsumerBase"/> class with a few changes
+    /// </summary>
+    /// <remarks>This class is intended to be an Example. There's not plans to modify this currently unless there's issues / bug fixes.</remarks>
+    [Obsolete("Fixed point in time. Still ok to use but won't be extended. Use OdinSearch_OutputConsumer_UnmanagedPlugin() if needing extra")]
+    public class OdinSearch_OutputConsumer_ExternUnmangedPlugin_Example : OdinSearch_OutputConsumerBase
     {
 
         /// <summary>
@@ -22,27 +207,28 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// </summary>
 
         public const string SetDllTarget = "SetDllTarget";
-        
+
         private nint GetProcAddr(nint Handle, string name)
         {
-            var ret = GetProcAddress(Handle, name);
+            var ret = NativeLibrary.GetExport(Handle, name);
             return ret;
         }
         nint DllHandle = 0;
         private bool LoadLibrary()
         {
+
             string Target = this[SetDllTarget] as string;
-         
+
             if (Target != null)
             {
-                DllHandle = LoadLibraryW(Target);
+                DllHandle = NativeLibrary.Load(SetDllTarget);
             }
             return DllHandle != 0;
         }
 
         private void FreeLibrary(nint Handle)
         {
-            FreeLibraryUnmanged(Handle);
+            NativeLibrary.Free(DllHandle);
         }
 #if WINDOWS
 
@@ -52,10 +238,10 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         static extern nint LoadLibraryW(string Target);
 
-        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint ="FreeLibrary")]
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode, EntryPoint = "FreeLibrary")]
         static extern bool FreeLibraryUnmanged(nint Target);
 #endif
-        
+
         public bool ResolvePointers(string TargetDll)
         {
 #if WINDOWS
@@ -82,7 +268,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         AllDonePtr ExternAllDone = null;
         public override void AllDone()
         {
-            if ( (Disposed))
+            if (Disposed)
             {
                 throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
             }
@@ -95,7 +281,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         BlockedPtr ExternBlock = null;
         public override void Blocked(string Blocked)
         {
-            if ((Disposed))
+            if (Disposed)
             {
                 throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
             }
@@ -109,7 +295,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         HasPendingActionsPtr ExternPending = null;
         public override bool HasPendingActions()
         {
-            if ((Disposed))
+            if (Disposed)
             {
                 throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
             }
@@ -129,7 +315,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <remarks>Passes the full path as a unicode string. It's up to the external routine to do what it needs to do</remarks>
         public override void Match(FileSystemInfo info)
         {
-            if ((Disposed))
+            if (Disposed)
             {
                 throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
             }
@@ -142,7 +328,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         MessagePtr ExternMessage = null;
         public override void Messaging(string Message)
         {
-            if ((Disposed))
+            if (Disposed)
             {
                 throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
             }
@@ -157,7 +343,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         ResolveActionPtr ExternResolve = null;
         public override bool ResolvePendingActions()
         {
-            if ((Disposed))
+            if (Disposed)
             {
                 throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
             }
@@ -167,7 +353,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
             return base.ResolvePendingActions();
         }
 
-        delegate bool SeachBeginPtr(Int64 Univeral);
+        delegate bool SeachBeginPtr(long Univeral);
         SeachBeginPtr ExternSearch = null;
         /// <summary>
         /// SearchBegin for the C level plugin.  The Ticks value of the DateTime start is passed
@@ -176,14 +362,14 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <returns></returns>
         public override bool SearchBegin(DateTime Start)
         {
-            if ((Disposed))
+            if (Disposed)
             {
                 throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
             }
 
             if (ExternSearch == null)
             {
-                this.ResolvePointers(GetCustomParameter(SetDllTarget) as string);
+                ResolvePointers(GetCustomParameter(SetDllTarget) as string);
             }
 
             if (ExternSearch != null)
@@ -200,7 +386,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <param name="info"></param>
         public override void WasNotMatched(FileSystemInfo info)
         {
-            if ((Disposed))
+            if (Disposed)
             {
                 throw new ObjectDisposedException("This instance was disposed and no longer has access to the external plugin");
             }
@@ -220,7 +406,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                     {
                         FreeLibrary(DllHandle);
                     }
-                    base.Dispose();
+                    Dispose();
                 }
             }
             base.Dispose(disposing);
