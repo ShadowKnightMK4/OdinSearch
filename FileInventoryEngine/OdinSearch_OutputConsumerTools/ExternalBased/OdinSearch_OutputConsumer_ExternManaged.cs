@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -20,11 +21,14 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
     /// <remarks>There's no guarentee that this wont change as needed. You're welcome to use it. </remarks>
     internal sealed class AssemblyLoading_Net7: IDisposable
     {
+        
         static Type[] WasNotMatchedArgs = { typeof(FileSystemInfo) };
         static Type[] WasMatchedArgs = WasNotMatchedArgs;
         static Type[] BlockedArgs = { typeof(string) };
         static Type[] MessagingArg = BlockedArgs;
         static Type[] SearchBeginArg = { typeof(DateTime) };
+
+        
         List<Type> ImportedTypes = new();
         Assembly Remote = null;
         object CurrentObject;
@@ -74,6 +78,11 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
         {
             return (bool)t.GetMethod("ResolvePendingActions", Array.Empty<Type>()).Invoke(that, null);
         }
+
+        /// <summary>
+        /// Get a list of all loaded class types we have
+        /// </summary>
+        /// <returns></returns>
         public ReadOnlyCollection<Type> GetSupportedPluginList()
         {
             var rt =  ImportedTypes.AsReadOnly();
@@ -93,7 +102,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
 
         }
         /// <summary>
-        /// 
+        /// select a class previous loadaed via <see cref="SetTargetLocation(string, string)"/>
         /// </summary>
         /// <param name="ClassName"></param>
         /// <exception cref="EntryPointNotFoundException">If your classname is not there</exception>
@@ -112,24 +121,47 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
             throw new EntryPointNotFoundException(ClassName);
         }
 
+        /// <summary>
+        /// Get the current type we are working with
+        /// </summary>
+        /// <returns></returns>
         public Type GetCurrentReflectType()
         {
             return CurrentType;
         }
 
+        /// <summary>
+        /// Get the current object instance of <see cref="GetCurrentReflectType"/> we are working with
+        /// </summary>
+        /// <returns></returns>
         public object GetCurrentReflectClass()
         {
             return CurrentObject;
         }
+        /// <summary>
+        /// Load this assembly and get all public classes that have the metadata with this name
+        /// </summary>
+        /// <param name="location"></param>
+        /// <param name="MetaDataName"></param>
+        /// <exception cref="PluginCertificateCheckFailException">thrown if plugin fails the <see cref="OdinSearch_OutputConsumer_PluginCheck.CheckForCertificate(string)/> test</exception>
         public void SetTargetLocation(string location, string MetaDataName)
         {
-            bool KeepIt = false;
+            bool KeepIt;
+
+
             if (Remote != null)
             {
-                // TODO: code to free the loaded assembly/
                 Remote = null;
                 ImportedTypes = new List<Type>();
             }
+
+            // first check and issue the fail if it wails
+            if (!OdinSearch_OutputConsumer_PluginCheck.CheckForCertificate(location))
+            {
+                throw new PluginCertificateCheckFailException(location);
+            }
+
+            // load the assembly and loop thru each exported class, getting the types that have the metadataname tag
             Remote = Assembly.LoadFrom(location);
             if (Remote != null)
             {
@@ -171,6 +203,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
         /// <param name="AssemblyLocation"></param>
         /// <param name="MetaDataName"></param>
         /// <param name="classname"></param>
+        /// <exception cref="EntryPointNotFoundException">This can be thrown if a class name with the specific metadata is not found</exception>
         public OdinSearch_OutputConsumer_ExternManaged(string AssemblyLocation,  string MetaDataName , string classname)
         {
             loader = new AssemblyLoading_Net7();
@@ -205,12 +238,17 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
             base.Blocked(Blocked);
         }
 
+        /// <summary>
+        /// For this instance, we got to remember to dispose the base FIRST due to us having points to dispose in our 
+        /// </summary>
+        /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
             AssemblyLoading_Net7.Invoke_Dispose(loader.GetCurrentReflectType(), loader.GetCurrentReflectClass());
+            
+            base.Dispose(disposing);
             this.loader.Dispose();
             loader = null;
-            base.Dispose(disposing);
         }
 
         public override bool HasPendingActions()

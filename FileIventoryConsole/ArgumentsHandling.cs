@@ -13,6 +13,7 @@ using System.Text;
 using System.Threading;
 using OdinSearchEngine;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBased;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -70,7 +71,7 @@ namespace FileInventoryConsole
         /// </summary>
         /// <param name="SearchTarget"></param>
         /// <param name="SearchAnchor"></param>
-        public static void DisplayExplain(SearchTarget SearchTarget, SearchAnchor SearchAnchor)
+        public static void DisplayExplain(SearchTarget SearchTarget, SearchAnchor SearchAnchor, ArgHandling that)
         {
 
             Console.Write("We are searching for ");
@@ -82,6 +83,7 @@ namespace FileInventoryConsole
             ExplainDateTimeMatch(SearchTarget, ExplainDateTimeFlag.Modified1);
             ExplainAnchors(SearchAnchor);
             ExplainSize(SearchTarget);
+            ExplainOutputConsumer(that);
         }
 
         static string[] size_strings = { "B", "KB", "MB", "GB", "PB", "EB", "PB" };
@@ -95,6 +97,62 @@ namespace FileInventoryConsole
                 offset++;
             }
             return vis_display.ToString() + size_strings[offset];
+        }
+
+        static void ExplainOutputConsumer(ArgHandling that)
+        {
+            if (!that.WasOutStreamSet)
+            {
+                if ( (that.WasNetPluginSet == that.WasUnmanagedPluginSet) && (that.WasNetPluginSet == true))
+                {
+                    Console.WriteLine("The match can't proceed due to setting multiple plugins with /managed and /plugin. Pick one please.");
+                    return;
+                }
+                if (that.WasUnmanagedPluginSet)
+                {
+                    Console.WriteLine(string.Format("The unmanaged plugin was set ok with /plugin argument to load {0}.", that.ExternalPluginDll));
+                }
+                if (that.WasNetPluginSet)
+                {
+                    Console.WriteLine(string.Format("The .NET based plugin was set ok with /managed argument to load {0}.", that.ExternalPluginDll));
+                    if (that.PluginHasClassNameSet)
+                    {
+                        Console.WriteLine(string.Format("The .NET plugin controller object is set to {0}.", that.ExternalPluginName));
+                    }
+                    else
+                    {
+                        Console.WriteLine("There's a problem. The .NET plugin controller was not specified with /class. That's required");
+                    }
+                }
+
+            }
+            else
+            {
+                if ((that.WasNetPluginSet == that.WasUnmanagedPluginSet) && (that.WasNetPluginSet == true))
+                {
+                    Console.WriteLine("The match can't proceed due to setting multiple plugins with /managed and /plugin. Pick one please.");
+                    return;
+                }
+
+                string outtarget;
+                string outformat;
+                switch (that.TargetStreamHandling)
+                {
+                    case ArgHandling.ConsoleLines.NoRedirect: outtarget = that.TargetStream.Name; break;
+                    case ArgHandling.ConsoleLines.Stderr: outtarget = "stderr on the console"; break;
+                    case ArgHandling.ConsoleLines.Stdout: outtarget = "stdout on the console"; break;
+                    default: outtarget = "ERROR ERROR"; break;
+                }
+
+                switch (that.UserFormat)
+                {
+                    case ArgHandling.TargetFormat.CVSFile: outformat = "Excel Comma delimited file"; break;
+                    case ArgHandling.TargetFormat.Unicode: outformat = "Unicode Text File"; break;
+                    default: outformat = "ERROR ERROR"; break;
+                }
+
+                Console.WriteLine(string.Format("The match is to output to {0} with the format off {1}.", outtarget, outformat));
+            }
         }
         static void ExplainSize(SearchTarget Target)
         {
@@ -635,13 +693,18 @@ namespace FileInventoryConsole
         public bool WasLastAccessDateSet { get; private set; }
         
         /// <summary>
-        /// triggers on /plugin and /managed
+        /// triggers on /managed
         /// </summary>
-        public bool WasPluginSet { get; private set; }
-    /// <summary>
-    /// triggers on /classname
-    /// </summary>
-    public bool PluginHasManagedClass { get; private set; }
+        public bool WasNetPluginSet { get; private set; }
+
+        /// <summary>
+        /// /managed
+        /// </summary>
+        public bool WasUnmanagedPluginSet { get; private set; }
+        /// <summary>
+        /// triggers on /class
+        /// </summary>
+        public bool PluginHasClassNameSet { get; private set; }
 
         
         public bool WasOutFormatSet { get; private set; }
@@ -658,12 +721,38 @@ namespace FileInventoryConsole
         /// triggers on /A and /fileattrib
         /// </summary>
         public bool was_fileattribs_set { get; private set; }
-        public bool was_anyfile_flag_set { get; private set; }
-        public bool was_start_point_set { get; private set; }
-        public bool was_wholemachine_flag_set { get; private set; }
 
-        public bool AllowUntrustedPlugin { get; private set; }
+        /// <summary>
+        /// This flag triggers on /anyfile set
+        /// </summary>
+        public bool WasAnyFileSet { get; private set; }
 
+        /// <summary>
+        /// This flag triggers on was /anchor= or was /anywhere set
+        /// </summary>
+        public bool WasStartPointSet { get; private set; }
+
+        /// <summary>
+        /// This flag trigers on /anywhere flag.
+        /// </summary>
+        public bool WasWholeMachineSet { get; private set; }
+
+
+        /// <summary>
+        /// This flag controls if we are go for attempting unsigned plugin loading and has different defaults.
+        /// For DEBUG builds default is yes.
+        /// For RELEASE builds default is no.
+        /// </summary>
+        public bool AllowUntrustedPlugin
+        {
+            get => BackingAllowUnTrusted;
+            private set => BackingAllowUnTrusted = value;
+        }
+#if DEBUG
+        private bool BackingAllowUnTrusted = true;
+#else
+        private bool BackingAllowUnTrusted = false;
+#endif
 
         /// <summary>
         /// did the user note they want only just the matching location?
@@ -681,7 +770,7 @@ namespace FileInventoryConsole
         /// </summary>
         public void DisplayExplain()
         {
-            ArgHandlingExplainHandling.DisplayExplain(SearchTarget, SearchAnchor);
+            ArgHandlingExplainHandling.DisplayExplain(SearchTarget, SearchAnchor, this);
         }
         /// <summary>
         /// display the embedded banner file and include the build version info.
@@ -1316,7 +1405,7 @@ namespace FileInventoryConsole
 
             if (low.StartsWith(FlagSpecialAnyFile))
             {
-                was_anyfile_flag_set = true; return true;
+                WasAnyFileSet = true; return true;
 
             }
 
@@ -1529,8 +1618,8 @@ namespace FileInventoryConsole
                 string low_part = arg[step].Substring(FlagSetSpecifiedUnmanagedPlugin.Length);
                 ExternalPluginDll = ArgHandling.Trim(low_part);
                 ExternalPluginName = null;
-                WasPluginSet = true;
-                this.PluginHasManagedClass = false;
+                WasUnmanagedPluginSet = true;
+                this.PluginHasClassNameSet = false;
                 return true;
             }
 
@@ -1538,23 +1627,22 @@ namespace FileInventoryConsole
             {
                 string low_part = arg[step].Substring(FlagSetSpecifiedNETPlugin.Length);
                 ExternalPluginDll = ArgHandling.Trim(low_part);
-                ExternalPluginName = string.Empty;
-                WasPluginSet = true;
+                WasNetPluginSet = true;
                 
                 return true;
             }
 
             if (low.StartsWith(FlagToNetPluginClassName))
             {
-                string low_part = arg[step].Substring(FlagSetSpecifiedNETPlugin.Length);
+                string low_part = arg[step].Substring(FlagToNetPluginClassName.Length);
                 ExternalPluginName = low_part;
-                PluginHasManagedClass = true;
+                PluginHasClassNameSet = true;
                 return true;
             }
 
             if (low.StartsWith(FlagSpecialAnyWhere))
             {
-                was_wholemachine_flag_set = true;
+                WasWholeMachineSet = true;
                 return true;
             }
 
@@ -1614,7 +1702,7 @@ namespace FileInventoryConsole
                 if (Directory.Exists(low_part))
                 {
                     SearchAnchor.AddAnchor(low_part);
-                    was_start_point_set = true;
+                    WasStartPointSet = true;
                     return true;
                 }
                 else
@@ -1627,7 +1715,7 @@ namespace FileInventoryConsole
                     {
                         if (HandlePossibleMultipleFilePath(low_part, SearchAnchor))
                         {
-                            was_start_point_set = true;
+                            WasStartPointSet = true;
                             return true;
                         }
                         else
@@ -1678,7 +1766,7 @@ namespace FileInventoryConsole
         private  OdinSearch_OutputConsumerBase ResolveOutFormatAndPlugins()
         {
             OdinSearch_OutputConsumerBase ret = null;
-            if (!WasPluginSet)
+            if (!WasNetPluginSet)
             {
                 
                 
@@ -1724,14 +1812,13 @@ namespace FileInventoryConsole
             }
             else
             {
-                if (PluginHasManagedClass == false)
+                if (PluginHasClassNameSet == false)
                 {
-                    //ret = new OdinSearch_OutputConsumer_ExternUnmangedPlugin();
-                    //ret[OdinSearch_OutputConsumer_ExternUnmangedPlugin.SetDllTarget] = this.DesiredPlugin;
+                    ret = new OdinSearch_OutputConsumer_UnmanagedPlugin(ExternalPluginDll);
                 }
-                //else
+                else
                 {
-                    throw new NotImplementedException("managed plugin not done yet");
+                    ret = new OdinSearch_OutputConsumer_ExternManaged(ExternalPluginDll, null, ExternalPluginName);
                 }
             }
             
@@ -1757,7 +1844,7 @@ namespace FileInventoryConsole
 
             
 
-            if ( (WasFileNameSet == true) || (was_anyfile_flag_set == false))
+            if ( (WasFileNameSet == true) || (WasAnyFileSet == false))
             {
 
                 if (!WasFileNameSet)
@@ -1846,7 +1933,7 @@ namespace FileInventoryConsole
 
             }
 
-            if ((was_wholemachine_flag_set) || (!was_start_point_set))
+            if ((WasWholeMachineSet) || (!WasStartPointSet))
             {
                 //if (was_wholemachine_flag_set)
                 {

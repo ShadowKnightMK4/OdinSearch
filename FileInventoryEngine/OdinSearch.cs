@@ -116,11 +116,14 @@ namespace OdinSearchEngine
         /// </summary>
         public void WorkerThread_ResolveComs()
         {
-            foreach (var T in WorkerThreads)
+            if (WorkerThreads.Count != 0)
             {
-                if (T.Thread.IsAlive == false)
+                foreach (var T in WorkerThreads)
                 {
-                    T.Args.Coms.ResolvePendingActions();
+                    if (T.Thread.IsAlive == false)
+                    {
+                        T.Args.Coms.ResolvePendingActions();
+                    }
                 }
             }
         }

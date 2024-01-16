@@ -9,6 +9,8 @@ using System.Data.Sql;
 using System.Text;
 using System.Reflection;
 using System.ComponentModel.Design;
+using System.Security.Cryptography.X509Certificates;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased;
 
 namespace FileIventoryConsole
 {   
@@ -32,10 +34,14 @@ namespace FileIventoryConsole
 #endif
         static void Main(string[] args)
         {
+
+            OdinSearch_OutputConsumer_PluginCheck.Init();
             if (IsDebugMode)
             {
                 Console.WriteLine("DEBUG BUILD: ");
                 DisplayArguments(args);
+                Console.WriteLine("Status Messages follow:");
+                Console.WriteLine("Plugin cert signed only status: " + OdinSearch_OutputConsumer_PluginCheck.WeAreSigned);
                 Console.WriteLine("END DEBUG INFO:");
             }
             ArgHandling ArgHandling = new();
@@ -52,10 +58,15 @@ namespace FileIventoryConsole
 
                     
                     ArgHandling.FinalizeCommands();
-
+                    if (ArgHandling.AllowUntrustedPlugin)
+                    {
+                        // this code functionally disables the guard to prevent loading extern DLL/whatever in the plugin path if unsigned.
+                        OdinSearch_OutputConsumer_PluginCheck.CheckAgainstThis?.Dispose();
+                        OdinSearch_OutputConsumer_PluginCheck.CheckAgainstThis = null;
+                    }
                     if (!ArgHandling.WantUserExplaination)
                     {
-                        if ((ArgHandling.was_start_point_set == false) && (ArgHandling.was_wholemachine_flag_set == false))
+                        if ((ArgHandling.WasStartPointSet == false) && (ArgHandling.WasWholeMachineSet == false))
                         {
                             ArgHandling.Usage();
 
@@ -63,6 +74,13 @@ namespace FileIventoryConsole
                             Console.WriteLine("Error: Please specify a starting point via /anchor= or /anywhere");
                             Console.WriteLine("*******************");
                             return;
+                        }
+
+                        if ((ArgHandling.WasNetPluginSet) && (ArgHandling.PluginHasClassNameSet == false))
+                        {
+                            Console.WriteLine("*******************");
+                            Console.WriteLine("Error: Please specify a classname to use out of the NET plugin set by /managed= by using /class=");
+                            Console.WriteLine("*******************");
                         }
                     }
                     else
