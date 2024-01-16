@@ -389,8 +389,8 @@ namespace ConsoleAppUnitTests
         {
             ArgHandling testme = new ArgHandling();
             Assert.IsTrue(testme.DoTheThing(new string[] { "/anywhere", "/anchor=C:\\Windows" }));
-            Assert.IsTrue(testme.was_wholemachine_flag_set);
-            Assert.IsTrue(testme.was_start_point_set);
+            Assert.IsTrue(testme.WasWholeMachineSet);
+            Assert.IsTrue(testme.WasStartPointSet);
             testme.FinalizeCommands();
             SearchAnchor Default = new SearchAnchor(true);
             if (Default.roots.Count != testme.SearchAnchor.roots.Count)
@@ -421,8 +421,8 @@ namespace ConsoleAppUnitTests
         {
             ArgHandling testme = new ArgHandling();
             Assert.IsTrue(testme.DoTheThing(new string[] { "-F" }));
-            Assert.IsFalse(testme.was_wholemachine_flag_set);
-            Assert.IsFalse(testme.was_start_point_set);
+            Assert.IsFalse(testme.WasWholeMachineSet);
+            Assert.IsFalse(testme.WasStartPointSet);
             testme.FinalizeCommands();
             SearchAnchor Default = new SearchAnchor(true);
             if (Default.roots.Count != testme.SearchAnchor.roots.Count)
@@ -454,8 +454,8 @@ namespace ConsoleAppUnitTests
         {
             ArgHandling testme = new ArgHandling();
             Assert.IsTrue(testme.DoTheThing(new string[] { "/anywhere" }));
-            Assert.IsTrue(testme.was_wholemachine_flag_set);
-            Assert.IsTrue(testme.was_start_point_set == false);
+            Assert.IsTrue(testme.WasWholeMachineSet);
+            Assert.IsTrue(testme.WasStartPointSet == false);
 
             testme.FinalizeCommands();
             SearchAnchor Default = new SearchAnchor(true);
@@ -816,7 +816,7 @@ namespace ConsoleAppUnitTests
             // need something safe but does not actuallly matter here. 
             Assert.IsTrue(testme.DoTheThing(new string[] { "-F" }));
 
-            if (testme.was_anyfile_flag_set == true)
+            if (testme.WasAnyFileSet == true)
             {
                 Console.WriteLine("Warning: was anyflag_set set incorrect. Functioanlliy is ok long as FinalizeCommand() will be called before using the results");
             }
@@ -1687,7 +1687,7 @@ namespace ConsoleAppUnitTests
         {
             ArgHandling testme = new ArgHandling();
             testme.DoTheThing(new string[] { "/anyfile" });
-            Assert.IsTrue(testme.was_anyfile_flag_set);
+            Assert.IsTrue(testme.WasAnyFileSet);
         }
 
         [TestMethod]
@@ -1695,7 +1695,7 @@ namespace ConsoleAppUnitTests
         {
             ArgHandling testme = new ArgHandling();
             testme.DoTheThing(new string[] { "/anywhere" });
-            Assert.IsTrue(testme.was_wholemachine_flag_set); ;
+            Assert.IsTrue(testme.WasWholeMachineSet); ;
         }
 
 

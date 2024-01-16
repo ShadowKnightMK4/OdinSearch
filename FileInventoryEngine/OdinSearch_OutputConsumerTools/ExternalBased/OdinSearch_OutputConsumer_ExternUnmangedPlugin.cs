@@ -113,13 +113,18 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
 
 
     /// <summary>
-    /// 
+    /// load and deal with an implementation of the communcation class - unmanaged protocol.
     /// </summary>
     public class OdinSearch_OutputConsumer_UnmanagedPlugin : OdinSearch_OutputConsumerBase
     {
         public OdinSearch_OutputConsumer_UnmanagedPlugin()
         {
 
+        }
+
+        public OdinSearch_OutputConsumer_UnmanagedPlugin(string location)
+        {
+            SetPluginLocation(location);
         }
 
         public override void AllDone()
@@ -169,18 +174,23 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
             ExternHandler.ExternBlocked(Blocked);
             base.Blocked(Blocked);
         }
+
+        /// <summary>
+        /// Tell this class where the plugin is located in the file systme
+        /// </summary>
+        /// <param name="PluginLocation">a shared library (Windows DLL or Linux SO)</param>
         public void SetPluginLocation(string PluginLocation)
         {
-            if (ExternHandler != null)
-            {
-                ExternHandler.Dispose();
-
-            }
+            ExternHandler?.Dispose();
             ExternHandler = new UnmanagedPlugin_Loader(PluginLocation);
         }
 
         UnmanagedPlugin_Loader ExternHandler;
 
+        /// <summary>
+        /// Release the loaded plugin
+        /// </summary>
+        /// <param name="disposing"></param>
         protected override void Dispose(bool disposing)
         {
             if (!disposing)
@@ -197,7 +207,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
     /// <summary>
     /// Load a Dll holding an implementaion of our <see cref="OdinSearch_OutputConsumerBase"/> class with a few changes
     /// </summary>
-    /// <remarks>This class is intended to be an Example. There's not plans to modify this currently unless there's issues / bug fixes.</remarks>
+    /// <remarks>This class is intended to be an Example. There's not plans to modify this currently unless there's issues / bug fixes. IMPORTANT: This does not check if the loaded dll/so file is signed</remarks>
     [Obsolete("Fixed point in time. Still ok to use but won't be extended. Use OdinSearch_OutputConsumer_UnmanagedPlugin() if needing extra")]
     public class OdinSearch_OutputConsumer_ExternUnmangedPlugin_Example : OdinSearch_OutputConsumerBase
     {
