@@ -27,6 +27,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ExampleOdinSearchExternPlug
 		UnmanagedPluginDLL_Format.txt = UnmanagedPluginDLL_Format.txt
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Binaries", "Binaries", "{65E6A302-2EED-498B-83EA-E34FA10831C5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -118,6 +120,7 @@ Global
 		{1603B8E3-1DDC-4B53-BCE2-661C00620887} = {B4FE03EB-F197-49F6-BF47-DE4F21028C22}
 		{4D421B5F-2ECB-4289-A95D-1D447C8FC309} = {0569C557-86A3-4BAC-AB2F-EB97D4518667}
 		{83535F8A-515D-4DCC-BCAA-4795377527E4} = {B4FE03EB-F197-49F6-BF47-DE4F21028C22}
+		{65E6A302-2EED-498B-83EA-E34FA10831C5} = {D30EEDF9-4BAB-4B2E-B1B8-EC6282A3A594}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {98AA216C-BA54-46B3-8E60-9B64362AADCC}
