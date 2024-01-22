@@ -8,11 +8,13 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using OdinSearchEngine;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools.CmdProcessorTools;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBased;
 using static System.Net.Mime.MediaTypeNames;
@@ -146,7 +148,7 @@ namespace FileInventoryConsole
 
                 switch (that.UserFormat)
                 {
-                    case ArgHandling.TargetFormat.CVSFile: outformat = "Excel Comma delimited file"; break;
+                    case ArgHandling.TargetFormat.CSVFile: outformat = "Excel Comma delimited file"; break;
                     case ArgHandling.TargetFormat.Unicode: outformat = "Unicode Text File"; break;
                     default: outformat = "ERROR ERROR"; break;
                 }
@@ -198,7 +200,7 @@ namespace FileInventoryConsole
             }
         }
         /// <summary>
-        /// This makes aassumes that the arg processing will set the date time currently as its does, should that change, this will need to be updated 
+        /// This makes assumes that the arg processing will set the date time currently as its does, should that change, this will need to be updated 
         /// </summary>
         /// <param name="Target"></param>
         /// <param name="mode"></param>
@@ -471,6 +473,7 @@ namespace FileInventoryConsole
         const string FlagEnumSubfolder = "/subfolders";
         #endregion
 
+        const string FlagSetAction = "/action=";
         /// <summary>
         /// This string is used set if <see cref="OdinSearch_OutputConsole"/> will output only the name. Ignored if not using that class. Currently only for outputing as unicode text
         /// </summary>
@@ -584,7 +587,7 @@ namespace FileInventoryConsole
             // error, should fail
             Error=0,
             // the excal CSV fle
-            CVSFile = 1,
+            CSVFile = 1,
             // unicode text
             Unicode = 2
         }
@@ -664,6 +667,29 @@ namespace FileInventoryConsole
         /// </summary>
         public string ExternalPluginName;
 
+        public enum ActionCommand
+        {
+            /// <summary>
+            /// Nothing set
+            /// </summary>
+            None = 0,
+            /// <summary>
+            /// On Windows Cmd.exe
+            /// </summary>
+            CmdShell = 1,
+            /// <summary>
+            /// On Linux Bash
+            /// </summary>
+            BashShell = CmdShell,
+            /// <summary>
+            /// On Windows. PowerShell
+            /// </summary>
+            PowerShell = 2
+        }
+
+        public ActionCommand UserAction { get; private set; }
+        public bool WasActionSet { get; private set; }
+
         /// <summary>
         /// Is set to be what to search for on finish
         /// </summary>
@@ -693,7 +719,7 @@ namespace FileInventoryConsole
         public bool WasLastAccessDateSet { get; private set; }
         
         /// <summary>
-        /// triggers on /managed
+        /// triggers on /managed flag being found
         /// </summary>
         public bool WasNetPluginSet { get; private set; }
 
@@ -739,7 +765,7 @@ namespace FileInventoryConsole
 
 
         /// <summary>
-        /// This flag controls if we are go for attempting unsigned plugin loading and has different defaults.
+        /// This flag controls if we are go for attempting unsigned plugin loading and has different defaults if we're working with DEBUG vs RELEASE
         /// For DEBUG builds default is yes.
         /// For RELEASE builds default is no.
         /// </summary>
@@ -758,9 +784,23 @@ namespace FileInventoryConsole
         /// did the user note they want only just the matching location?
         /// </summary>
         public bool FlagJustFileName { get; private set; }
+
+        /// <summary>
+        /// does the user want to go into each subfolder found too.  /subfolders
+        /// </summary>
         public bool WantSubFoldersAlso { get; private set; }
+
+        /// <summary>
+        /// Has the user specified how to compare filename or directory paths aka /filecompare =
+        /// </summary>
         public bool WasFileCompareSet { get; private set; }
+
+
+        /// <summary>
+        ///  Does the user want an explaination of settings?
+        /// </summary>
         public bool WantUserExplaination { get; private set; }
+        
 
 
 
@@ -800,7 +840,6 @@ namespace FileInventoryConsole
             var Self = Assembly.GetCallingAssembly().GetManifestResourceNames();
             foreach (string s in Self)
             {
-                //if (s.EndsWith("Resources.UsageText.txt"))
                 if (s.EndsWith(ResourceSuffix))
                 {
                     using (var SelfStream = Assembly.GetCallingAssembly().GetManifestResourceStream(s))
@@ -821,6 +860,10 @@ namespace FileInventoryConsole
             }
             
         }
+
+        /// <summary>
+        /// There is a bit of common code in /filename and /fullname comparing. This controls the mode and where to stash results
+        /// </summary>
         enum ProcesFlagWildcardMode
         {
             UseFileOut = 1,
@@ -999,6 +1042,41 @@ namespace FileInventoryConsole
 
                 }
                 
+            }
+
+            bool DealWithAction(string Action)
+            {
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    switch (Action)
+                    {
+                        case "bash":
+                            UserAction = ActionCommand.BashShell;
+                            WasActionSet = true;
+                            return true;
+                        default: return false;
+                    }
+
+                }
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    switch (Action)
+                    {
+                        case "cmd":
+                        case "cmdshell":
+                            UserAction = ActionCommand.CmdShell;
+                            WasActionSet = true;
+                            return true;
+                        case "powershell":
+                        case "ps":
+                            UserAction = ActionCommand.PowerShell;
+                            WasActionSet = true;
+                            return true;
+                        default: return false;
+                    }
+                }
+
+                return false;
             }
            /* this attacks the ussue by first attempting to try parsing.
              * Should this fail, we resort to just case insensitive matching hardcoded enum values.
@@ -1348,6 +1426,7 @@ namespace FileInventoryConsole
                 loc = null;
                 return false;
             }
+
             // used to split '*.dll;*.exe' into multiple search targets for SeachTarget
             bool SplitWildcards(string target, ProcesFlagWildcardMode usefile)
             {
@@ -1392,8 +1471,8 @@ namespace FileInventoryConsole
                     case "unicode":
                         UserFormat = TargetFormat.Unicode;
                         break;
-                    case "cvsfile":
-                        UserFormat = TargetFormat.CVSFile;
+                    case "csvfile":
+                        UserFormat = TargetFormat.CSVFile;
                         break;
                     default:
                         UserFormat = TargetFormat.Error;
@@ -1726,6 +1805,7 @@ namespace FileInventoryConsole
                 }
             }
 
+            
             /*
              * this check is due to both commands starting with the same letter
              * Should you move this to where anchor is checked afterwards. Ensure the && test is kept
@@ -1740,6 +1820,17 @@ namespace FileInventoryConsole
                 }
             }
 
+
+            if (low.StartsWith(FlagSetAction) )
+            {
+                string low_part = arg[step].Substring(FlagSetAction.Length);
+                if (DealWithAction(low_part))
+                {
+                    WasActionSet = true;
+                    return true;
+                }
+
+            }
             return false;
         }
 
@@ -1768,7 +1859,21 @@ namespace FileInventoryConsole
             OdinSearch_OutputConsumerBase ret = null;
             if (!WasNetPluginSet)
             {
-                
+                if (WasActionSet)
+                {
+                    switch (UserAction)
+                    {
+                        case ActionCommand.CmdShell:
+                            ret = new OdinSearch_OutputConsumer_CmdProcessor();
+                            break;
+                        case ActionCommand.PowerShell:
+                            ret = new OdinSearch_OutputConsumer_PowerShell();
+                            break;
+                        default:
+                            return null;
+                            break;
+                    }
+                }
                 
                 switch (TargetStreamHandling)
                 {
@@ -1781,7 +1886,7 @@ namespace FileInventoryConsole
                                 ret[OdinSearch_OutputConsole.FlushAlways] = true;
                                 ret[OdinSearch_OutputConsole.OutputOnlyFileName] = FlagJustFileName;
                                 break;
-                            case TargetFormat.CVSFile:
+                            case TargetFormat.CSVFile:
                                 ret = new OdinSearchOutputCVSWriter();
                                 ret[OdinSearchOutputCVSWriter.MatchStream] = this.TargetStream;
                                 ret[OdinSearchOutputCVSWriter.FlushAlways] = true;

@@ -11,6 +11,7 @@ using System.Reflection;
 using System.ComponentModel.Design;
 using System.Security.Cryptography.X509Certificates;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools.CmdProcessorTools;
 
 namespace FileIventoryConsole
 {   
@@ -34,6 +35,10 @@ namespace FileIventoryConsole
 #endif
         static void Main(string[] args)
         {
+
+
+            #region scracth pad
+            #endregion
 
             OdinSearch_OutputConsumer_PluginCheck.Init();
             if (IsDebugMode)
@@ -78,8 +83,17 @@ namespace FileIventoryConsole
 
                         if ((ArgHandling.WasNetPluginSet) && (ArgHandling.PluginHasClassNameSet == false))
                         {
+                            ArgHandling.Usage();
                             Console.WriteLine("*******************");
                             Console.WriteLine("Error: Please specify a classname to use out of the NET plugin set by /managed= by using /class=");
+                            Console.WriteLine("*******************");
+                        }
+
+                        if (!(ArgHandling.WasOutStreamSet ^ ArgHandling.WasActionSet ^ ArgHandling.WasNetPluginSet ^ ArgHandling.WasUnmanagedPluginSet))
+                        {
+                            ArgHandling.Usage();
+                            Console.WriteLine("*******************");
+                            Console.WriteLine("Error: Please use either the /outstream settings, the /action settings the /managed setting or the /plugin setting but not more than 1");
                             Console.WriteLine("*******************");
                         }
                     }
