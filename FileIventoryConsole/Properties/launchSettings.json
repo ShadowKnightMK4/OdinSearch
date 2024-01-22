@@ -1,8 +1,10 @@
 {
   "profiles": {
-    "FileInventoryConsole": {
+    "B": {
       "commandName": "Project",
-      "commandLineArgs": "-anchor \"C:\\\\Windows\"  -anchor \"C:\\\\Program Files\""
+      "commandLineArgs": "/filename=\"*.exe*\"  /anchor=C:\\Euphoria  /subfolders /A=A /fileattrib_check=8 /minfilesize=4KB /maxfilesize=12GB /class=\"OdinSearch_OutputConsumerBaseTest\" /managed=\"C:\\Users\\Thoma\\source\\repos\\FileInventory\\ExternalManagedComsPlugin\\bin\\Debug\\net7.0\\ExternalManagedComsPlugin.dll\" /explain",
+      "nativeDebugging": false,
+      "remoteDebugEnabled": false
     }
   }
 }

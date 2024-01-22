@@ -1,4 +1,316 @@
-﻿This placeholder text is displayed for the help info for the console app.
+﻿FileInventoryConsole.exe  /Arguments -Flags
+
+There are some special data types to be aware of for this app. Each once has its own 
+values and function but this document is intended to let someone pick it up quick.
+The 4 main data types are File Attributes, MatchStyleFileAttributes, MatchStylesString,
+DateTime string. There's a few extra but the documentation ideally is self explanatory.
+
+-----------------------------------------------------------------------------------------------------
+File Attributes          | The properties of the item to search for.       
+-----------------------------------------------------------------------------------------------------
+MatchStyleFileAttributes | These combine to tell the app on how to match file attributes.
+-----------------------------------------------------------------------------------------------------
+MatchStylesString        | These combine to instruct the app how to compare file names.   
+-----------------------------------------------------------------------------------------------------
+Date Time String         | This is a specific point in time such as Feb 2, 2021 4:00PM.
+-----------------------------------------------------------------------------------------------------
+File Location            | This is typing a specific location of a file or folder.
+-----------------------------------------------------------------------------------------------------
+Wildcard String          | This string with * and ? as wildcard control what to search for.
+-----------------------------------------------------------------------------------------------------
+File Size Int            | This is a number but prefix MB, KB, GB, TB, PB to use big values
+-----------------------------------------------------------------------------------------------------
 
 
-%1 -SearchTargetXML="" -SearchTargetXML="",  -SearchAnchor="", -SearchAnchor=""	
+-----------------------------------------------------------------------------------------------------
+File Attributes specifics
+-----------------------------------------------------------------------------------------------------
+	These are the file attributes you can search for. If you dond't know the
+	attribute to look for, it's ok to not set. You can specify the numbers in 
+	various combinations or smoosh the words together
+	For example, let us assume one needs a file that's marked as System and 
+	ready for Archiving.  These examples would let you specify that:  the number
+	36, 'AS', 'SA',  'System | Archive' 'systemarchive'.
+		
+	ReadOnly='R'=1;
+	Hidden='H'=2;
+	System='S'=4;
+	Directory=Folder='D'=16;
+	Archive='A'=32;
+	Temporary=Temp='T'=256;
+	SparseFile='P'=512;
+	ReparsePoint='L'=1024;
+	Compressed=zip=comp='C'=2048;
+	Offline='O'=4096;
+	NotIndexed='I'=8192;
+	Encypted='E'=16384;
+	IntegrityStream='N'=32768;
+	NoScrubData=131072
+
+-----------------------------------------------------------------------------------------------------
+MatchStyleFileAttributes specifics
+-----------------------------------------------------------------------------------------------------
+	These control how the app will compare a file attribute with a value specified.
+	One can add the wanted numbers together or just smoosh the words together to get the 
+	same effect.
+
+	MatchAny=1;			Positive effect means a match must contain at least one attribute.
+						Invert effect means at least one specified attribute must NOT be there.
+	MatchAll=2;			Positive effect means at any match found must have *all* attributes
+						Invert effect means any match found must have NONE of the set attributes 
+	Invert=4;			This inverts the indicated match effect (MatchAny or MatchAll)
+	Exacting=8;			This means the examined item must have the same attributes you specified.
+						Example:  Choosing Hidden and Directory Attribute + this would cause
+						a folder that is set to have Hidden, Directory and Read Only to NOT MATCH.
+
+-----------------------------------------------------------------------------------------------------
+MatchStylesString specifics
+-----------------------------------------------------------------------------------------------------
+	This controls how the app will compare a filename or full file location against your
+	specified value.
+	One can add the wanted numbers together or just smoosh the words together to get the 
+	same effect such as MatchAny|Invert or Match
+
+	MatchAny=1;			Positive effect means a match must contain at least specified value.
+						Invert effect means at least one specified attribute must NOT be there.
+	MatchAll=2;			Positive effect means at any match found must have *all* specified values.
+						Invert effect means any match found must have NONE of the values set. 
+	Invert=4;			This inverts the indicated match effect (MatchAny or MatchAll)
+	CaseImportant=32;	This means the match will case about the case such as CAT not matching cAt.
+
+-----------------------------------------------------------------------------------------------------
+DateTime specifics
+-----------------------------------------------------------------------------------------------------
+	This is a combination of a Date and Time such as "12/1/97" or "Aug 5, 2025".  If it can't be for
+	some reason, the app will tell you it's not understood.
+
+-----------------------------------------------------------------------------------------------------
+Wildcard specifics
+-----------------------------------------------------------------------------------------------------
+	Use the * symbol to match any number of characters and the ? symbol to match a single char.
+	This is the same using commands like dir or ls.
+
+
+-----------------------------------------------------------------------------------------------------
+Specifying what to search for.
+-----------------------------------------------------------------------------------------------------
+
+/fullname={{Wildcard String}}
+	This flag sets what the app will compare against the full exact location of the examing file system 
+	item.	Example: "/fullname=C:\Windows\*.exe" would let one match many exe file located in that folder.
+	The path may be quoted with " or ' chars.
+
+/filename={{Wildcard String}}
+	This flag sets what the app will compare against the file item's name only.
+	Example: "/filename=*.dll"  would match files that have a .dll extension.
+
+
+/fileattrib={{File Attributes int, fully typed File Attribute Names}}
+	This what file attribute to look for. It can be an int or a string based off of File Attributes
+	above. If you are passing multiple flags as an int, add them. The three examples below all set what 
+	to compare in the file attributes to Read Only, System and Encrypted as the attributes.
+	Example: /fileattrib=ReadOnly|System|Encrypted
+	Example: /fileattrib=readonlysystemencrypted
+	Example: /fileattrib=16389 
+	
+
+/A={{File Attributes int, dir style file attribute}}
+	This what file attribute to look for.  Accepts an int based on the data. If you are passing 
+	multiple flags as an int, add them.  The two examples below all set what to compare in the file
+	attributes to Read Only, System and	Encrypted as the attributes.
+	Example: /a=RSE or /a=SER 
+	Example: /a=16389 
+	type above or such examples as "RSE" for a Read Only, System file
+	that is also marked Encrypted.
+
+/minfilesize={{File Size Int}}
+	This flag sets the smallest acceptable file size match.
+	Note that this will never match a folder.
+	Int can be expresssed as bytes such as 1000 but can have MB, KB, GB, TB, PB as a suffix to shorthand.
+	Examples: 4000 for 1000 bytes, 4KB for 1024*4 bytes or 32GB for 32 gigabytes without typing it out.
+	Examples /minfilesize=1000, /minfilesize=4MB or /minfilesize=32GB
+
+/maxfilesize={{File Size Int}}
+	This flag sets the largest acceptable file size match.
+	Will never match a folder. 
+	Note that this will never match a folder.
+	Int can be expresssed as bytes such as 1000 but can have MB, KB, GB, TB, PB as a suffix to shorthand.
+	Examples: 4000 for 1000 bytes, 4KB for 1024*4 bytes or 32GB for 32 gigabytes without typing it out.
+	Examples: /maxfilesize=1000, /maxfilesize=4MB or /maxfilesize=32GB
+
+/notcreatedbefore={{DateTime String}
+	This flag instructs the app to discard any matches whose creation date is earlier than the 
+	specified time.	If the app can't parse the DateTime string, it will tell you there was an error.
+	Example: /notcreatedbefore="Mar 24, 2024" 
+
+/notcreatedafter={{Date Time String}
+	This flag tells the app to discard any matches whose creation date is after the specified time.
+	If the app can't parse the DateTime string, it will tell you there was an error.
+	Example: /notcreatedafter="Mar 12, 2024" 
+
+/nolastmodifiedbefore={{Date Time String}}
+	This flag tells the software to discard matches whose last modified date is earlier than this.
+	If the app can't parse the DateTime string, it will tell you there was an error.
+	Example: /nolastmodifiedbefore="17:00 January, 30, 600" and so on.
+
+/lastmodifiedbefore={{Date Time String}}
+	This flag tells the app to discard matches who were changed *after* this indicated time.
+	If the app can't parse the DateTime string, it will tell you there was an error.
+	Example: /lastmodifiedbefore="May 5, 2100" 
+
+/lastaccessedbefore={{Date Time String}}
+	This flag tells the app to ignore matches whose last access datetime is before the indicated one.
+	If the app can't parse the DateTime string, it will tell you there was an error.
+	Example: /lastaccessedbefore="Feb 2, 2024"
+
+/nolastaccessedbefore={{Date Time String}}
+	This flag tells the app to ignore files whose last access datetime is after this. If the app can't
+	parse the DateTime string, it will tell you there was an error.
+	Example: /nolastaccessedbefore="May 30, 3000"
+
+
+-----------------------------------------------------------------------------------------------------
+Specifying how to compare potential matches against what you indicate
+-----------------------------------------------------------------------------------------------------
+Forward: These commands and the DateTime ones above instruct the app how to compare a possible match
+with what you indicate. The DateTime ones above also set *what* to search for so they were placed there.
+
+
+/fileattrib_check={{MatchStyleAttributes int, MatchStyleAttributes String}}
+	This sets what the app will be comparing examined file items with. It can be an int or a string from 
+	the MatchStyleAttributes above.	If you are passing multiple flags as an int, add them.
+	Example: /fileattrib_check="MatchAll|Exacting"
+	Example: /fileattrib_check=10  would be the same as passing above
+
+/filecompare={{MatchStylesString int, MatchStylesString string}
+	This flag sets how the app will compare the string set by /filename to the examined file item.
+	If passing as a string, you must directly use the name such as /fullcompare="MatchAll|Invert"
+	If passing as an int, add the values together before passing such as /fullcompare=5 for the same 
+	above, and it came be quoted.
+
+	
+/fullcompare={{MatchStylesString int, MatchStylesString string}}
+	This flag sets how the app will compare the string set by /fullname to the examined file item.
+	If passing as a string, you must directly use the name such as /fullcompare="MatchAny|Invert|CareImportant"
+	If passing as an int, add the values together before passing such as /fullcompare=37 for the same above.
+	It came be quoted.
+
+-----------------------------------------------------------------------------------------------------
+Specifying Search Starting points
+-----------------------------------------------------------------------------------------------------
+/anchor={folder location}
+	This tells the app to add this to the list of starting points.
+	Example: /anchor="C:\Windows\System32;C:\Program Files"
+
+/anywhere
+	This special flag is used to be shorthand for all local drives that report ready and each subfolder too.
+
+/subfolders
+	This tells the app to search sub folders to rather than only just the list.
+	Example: "/subfolders"
+
+-----------------------------------------------------------------------------------------------------
+Specifying what to do with matches
+-----------------------------------------------------------------------------------------------------
+Forward: One may use /oustream and /outformat or the plugin system. Using any cobination of /action,
+/outstream, /plugin (and /managed) of more than 1 is not supported.
+
+/action={'cmd', 'cmdshell', 'bash', 'powershell', 'ps' }
+	This flag tells the app to execute a command of your choice on the matches. You'll need to specify 
+	-command="" to tell what to run.
+	For Windows, cmd and cmdshell resolve to cmd.exe in the system folder.
+	Powershell and ps wesolve to ps.exe in \WindowsPowerShell\v1.0 off of the system folder.
+	On Linux, bash tries to check /usr/bin/bash, then /bin/bash, the env variable BASH_SOURCE and finally
+	as a last ditch effort, the results of the 'which bash' command running.
+
+
+/outstream={{'stdout', 'stderr', File Location}}
+	This flag controls *where* the app will send matches. Use /outstream=stdout or /outstream=stderr 
+	to send to that console stream.	One may also specify a file system location to save the output too 
+	such as "/outstream=X:\Results.txt" and it may also be quoted.
+
+/outformat= {{'unicode', 'csvfile'}}
+	This flag controls *how* the app will send matches.  Use /outstream=unicode to send as Unicode text
+	and /outstream=cvsfile for the CSV / aka comma delimited file.
+	Example: /outformat=unicode is passed to tell the app to output as Unicode Text.
+
+/plugin={{file location}}
+	This will load an unmanaged (non .NET) shared library and use that to deal with matches
+	according to unmanaged plugin specifications. Important! Specifying a /plugin or 
+	/managed will cause the /outstream and /outformat to be ignored.
+	It can be quoted.
+	Example: /plugin="C:\Plugins\mycoolplugin.dll"
+	
+	
+/managed={{file location}}
+	This will load a managed (aka .NET) shared library to use and with.
+	It can be quoted. One *Vital* Important thing is to specify the class name that will do the action
+	that want done with the /class command.
+	Example: /managed="C:\Plugins\DotNetScanner.dll"     /class="PackingStuff"
+
+/class="NameofClass"
+	This sets the class name that the app will use if /managed is set. While it works just fine without
+	/managed. It does nothing without the /managed flag
+	Example: /managed="C:\Plugins\Diving.dll"     /class="DoWeTrustThisStuff"
+
+-f
+	This command disables the refusal of loading unsigned plugins.
+
+-----------------------------------------------------------------------------------------------------
+Special Case Flags and settings.
+-----------------------------------------------------------------------------------------------------
+There are some special flags:
+
+/anyfile
+	This will tell the search to match anyfile name we can possibly access.
+	Example: "/anyfile"
+
+/anywhere
+	This tells the search to look thru the whole machine.
+	Example: "/anywhere"
+
+
+/subfolders
+	This tells the app to search sub folders to rather than only just the list.
+	Example: "/subfolders"
+
+
+/explain
+	This setting tells the app to write to the console what settings you are searching for in English 
+	without	executing it.
+
+
+
+-----------------------------------------------------------------------------------------------------
+Mode specific
+-----------------------------------------------------------------------------------------------------
+-ONLYNAME
+	This is valid only for /outformat=Unicode.  If set, the matches are {filename}followed by an enter
+	key space rather than the usual MATCH: "File" @ "Location" format
+
+
+-----------------------------------------------------------------------------------------------------
+Custom Settings for Plugis
+-----------------------------------------------------------------------------------------------------
+Some settings and plugins can have specific options. These will very depending on the usual default option
+and settings.  If it's build in, likely the command will have an easier way to set it.
+
+-carg="A=B"
+	You 
+
+Default Settings are below if you don't specify the flag. Please note these choices are intended
+to let the user be precise but allow them to type as few as commands to get the point accross.
+
+Lack of /fullname and /filename default to functionally /anyfile flag if unspecified.
+Lack of /notcreatedbefore and /nocreatedafter default to skipping that date time check.
+Lack of /lastmodifiedbefore /nolastmodifiedbefore default to skipping that date time check.
+Lack of /nolastaccessedbefore /lastaccessedbefore default to skipping that date time check.
+Lack of /A or /fileattrib defaults to skipping the file attribute check.
+Lack of /fileattrib_check will default to matching *ALL* of what you specified with attributes.
+Lack of /anywhere or /anchor= Will report an error and remind you to set a starting point.
+Lack of /minfilesize or /maxfilesize will have the search not care about the size at all.
+
+
+Should BOTH /anywhere and /anchor= be set, the /anchor setting is discarded as it's already going to be searched due to /anywhere
+Should BOTH a plugin, an /action or /outformat be set, the app will complain and not do it at all.
+

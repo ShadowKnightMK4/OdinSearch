@@ -132,6 +132,11 @@ namespace NonSqlUnitTests
         }
         #endregion
     }
+    /// <summary>
+    /// The Chalice tests are indented to put the class library OdinSearch thru passes
+    /// to ensure it actually supporst the flags, settings, features beyond just can we
+    /// set it and does it work.
+    /// </summary>
     [TestClass]
     public class UnitTest_OdinSearch_ConsumerClassTests
     {

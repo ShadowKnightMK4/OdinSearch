@@ -13,26 +13,21 @@ namespace UnitTest
 {
 
     [TestClass]
-    public class UnitTests_SearchTarget
+    public class UnitTests_SearchAnchor_XML
     {
         [TestMethod]
-        public void SearchTargetToXmlAndBack()
+        public void SearchAnchor_ToXML_AND_BACK()
         {
-            SearchTarget target = new SearchTarget();
-            SearchTarget Target2;
-            target.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
-            target.FileName.Add("*.txt");
-            target.FileName.Add("*.dll");
-            target.DirectoryPath.Add("Windows");
-            target.DirectoryMatching = SearchTarget.MatchStyleString.Invert;
+            SearchAnchor Demo = new SearchAnchor();
 
-            string xml = target.ToXml();
+            string xml = Demo.ToXml();
 
-            File.WriteAllLines("C:\\Dummy\\TestFile.xml", new string[1]{xml});
-            Target2 = SearchTarget.CreateFromXmlString(xml); ;
+            SearchAnchor Demo2 = SearchAnchor.CreateFromXmlString(xml);
 
-            Assert.IsTrue(target == Target2);
+            Assert.IsTrue(Demo2 == Demo);
         }
+
+
     }
     /// <summary>
     /// The Search for testing the code to ensure it works and does not go up in flames
@@ -153,18 +148,7 @@ namespace UnitTest
             Assert.IsTrue(Demo.roots[0].FullName.Equals(DemoLocation), "Did not add DemoLocation \" " + DemoLocation + "\" to root list ok");
         }
 
-        [TestCategory("XML Anchor Handling")]
-        [TestMethod]
-        public void SearchAnchor_ConvertToXmlAndBack()
-        {
-             SearchAnchor Demo = new SearchAnchor();
-            
-            string xml = Demo.ToXml();
-
-            SearchAnchor Demo2 = SearchAnchor.CreateFromXmlString(xml);
-
-            Assert.IsTrue(Demo2 == Demo);
-        }
+       
 
         [TestCategory("Simple Anchor")]
         /// <summary>

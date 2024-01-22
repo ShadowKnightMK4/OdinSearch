@@ -2,11 +2,15 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0-windows</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <StartupObject>FileIventoryConsole.Program</StartupObject>
+    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <SignAssembly>True</SignAssembly>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Resources\Banner.txt" />
     <None Remove="Resources\UsageText.txt" />
   </ItemGroup>
 
@@ -16,6 +20,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FileInventoryEngine\OdinSearchEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Banner.txt" />
   </ItemGroup>
 
 </Project>

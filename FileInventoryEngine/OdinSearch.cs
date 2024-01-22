@@ -17,10 +17,58 @@ namespace OdinSearchEngine
 {
 
     /// <summary>
+    /// This class is thrown if an exception occures on search begin.  Inner exception will be the offerensing exception.
+    /// </summary>
+    /// <remarks>This exists to pretty much wrap the offending exception, if this triggers on calling <see cref="OdinSearch.Search(OdinSearch_OutputConsumerBase)"/>, it's there to notify that the communcation class had an issue in starting.</remarks>
+    public class OdinSearch_CommuncationClassException: Exception
+    {
+        public OdinSearch_CommuncationClassException(string message) : base(message)
+        {
+
+        }
+
+        public OdinSearch_CommuncationClassException(string message, Exception Inner): base(message, Inner)
+        {
+
+        }
+    }
+    /// <summary>
     /// Search the local system for files/folders 
     /// </summary>
     public class OdinSearch
     {
+        #region DEBUG_AIDS
+#if DEBUG
+        public bool DebugVerboseMode
+        {
+             set
+            {
+                DebugVerboseModeHandle = value;
+            }
+            get
+            {
+                return DebugVerboseModeHandle;
+            }
+        }
+
+        private bool DebugVerboseModeHandle = true;
+#else
+    
+        public bool DebugVerboseMode
+        {
+            set
+            {
+                DebugVerboseModeHandle = value;
+            }
+            get
+            {
+                return DebugVerboseModeHandle;
+            }
+        }
+        private bool DebugVerboseModeHandle = false;
+#endif
+
+        #endregion
         #region Public Class Variables and Properties
         /// <summary>
         /// False Means we don't lock a object to aid synching when sending output to a <see cref="OdinSearch_OutputConsumerBase"/> based class.  
@@ -62,10 +110,14 @@ namespace OdinSearchEngine
 
 
 
+
+        // this is turned on due to the val of the variable is unneeded, we just lock and unlock to synch stuff
+#pragma warning disable IDE0052 // Remove unread private members
         /// <summary>
         /// Locked when sending a match to the output aka one <see cref="OdinSearch_OutputConsumerBase"/> derived class and only if <see cref="ThreadSynchResults"/> is true
         /// </summary>
         readonly object ResultsLock = new object();
+#pragma warning restore IDE0052 
 
         /// <summary>
         /// Add Where to look here. Note that each anchor gets a worker thread.
@@ -80,11 +132,14 @@ namespace OdinSearchEngine
         /// </summary>
         public void WorkerThread_ResolveComs()
         {
-            foreach (var T in WorkerThreads)
+            if (WorkerThreads.Count != 0)
             {
-                if (T.Thread.IsAlive == false)
+                foreach (var T in WorkerThreads)
                 {
-                    T.Args.Coms.ResolvePendingActions();
+                    if (T.Thread.IsAlive == false)
+                    {
+                        T.Args.Coms.ResolvePendingActions();
+                    }
                 }
             }
         }
@@ -202,27 +257,7 @@ namespace OdinSearchEngine
         /// <param name="Args"></param>
         void WorkerThreadProc(object Args)
         {
-            void LockThisAccess(Semaphore t)
-            {
-                lock (t)
-                {
-                    return;
-                }
-                //if (t != null)
-
-                {
-                    t.WaitOne();
-                }
-            }
-
-            void UnlockThisAccess(Semaphore t)
-            {
-                return;
-                if (t != null)
-                {
-                    t.Release();
-                }
-            }
+            
 
             if (Args == null) throw new ArgumentNullException();
             
@@ -232,12 +267,10 @@ namespace OdinSearchEngine
             List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
             WorkerThreadArgs TrueArgs = Args as WorkerThreadArgs;
             //Thread.CurrentThread.Name = TrueArgs.StartFrom.roots[0].ToString() + " Scanner";
-            Debug.WriteLine(Thread.CurrentThread.Name + " is working with " + TrueArgs.StartFrom.roots[0]);
-
-            if (Thread.CurrentThread.Name.Contains("B:\\"))
-            {
-                ;
-            }
+#if DEBUG
+            if (DebugVerboseModeHandle)
+                Debug.WriteLine(Thread.CurrentThread.Name + " is working with " + TrueArgs.StartFrom.roots[0]);
+#endif
 
             if (TrueArgs != null)
             {
@@ -255,20 +288,6 @@ namespace OdinSearchEngine
                         // add root[0] to the queue to pull from
                         FolderList.Enqueue(TrueArgs.StartFrom.roots[0]);
 
-#if deb
-                        try
-                        {
-                            //   lock (TrueArgs.Coms)
-                            LockThisAccess(TrueArgs.ComTalk);
-                            {
-                                TrueArgs.Coms.Messaging("DEBUG: PUSHED to Que" + TrueArgs.StartFrom.roots[0]);
-                            }
-                        }
-                        finally
-                        {
-                            UnlockThisAccess(TrueArgs.ComTalk);
-                        }
-#endif
                     // label is used as a starting point to loop back to for looking at subfolders when we get
                     // looping
                     Reset:
@@ -281,18 +300,6 @@ namespace OdinSearchEngine
 
                             DirectoryInfo CurrentLoc = FolderList.Dequeue();
 
-#if deb
-                            //lock (TrueArgs.Coms)
-                            try 
-                            {
-                                LockThisAccess(TrueArgs.ComTalk);
-                                TrueArgs.Coms.Messaging("DEBUG: Popped from Que " + CurrentLoc);
-                            }
-                            finally
-                            {
-                                UnlockThisAccess(TrueArgs.ComTalk);
-                            }
-#endif
                             // files in the CurrentLoc
                             FileInfo[] Files = null;
                             // folders in the CurrentLoc
@@ -300,31 +307,8 @@ namespace OdinSearchEngine
                             try
                             {
                                 Files = CurrentLoc.GetFiles();
-#if deb
-                                //lock (TrueArgs.Coms)
-                                try
-                                {
-                                    LockThisAccess(TrueArgs.ComTalk);
-                                    TrueArgs.Coms.Messaging("DEBUG:Got files ok" + CurrentLoc);
-                                }
-                                finally
-                                {
-                                    UnlockThisAccess(TrueArgs.ComTalk);
-                                }
-#endif
                                 Folders = CurrentLoc.GetDirectories();
-#if deb
-                                //lock (TrueArgs.Coms)
-                                try
-                                {
-                                    LockThisAccess(TrueArgs.ComTalk);
-                                    TrueArgs.Coms.Messaging("DEBUG: Got Folders ok Que " + CurrentLoc);
-                                }
-                                finally
-                                {
-                                    UnlockThisAccess(TrueArgs.ComTalk); 
-                                }
-#endif
+
                             }
                             catch (IOException e)
                             {
@@ -388,45 +372,17 @@ namespace OdinSearchEngine
 
                                         foreach (FileInfo Possible in Files)
                                         {
-#if deb
-
-                                            //lock (TrueArgs.Coms)
-                                            try 
-                                            {
-                                                LockThisAccess(TrueArgs.ComTalk);
-                                                TrueArgs.Coms.Messaging("DEBUG: attempt to match file " + Targets[0].FileName + " against " +Possible.FullName);
-                                            }
-                                            finally
-                                            {
-                                                UnlockThisAccess(TrueArgs.ComTalk);
-                                            }
-#endif
                                             bool isMatched = MatchThis(Target, Possible);
                                             if (isMatched)
                                             {
                                                 if (!ThreadSynchResults)
                                                 {
-#if deb
-                                                    //lock (TrueArgs.Coms)
-                                                    try
-                                                    {
-                                                        LockThisAccess(TrueArgs.ComTalk);
-                                                        TrueArgs.Coms.Messaging("DEBUG: Match OK file " + Targets[0].FileName + " against " + Possible.Name);
-                                                    }
-                                                    finally
-                                                    {
-                                                        UnlockThisAccess(TrueArgs.ComTalk);
-                                                    }
-#endif
                                                     TrueArgs.Coms.Match(Possible);
                                                 }
                                                 else
                                                 {
-
-                                                    //lock (ResultsLock)
                                                     try
                                                     {
-                                                        //LockThisAccess(TrueArgs.ComTalk);
                                                         lock (TrueArgs.ComTalk)
                                                         {
                                                             TrueArgs.Coms.Match(Possible);
@@ -434,7 +390,7 @@ namespace OdinSearchEngine
                                                     }
                                                     finally
                                                     {
-                                                        //UnlockThisAccess(TrueArgs.ComTalk);
+
                                                     }
 
 
@@ -449,45 +405,46 @@ namespace OdinSearchEngine
                                         // folder check
                                         foreach (DirectoryInfo Possible in Folders)
                                         {
-#if true
+
                                             try
                                             {
-                                                //  LockThisAccess(TrueArgs.ComTalk);
-                                                lock (TrueArgs.ComTalk)
+#if DEBUG
+                                                if (DebugVerboseModeHandle)
                                                 {
-                                                    TrueArgs.Coms.Messaging("DEBUG: attempt to match folder " + Targets[0].FileName + " against " + Possible.Name);
+                                                    lock (TrueArgs.ComTalk)
+                                                    {
+                                                        TrueArgs.Coms.Messaging("DEBUG: attempt to match folder " + Targets[0].FileName.ToString() + " against " + Possible.Name);
+                                                    }
                                                 }
+#endif
                                             }
                                             finally
                                             {
-//                                                UnlockThisAccess(TrueArgs.ComTalk);
+
                                             }
-#endif
+
                                             bool isMatched = MatchThis(Target, Possible);
                                             if (isMatched)
                                             {
                                                 if (!ThreadSynchResults)
                                                 {
-#if true
+
                                                     try
                                                     {
                                                         lock (TrueArgs.ComTalk)
                                                         {
-                                                            //   LockThisAccess(TrueArgs.ComTalk);
                                                             TrueArgs.Coms.Match(Possible);
-                                                            TrueArgs.Coms.Messaging("DEBUG: match folder ok " + Targets[0].FileName + " against " + Possible.Name);
                                                         }
                                                     }
                                                     finally
                                                     {
-                                                     //   UnlockThisAccess(TrueArgs.ComTalk);
+
                                                     }
-#endif
+
                                                     
                                                 }
                                                 else
                                                 {
-                                                    //lock (ResultsLock)
                                                     lock (TrueArgs.ComTalk)
                                                     {
                                                         TrueArgs.Coms.Match(Possible);
@@ -500,39 +457,9 @@ namespace OdinSearchEngine
 
                             if (TrueArgs.StartFrom.EnumSubFolders)
                             {
-#if true
-                                //lock (TrueArgs.Coms)
-                                try
-                                {
-                                    //   LockThisAccess(TrueArgs.ComTalk);
-
-                                    lock (TrueArgs.ComTalk)
-                                    {
-                                        TrueArgs.Coms.Messaging("DEBUG: Subfolders requested from" + Targets[0].FileName + "");
-                                    }
-                                }
-                                finally
-                                {
-                                    //UnlockThisAccess(TrueArgs.ComTalk);
-                                }
-#endif
                                 if (!ErrorPrune)
                                     foreach (DirectoryInfo Folder in Folders)
                                     {
-#if true
-                                        try
-                                        {
-                                            lock (TrueArgs.ComTalk)
-                                            {
-                                                LockThisAccess(TrueArgs.ComTalk);
-                                            }
-                                            TrueArgs.Coms.Messaging("DEBUG: Adding SubFolder " + Targets[0].FileName + Folder.FullName);
-                                        }
-                                        finally
-                                        {
-                                           // UnlockThisAccess(TrueArgs.ComTalk);
-                                        }
-#endif
                                         FolderList.Enqueue(Folder);
                                     }
                             }
@@ -540,36 +467,8 @@ namespace OdinSearchEngine
 
                         if (FolderList.Count > 0)
                         {
-#if true
-                            try
-                            {
-                                //   LockThisAccess(TrueArgs.ComTalk);
-                                lock (TrueArgs.ComTalk)
-                                {
-                                    TrueArgs.Coms.Messaging("DEBUG: Thread going back to start ");
-                                }
-                            }
-                            finally
-                            {
-                               // UnlockThisAccess(TrueArgs.ComTalk);
-                            }
-#endif
-
                             goto Reset;
                         }
-#if true
-                        try
-                        {
-                            lock (TrueArgs.ComTalk)
-                            {// LockThisAccess(TrueArgs.ComTalk);
-                                TrueArgs.Coms.Messaging("DEBUG:  thread edning ");
-                            }
-                        }
-                        finally
-                        {
-                            //UnlockThisAccess(TrueArgs.ComTalk);
-                        }
-#endif
                     }
                 }
             }
@@ -677,7 +576,7 @@ namespace OdinSearchEngine
             {
                 throw new InvalidOperationException(JoinNonEmptyWorkerThreadListBeforeCallingSearch);
             }
-            // This is here to also guard against premature starting
+            // This is here to also guard against premature starting and throwing an exception.
             Thread.Sleep(200);
             WorkerThreads.ForEach(
                 p => {
@@ -690,9 +589,15 @@ namespace OdinSearchEngine
 
 
         /// <summary>
-        /// Zombied State means no more living threads BUT at least one <see cref="OdinSearch_OutputConsumerBase"/> COMS class reports pending actions. Place a call to <see cref="OdinSearch.WorkerThread_ResolveComs"/> to call the <see cref="OdinSearch_OutputConsumerBase.ResolvePendingActions"/> routine for each worker thread instance of the class
+        /// Zombied State means no more living threads BUT at least one 
+        /// <see cref="OdinSearch_OutputConsumerBase"/> communcation class reports pending actions. 
+        /// Place a call to <see cref="OdinSearch.WorkerThread_ResolveComs"/> to call the
+        /// <see cref="OdinSearch_OutputConsumerBase.ResolvePendingActions"/> routine for each worker thread
+        /// instance of the class
         /// </summary>
-        /// <remarks>If your <see cref="OdinSearch_OutputConsumerBase"/> does not do anything beyond the default <see cref="OdinSearch_OutputConsumerBase.HasPendingActions"/> where it always returns false, this property should be false</remarks>
+        /// <remarks>If your <see cref="OdinSearch_OutputConsumerBase"/> does not do anything beyond
+        /// the default <see cref="OdinSearch_OutputConsumerBase.HasPendingActions"/> where it always returns 
+        /// false, this property should be false</remarks>
         public bool IsZombied
         {
             get
@@ -771,9 +676,12 @@ namespace OdinSearchEngine
                 bool CompareMe = false;
                 MatchAll = false;
                 MatchAny = false;
-                if ((MatchStyleString.MatchAll | MatchStyleString.MatchAny | HowToCompare) == 0)
+                if (!HowToCompare.HasFlag(MatchStyleString.MatchAll))
                 {
-                    HowToCompare |= MatchStyleString.MatchAll;
+                    if (!HowToCompare.HasFlag(MatchStyleString.MatchAny))
+                    {
+                        HowToCompare |= MatchStyleString.MatchAll;
+                    }
                 }
                 // a plan regex list for this code means we sucessfully match any file. Also skip.
                 if ((HowToCompare == MatchStyleString.Skip) || (TestValues.Count == 0))
@@ -1236,8 +1144,9 @@ namespace OdinSearchEngine
         /// Start the search rolling. 
         /// </summary>
         /// <param name="Coms">This class is how the search communicates with your code. Cannot be null</param>
-        /// <exception cref="IOException">Is thrown if Search is called while searching. </exception>
+        /// <exception cref="InvalidOperationException">Is thrown if Search is called while searching. </exception>
         /// <exception cref="ArgumentNullException">Is thrown if the Coms argument is null</exception>
+        /// <exception cref="OdinSearch_CommuncationClassException">Thrown by the communcations class if it can't initalize on a call to <see cref="OdinSearch_OutputConsumerBase.SearchBegin(DateTime)"/></exception>
         /// <remarks>Note that the search uses a default class <see cref="OdinSearch_ContainerFileInfo"/> if there's not container class</remarks>
         public void Search(OdinSearch_OutputConsumerBase Coms)
         {
@@ -1301,12 +1210,19 @@ namespace OdinSearchEngine
 
                     // we loop thru and call search begin for each thread.
                     // if it returns true, we prematurly quit looping.
-                    bool DoNotNotifyTheRest = false;
+                    bool KeepCallingForThreads = true;
                     foreach (WorkerThreadWithCancelToken t in WorkerThreads)
                     {
-                        if (!DoNotNotifyTheRest)
+                        if (KeepCallingForThreads)
                         {
-                            DoNotNotifyTheRest = Coms.SearchBegin(DateTime.Now);
+                            try
+                            {
+                                KeepCallingForThreads = Coms.SearchBegin(DateTime.Now);
+                            }
+                            catch (InvalidOperationException e)
+                            {
+                                throw new OdinSearch_CommuncationClassException("Error: There was a problem initializing Search. Specific Message:" + e.Message, e); 
+                            }
                         }
                         t.Thread.Start(t.Args);
                     }
@@ -1341,7 +1257,7 @@ namespace OdinSearchEngine
         /// <param name="Arg"></param>
         /// <returns></returns>
         /// <remarks>Honstestly just returns true with this current build.</remarks>
-        bool SanityChecks(WorkerThreadArgs Arg)
+        bool SanityChecks(WorkerThreadArgs _1)
         {
             // TODO:  Ensure conflicting filename and DirectoryName can actually match. For example, we're not attempting to compare contrarray
             //  settings in the filename array and directory path

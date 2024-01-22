@@ -56,7 +56,7 @@ namespace OdinSearchEngine
                 pattern = pattern.Replace("\\*", ".*").Replace("\\?", ".");
                 /* this is the match anything regexpression for.
                  * This is hard coded to returning a clear regex list. The code that does the searching treats
-                 * it skipping the compare and treating it as a positivbematch.
+                 * it skipping the compare and treating it as a positive match.
                  * */
                 if (pattern == "^.*$")
                 {
@@ -218,7 +218,7 @@ namespace OdinSearchEngine
             XmlElement AccessAnchor1 = ret.CreateElement(XmlAccessAnchor1Name);
             XmlElement AccessAnchor2 = ret.CreateElement(XmlAccessAnchor2Name);
             AccessAnchor1.InnerText = this.AccessAnchor.ToString();
-            AccessAnchor2.InnerText = this.AccessAnchor.ToString();
+            AccessAnchor2.InnerText = this.AccessAnchor2.ToString();
             BaseTag.AppendChild(AccessAnchor1);
             BaseTag.AppendChild(AccessAnchor2);
 
@@ -422,12 +422,12 @@ namespace OdinSearchEngine
             {
                 if (!Enum.TryParse<FileAttributes>(AttribMatch1.InnerText, out ret.AttributeMatching1))
                 {
-                    int tmp = 0;
-                    if (int.TryParse(AttribMatch1.InnerText,  out tmp))
-                    {
-                        ret.AttributeMatching1 = (FileAttributes)tmp;
-                    }
-                    else
+                    throw new ArgumentException();
+                }
+
+                if (AttribMatchStyle1 != null)
+                {
+                    if (!Enum.TryParse<MatchStyleFileAttributes>(AttribMatchStyle1.InnerText, true, out ret.AttribMatching1Style))
                     {
                         throw new ArgumentException();
                     }
@@ -436,7 +436,7 @@ namespace OdinSearchEngine
 
             if (AttribMatch2 != null)
             {
-                if (!Enum.TryParse<FileAttributes>(AttribMatch2.InnerText, out ret.AttributeMatching1))
+                if (!Enum.TryParse<FileAttributes>(AttribMatch2.InnerText, out ret.AttributeMatching2))
                 {
                     throw new ArgumentException();
                 }
@@ -908,6 +908,26 @@ namespace OdinSearchEngine
             /// ReservedForFuture
             /// </summary>
             Reserved = 32
+        }
+
+        /// <summary>
+        /// In case you need a sanity check against input
+        /// </summary>
+        /// <param name="e"></param>
+        /// <returns>true if it's a valid combo and false if not</returns>
+        public static bool VerifyMatchStyleStringValue(MatchStyleString e)
+        {
+            return (e is >= (MatchStyleString)1 and <= (MatchStyleString)64) && (e.HasFlag( MatchStyleString.ReservedUnused) == false);
+        }
+
+        /// <summary>
+        /// in case you need a sanity check against input
+        /// </summary>
+        /// <param name="e"></param>
+        /// <returns>true if it's a valid combo and false if not</returns>
+        public static bool VerifyMatchStyleFileAttrib(MatchStyleFileAttributes e)
+        {
+            return (e is >= (MatchStyleFileAttributes)1 and <= (MatchStyleFileAttributes)64) && (e.HasFlag(MatchStyleFileAttributes.Reserved) == false);
         }
 
         [Flags]

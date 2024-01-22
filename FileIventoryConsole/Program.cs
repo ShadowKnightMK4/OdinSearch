@@ -8,6 +8,10 @@ using FileInventoryConsole;
 using System.Data.Sql;
 using System.Text;
 using System.Reflection;
+using System.ComponentModel.Design;
+using System.Security.Cryptography.X509Certificates;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased;
+using OdinSearchEngine.OdinSearch_OutputConsumerTools.CmdProcessorTools;
 
 namespace FileIventoryConsole
 {   
@@ -16,14 +20,157 @@ namespace FileIventoryConsole
     /// </summary>
     static class Program
     {
+        static void DisplayArguments(string[] args)
+        {
+            foreach (string arg in args)
+            {
+                Console.WriteLine(arg);
+            }
+        }
 
+#if DEBUG
+        static bool IsDebugMode = true;
+#else
+        static bool IsDebugMode = false;
+#endif
         static void Main(string[] args)
         {
-            Console.WriteLine("Most of the testing code is in the unit tests. Try them out. ");
-            Console.WriteLine("This console app can serve as an example of what to do or how to use.");
 
 
+            #region scracth pad
+            #endregion
 
+            OdinSearch_OutputConsumer_PluginCheck.Init();
+            if (IsDebugMode)
+            {
+                Console.WriteLine("DEBUG BUILD: ");
+                DisplayArguments(args);
+                Console.WriteLine("Status Messages follow:");
+                Console.WriteLine("Plugin cert signed only status: " + OdinSearch_OutputConsumer_PluginCheck.WeAreSigned);
+                Console.WriteLine("END DEBUG INFO:");
+            }
+            ArgHandling ArgHandling = new();
+            ArgHandling.DisplayBannerText();
+            if (args.Length > 0)
+            {
+                if (!ArgHandling.DoTheThing(args))
+                {
+                    Console.Write("Quitting...\r\n");
+                    return;
+                }
+                else
+                {
+
+                    
+                    ArgHandling.FinalizeCommands();
+                    if (ArgHandling.AllowUntrustedPlugin)
+                    {
+                        // this code functionally disables the guard to prevent loading extern DLL/whatever in the plugin path if unsigned.
+                        OdinSearch_OutputConsumer_PluginCheck.CheckAgainstThis?.Dispose();
+                        OdinSearch_OutputConsumer_PluginCheck.CheckAgainstThis = null;
+                    }
+                    if (!ArgHandling.WantUserExplaination)
+                    {
+                        if ((ArgHandling.WasStartPointSet == false) && (ArgHandling.WasWholeMachineSet == false))
+                        {
+                            ArgHandling.Usage();
+
+                            Console.WriteLine("*******************");
+                            Console.WriteLine("Error: Please specify a starting point via /anchor= or /anywhere");
+                            Console.WriteLine("*******************");
+                            return;
+                        }
+
+                        if ((ArgHandling.WasNetPluginSet) && (ArgHandling.PluginHasClassNameSet == false))
+                        {
+                            ArgHandling.Usage();
+                            Console.WriteLine("*******************");
+                            Console.WriteLine("Error: Please specify a classname to use out of the NET plugin set by /managed= by using /class=");
+                            Console.WriteLine("*******************");
+                        }
+
+                        if (!(ArgHandling.WasOutStreamSet ^ ArgHandling.WasActionSet ^ ArgHandling.WasNetPluginSet ^ ArgHandling.WasUnmanagedPluginSet))
+                        {
+                            ArgHandling.Usage();
+                            Console.WriteLine("*******************");
+                            Console.WriteLine("Error: Please use either the /outstream settings, the /action settings the /managed setting or the /plugin setting but not more than 1");
+                            Console.WriteLine("*******************");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("*******************");
+                        Console.WriteLine("Arguments were parses as follows with one on each line. If it's weird, check \" chars");
+                        DisplayArguments(args);
+                        Console.WriteLine("*******************");
+                        Console.WriteLine("Explaining what the arguments will do. To execute the commands drop the /explain flag");
+                        Console.WriteLine("*******************\r\n");
+                        ArgHandling.DisplayExplain();
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                ArgHandling.Usage();
+                return;
+            }
+            OdinSearch Search = new OdinSearch();
+            Search.DebugVerboseMode = false;
+            //var SearchDeal = new OdinSearch_OutputSimpleConsole();
+            //            var SearchDeal = new OdinSearch_OutputConsumer_ExternUnmangedPlugin();
+
+
+            OdinSearch_OutputConsumerBase SearchDeal;
+            Search.AddSearchAnchor(ArgHandling.SearchAnchor);
+            Search.AddSearchTarget(ArgHandling.SearchTarget);
+
+            if (ArgHandling.DesiredPlugin == null)
+            {
+                Console.WriteLine("Fatal Error: No output was set. Note this should not be reached in normal execution.");
+                Console.Write("Quitting...\r\n");
+                return;
+            }
+            else
+            {
+                SearchDeal = ArgHandling.DesiredPlugin;
+            }
+
+
+            /*
+            if (ArgHandling.DesiredPlugin == null)
+            {
+                Console.WriteLine("No Handler specified.  Defaulting to showing matching results to stdout via OdinSearch_OutputSimpleConsole.");
+                SearchDeal = new OdinSearch_OutputSimpleConsole();
+                SearchDeal[OdinSearch_OutputSimpleConsole.OutputOnlyFileName] = true;   
+            }
+            else
+            {
+                SearchDeal = ArgHandling.DesiredPlugin;
+                Console.WriteLine("Handler " + ArgHandling.DesiredPlugin.GetType().Name + " in use");
+            }
+            Console.WriteLine("Searching for things, this may take a while.");*/
+
+            Console.WriteLine("Searching for things, this may take a while.");
+            Search.Search(SearchDeal);
+            while(true)
+            {
+                Search.WorkerThreadJoin();
+                if (!Search.HasActiveSearchThreads)
+                {
+                    if (Search.IsZombied)
+                    {
+                        Search.WorkerThread_ResolveComs();
+                        break;
+                    }
+                    break;
+                }
+            }
+
+            Console.WriteLine("Search is finished....");
+            Console.WriteLine(string.Format("You have {0} file system items that matched.", SearchDeal.TimesMatchCalled));
+            SearchDeal.Dispose();
+            return;
             OdinSearch SearchThis = new OdinSearch();
             SearchAnchor Desktop = new SearchAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
 
@@ -51,6 +198,7 @@ namespace FileIventoryConsole
             Console.WriteLine("{0} Files and Folders matched. {1} files and folders did not match.", Comsclass.TimesMatchCalled, Comsclass.TimesNoMatchCalled);
             //Console.WriteLine("Out of the matched files, {0} failed the filter check and were excluded.", results.FilteredResults);
             return;
+        
         }
     }
 }

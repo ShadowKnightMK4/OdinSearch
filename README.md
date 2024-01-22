@@ -8,6 +8,9 @@ The main milestone this project is currently working towards is something that's
 OdinSearch is a tool written in C# that lets users search thru local file systems for matches. The engine provides an expandable achritector by letting developer expand on what the engine does with matching output. It's recommanded the user have some programming experience to use this.
 
 
+## About this Branch
+With the general workflow of OdinSearch, SearchAnchor/SearchTarget and a communication class kinda finalized, this branch works on offering a console app to use this software.
+
 
 ## Current Features
 1. Search thru the local file systems.  OdinSearch engine was built mainly to enable searching thru the files and folders on the machine its running on. 
@@ -33,6 +36,9 @@ OdinSearch is a tool written in C# that lets users search thru local file system
 ## Tabled Features (may come back later)
 
 #1 Tabled for now :   Container Support.  I'm planning on adding to deal with searching thru container files such as zip files and check for matches also. The main issue is integration and apparent search speed penalties.
+
+
+#4 IN PROGRESS  External Plugin Support.  I'm playing with the idea of letting someone provide a C DLL for individual plugins for this console front end. - See the project "ExternalComsPlugin" in the solution file and the "OdinSearch_OutputConsumer_ExternUnmangedPlugin" in the C# "OdenSearch" project file
 
 
 ## Example Code

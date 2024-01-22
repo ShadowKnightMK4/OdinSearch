@@ -9,7 +9,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
 {
 
     /// <summary>
-    /// A thinly wrapped <see cref="KeyNotFoundException"/> for argument access
+    /// A thinly wrapped <see cref="KeyNotFoundException"/> for argument access. Thrown when attempting to access an argument via the indexer that is not existing
     /// </summary>
     public class ArgumentNotFoundException : KeyNotFoundException
     { 
@@ -194,7 +194,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         }
 
         /// <summary>
-        /// Text output that's now a block or a file match
+        /// Text output that's not a block or a file match
         /// </summary>
         /// <param name="Message"></param>
         public virtual void Messaging(string Message)
@@ -209,6 +209,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <param name="Start">DateTime of call</param>
         /// <returns>Your routine should return true to continue being called for the rest of the threads or false if just a single notify is enough</returns>
         /// <exception cref="InvalidOperationException">A subclass may throw Exceptions if a required custom arg is not set. That will stop the search from started</exception>
+        /// <remarks>Note that exceptions triggered will abort the search starting.</remarks>
         public virtual bool SearchBegin(DateTime Start)
         {
             return false;
@@ -221,13 +222,19 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         {
             SearchOver = true;
         }
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         /// <summary>
-        /// Default class disposal, will invoke <see cref="ResolvePendingActions"/>
+        /// Default class disposal. Invokes resolve pending actions. Argument is false within the finalizer (
         /// </summary>
-        public virtual void Dispose()
+        /// <param name="disposing">true means called by public disposal (managed and unmanaged dispose please), false means explicit call to Dispose (do not deal with managed resources, deal with unmanaged resources)</param>
+        protected virtual void Dispose(bool disposing)
         {
             ResolvePendingActions();
-            GC.SuppressFinalize(this);
             Disposed = true;
         }
     }

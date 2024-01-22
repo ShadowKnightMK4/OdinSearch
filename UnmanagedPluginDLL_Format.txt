@@ -1,0 +1,39 @@
+Version 1.
+
+This format is subject to change. Releases will have a set in stone version.   Current version passed is zero.
+
+PluginInit(DWORD Version) <- called on loading your plugin. will contain the highest version it supports.
+                          <- your plugin should return true if supported and false if not.
+
+
+SetCustomArg(wchar_t* name, LPVOID arg) <- called to set a value to the argument for your plugin
+                                        <- you should save the value if you need to preserve it (unicode string,ect..)
+                                        <- although this is LPVOID  a pointer - it's likely gonna be a unicode string.
+
+
+The rest off the routines are named identical to the same routines in OdinSearch_OutputConsumerBase C# class.
+Your plugin is handled via OdinSearch_OutputConsumer_ExternUnmangedPlugin that takes care of loading it and 
+exposing the routines via a C# layer to the rest of OdinSearch. Your unmanaged DLL is responsible for any needed allocation and freeing memory.
+
+
+When OdinSearch_OutputConsumer_ExternUnmangedPlugin is disposed, your plugin has the routine to unload dlls called aka FreeLibrary.
+
+
+There are a few differences. All strings passed are UNICODE strings.
+
+These routines will get a unicode string  instead of a file system item
+    WasNotMatched
+    Match
+
+This routine  gets the DateTime value in Ticks as an INT64.
+    SearchBegin 
+
+
+Gets a unicode string.
+    Messaging
+    Blocked
+
+
+
+
+
