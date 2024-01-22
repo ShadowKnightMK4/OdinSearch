@@ -1867,7 +1867,9 @@ namespace FileInventoryConsole
                             ret = new OdinSearch_OutputConsumer_CmdProcessor();
                             break;
                         case ActionCommand.PowerShell:
-                            ret = new OdinSearch_OutputConsumer_PowerShell();
+                            ret = null;
+                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                                ret = new OdinSearch_OutputConsumer_PowerShell();
                             break;
                         default:
                             return null;
