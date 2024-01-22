@@ -853,7 +853,7 @@ namespace ConsoleAppUnitTests
             ArgHandling testme_unicode = new ArgHandling();
             Assert.IsTrue(testme_unicode.DoTheThing(new string[] { "/outformat=cvsfile" }));
 
-            Assert.AreEqual(testme_unicode.UserFormat, ArgHandling.TargetFormat.CVSFile);
+            Assert.AreEqual(testme_unicode.UserFormat, ArgHandling.TargetFormat.CSVFile);
         }
 
 
@@ -1194,6 +1194,73 @@ namespace ConsoleAppUnitTests
 
 
     }
+
+    [TestClass]
+    public class ConsoleApp_ArgHandling_Action
+    {
+        [TestMethod]
+        public void SetAction_Test_cmd()
+        {
+            ArgHandling Demo = new();
+
+            Assert.IsTrue(Demo.DoTheThing(new string[] { "/action=cmd" }));
+            Assert.IsTrue(Demo.WasActionSet);
+            Assert.IsTrue(Demo.UserAction == ArgHandling.ActionCommand.CmdShell);
+        }
+
+        [TestMethod]
+        public void SetAction_Test_cmdshell()
+        {
+            ArgHandling Demo = new();
+
+            Assert.IsTrue(Demo.DoTheThing(new string[] { "/action=cmdshell" }));
+            Assert.IsTrue(Demo.WasActionSet);
+            Assert.IsTrue(Demo.UserAction == ArgHandling.ActionCommand.CmdShell);
+        }
+
+        [TestMethod]
+        public void SetAction_Test_powershell()
+        {
+            ArgHandling Demo = new();
+
+            Assert.IsTrue(Demo.DoTheThing(new string[] { "/action=ps" }));
+            Assert.IsTrue(Demo.WasActionSet);
+            Assert.IsTrue(Demo.UserAction == ArgHandling.ActionCommand.PowerShell);
+        }
+
+        [TestMethod]
+        public void SetAction_Test_ps()
+        {
+            ArgHandling Demo = new();
+
+            Assert.IsTrue(Demo.DoTheThing(new string[] { "/action=powershell" }));
+            Assert.IsTrue(Demo.WasActionSet);
+            Assert.IsTrue(Demo.UserAction == ArgHandling.ActionCommand.PowerShell);
+        }
+        [TestMethod]
+        public void SetAction_TestRandom()
+        {
+            ArgHandling Demo = new();
+
+            Assert.IsFalse(Demo.DoTheThing(new string[] { "/action=41208743120871428907412" }));
+            Assert.IsFalse(Demo.WasActionSet);
+            
+
+        }
+
+
+        [TestMethod]
+        public void SetAction_TestEmpty()
+        {
+            ArgHandling Demo = new();
+
+            Assert.IsFalse(Demo.DoTheThing(new string[] { "/action=" }));
+            Assert.IsFalse(Demo.WasActionSet);
+
+
+        }
+    }
+
     [TestClass]
     public class ConsoleApp_ArgHandling_Plugins
     {
@@ -1271,9 +1338,66 @@ namespace ConsoleAppUnitTests
 
     }
 
+    [TestClass]
     public class ConsoleApp_ArgHandling_Anchors
     {
+        [TestMethod]
+        public void AnchorArg_MultipleAnchorArgs()
+        {
+            List<string> Tests = new List<string>();
+            Tests.Add((Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)));
+            Tests.Add((Environment.GetFolderPath(Environment.SpecialFolder.Windows)));
+            Tests.Add((Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)));
 
+            List<string> Tests2 = new List<string>();
+            Tests2.Add(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+            Tests2.Add(Environment.GetFolderPath(Environment.SpecialFolder.CommonStartMenu));
+            Tests2.Add(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic));
+            string loc = string.Empty;
+            string loc2 = string.Empty;
+
+            foreach (string i in Tests)
+            {
+                loc += i + ";";
+            }
+            foreach (string i in Tests2)
+            {
+                loc2 += i + ";";
+            }
+
+            ArgHandling testme = new ArgHandling();
+            testme.DoTheThing(new string[] { "/anchor=" + loc , "/anchor=" + loc2});
+
+            Assert.AreEqual(Tests.Count, testme.SearchAnchor.roots.Count);
+            for (int step = 0; step < Tests.Count; step++)
+            {
+                bool found = false;
+                for (int check = 0; check < testme.SearchAnchor.roots.Count; check++)
+                {
+                    if (Tests[step].Equals(testme.SearchAnchor.roots[check]))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    for (int check = 0; check < testme.SearchAnchor.roots.Count; check++)
+                    {
+                        if (Tests2[step].Equals(testme.SearchAnchor.roots[check]))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!found)
+                {
+                    Assert.Fail(string.Format("Did not express anchor thing ok. Expected {0} items that match. Got {1}", Tests.Count, testme.SearchAnchor.roots.Count));
+                }
+            }
+        }
         [TestMethod]
         public void AnchorArg_Set_NoSpace()
         {
@@ -1284,7 +1408,7 @@ namespace ConsoleAppUnitTests
             Assert.AreEqual(testme.SearchAnchor.roots[0].ToString(), loc);
         }
         [TestMethod]
-        public void ArchorArg_SetMultiple()
+        public void ArchorArg_SetMultiple_InSingleArgument()
         {
             List<string> Tests = new List<string>();
             Tests.Add((Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)));

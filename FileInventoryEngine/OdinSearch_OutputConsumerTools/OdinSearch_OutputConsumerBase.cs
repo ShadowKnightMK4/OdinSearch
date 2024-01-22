@@ -209,6 +209,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         /// <param name="Start">DateTime of call</param>
         /// <returns>Your routine should return true to continue being called for the rest of the threads or false if just a single notify is enough</returns>
         /// <exception cref="InvalidOperationException">A subclass may throw Exceptions if a required custom arg is not set. That will stop the search from started</exception>
+        /// <remarks>Note that exceptions triggered will abort the search starting.</remarks>
         public virtual bool SearchBegin(DateTime Start)
         {
             return false;

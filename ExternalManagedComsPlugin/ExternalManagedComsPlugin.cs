@@ -10,7 +10,7 @@
     namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
     {
         /// <summary>
-        /// the loaded for the plugin looks for public classes tagged with an attribute of this name.
+        /// the loaded for the plugin looks for public classes tagged with an attribute of this name. The actual specifics matter not. The loader class that handles this stuff looks for public classes with a tag. The console front end for example uses this one.
         /// </summary>
         [AttributeUsage(AttributeTargets.Class)]
         class OdinFileSearch_comsclass : Attribute

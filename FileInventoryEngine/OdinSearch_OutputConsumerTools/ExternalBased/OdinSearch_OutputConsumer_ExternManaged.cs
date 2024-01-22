@@ -22,11 +22,30 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
     internal sealed class AssemblyLoading_Net7: IDisposable
     {
         
-        static Type[] WasNotMatchedArgs = { typeof(FileSystemInfo) };
-        static Type[] WasMatchedArgs = WasNotMatchedArgs;
-        static Type[] BlockedArgs = { typeof(string) };
-        static Type[] MessagingArg = BlockedArgs;
-        static Type[] SearchBeginArg = { typeof(DateTime) };
+        /// <summary>
+        /// Our Type info for <see cref="OdinSearch_OutputConsumerBase.WasNotMatched(FileSystemInfo)"/>
+        /// </summary>
+        static readonly Type[] WasNotMatchedArgs = { typeof(FileSystemInfo) };
+        /// <summary>
+        /// Our Type Info for <see cref="OdinSearch_OutputConsumerBase.WasNotMatched(FileSystemInfo)"/>
+        /// </summary>
+        static readonly Type[] WasMatchedArgs = WasNotMatchedArgs;
+
+        /// <summary>
+        /// Our Type Info for <see cref="OdinSearch_OutputConsumerBase.Blocked(string)"/>
+        /// </summary>
+
+        static readonly Type[] BlockedArgs = { typeof(string) };
+        /// <summary>
+        /// Our Type Info for <see cref="OdinSearch_OutputConsumerBase.Messaging(string)"/>
+        /// </summary>
+
+        static readonly Type[] MessagingArg = BlockedArgs;
+        /// <summary>
+        /// Our Type Info for <see cref="OdinSearch_OutputConsumerBase.SearchBegin(DateTime)"/>
+        /// </summary>
+
+        static readonly Type[] SearchBeginArg = { typeof(DateTime) };
 
         
         List<Type> ImportedTypes = new();
@@ -96,6 +115,10 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
 
 
 
+        /// <summary>
+        /// make an instance of this object and assign to our holding <see cref="CurrentObject"/>
+        /// </summary>
+        /// <param name="t"></param>
         void MakeInstance(Type t)
         {
             this.CurrentObject = Activator.CreateInstance(t) ;
@@ -144,6 +167,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
         /// <param name="location"></param>
         /// <param name="MetaDataName"></param>
         /// <exception cref="PluginCertificateCheckFailException">thrown if plugin fails the <see cref="OdinSearch_OutputConsumer_PluginCheck.CheckForCertificate(string)/> test</exception>
+        /// <remarks>This askss if <see cref="OdinSearch_OutputConsumer_PluginCheck.CheckAgainstThis"/> is ok with loading.</remarks>
         public void SetTargetLocation(string location, string MetaDataName)
         {
             bool KeepIt;
@@ -200,9 +224,9 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
         /// <summary>
         /// Load the target assembly, look for metadata of the name and select the classname if known
         /// </summary>
-        /// <param name="AssemblyLocation"></param>
-        /// <param name="MetaDataName"></param>
-        /// <param name="classname"></param>
+        /// <param name="AssemblyLocation">The location of the file holding the assembly.</param>
+        /// <param name="MetaDataName">We look for exported classes with this attribute. Default is An internal value at <see cref="AssemblyLoading_Net7.MetaDataName"/></param>
+        /// <param name="classname">name of the class that will impelment our plugin protocol.</param>
         /// <exception cref="EntryPointNotFoundException">This can be thrown if a class name with the specific metadata is not found</exception>
         public OdinSearch_OutputConsumer_ExternManaged(string AssemblyLocation,  string MetaDataName , string classname)
         {

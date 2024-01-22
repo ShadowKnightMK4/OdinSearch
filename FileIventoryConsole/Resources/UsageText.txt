@@ -212,8 +212,17 @@ Specifying Search Starting points
 -----------------------------------------------------------------------------------------------------
 Specifying what to do with matches
 -----------------------------------------------------------------------------------------------------
-Forward: One may use /oustream and /outformat or the plugin system. Using both is not supported currently
-nor is using more than one plugin in at a time.
+Forward: One may use /oustream and /outformat or the plugin system. Using any cobination of /action,
+/outstream, /plugin (and /managed) of more than 1 is not supported.
+
+/action={'cmd', 'cmdshell', 'bash', 'powershell', 'ps' }
+	This flag tells the app to execute a command of your choice on the matches. You'll need to specify 
+	-command="" to tell what to run.
+	For Windows, cmd and cmdshell resolve to cmd.exe in the system folder.
+	Powershell and ps wesolve to ps.exe in \WindowsPowerShell\v1.0 off of the system folder.
+	On Linux, bash tries to check /usr/bin/bash, then /bin/bash, the env variable BASH_SOURCE and finally
+	as a last ditch effort, the results of the 'which bash' command running.
+
 
 /outstream={{'stdout', 'stderr', File Location}}
 	This flag controls *where* the app will send matches. Use /outstream=stdout or /outstream=stderr 
@@ -280,6 +289,14 @@ Mode specific
 	key space rather than the usual MATCH: "File" @ "Location" format
 
 
+-----------------------------------------------------------------------------------------------------
+Custom Settings for Plugis
+-----------------------------------------------------------------------------------------------------
+Some settings and plugins can have specific options. These will very depending on the usual default option
+and settings.  If it's build in, likely the command will have an easier way to set it.
+
+-carg="A=B"
+	You 
 
 Default Settings are below if you don't specify the flag. Please note these choices are intended
 to let the user be precise but allow them to type as few as commands to get the point accross.
@@ -295,5 +312,5 @@ Lack of /minfilesize or /maxfilesize will have the search not care about the siz
 
 
 Should BOTH /anywhere and /anchor= be set, the /anchor setting is discarded as it's already going to be searched due to /anywhere
-Should BOTH a plugin and /outformat be set, the plugin wins.
+Should BOTH a plugin, an /action or /outformat be set, the app will complain and not do it at all.
 

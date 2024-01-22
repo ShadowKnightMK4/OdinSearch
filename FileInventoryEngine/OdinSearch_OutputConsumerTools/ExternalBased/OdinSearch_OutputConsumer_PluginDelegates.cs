@@ -76,10 +76,10 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
             }
         }
         /// <summary>
-        /// we see if the executable's certificate is signed. 
+        /// We see if this file is signed with a copy of *our* certificate stored at <see cref="CheckAgainstThis"/>
         /// </summary>
-        /// <param name="Location"></param>
-        /// <returns></returns>
+        /// <param name="Location">file to load.</param>
+        /// <returns>return if trusted by system and matches</returns>
         public static bool CheckForCertificate(string Location)
         {
             bool pass = false;

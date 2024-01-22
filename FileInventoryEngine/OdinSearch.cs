@@ -17,6 +17,22 @@ namespace OdinSearchEngine
 {
 
     /// <summary>
+    /// This class is thrown if an exception occures on search begin.  Inner exception will be the offerensing exception.
+    /// </summary>
+    /// <remarks>This exists to pretty much wrap the offending exception, if this triggers on calling <see cref="OdinSearch.Search(OdinSearch_OutputConsumerBase)"/>, it's there to notify that the communcation class had an issue in starting.</remarks>
+    public class OdinSearch_CommuncationClassException: Exception
+    {
+        public OdinSearch_CommuncationClassException(string message) : base(message)
+        {
+
+        }
+
+        public OdinSearch_CommuncationClassException(string message, Exception Inner): base(message, Inner)
+        {
+
+        }
+    }
+    /// <summary>
     /// Search the local system for files/folders 
     /// </summary>
     public class OdinSearch
@@ -1128,8 +1144,9 @@ namespace OdinSearchEngine
         /// Start the search rolling. 
         /// </summary>
         /// <param name="Coms">This class is how the search communicates with your code. Cannot be null</param>
-        /// <exception cref="IOException">Is thrown if Search is called while searching. </exception>
+        /// <exception cref="InvalidOperationException">Is thrown if Search is called while searching. </exception>
         /// <exception cref="ArgumentNullException">Is thrown if the Coms argument is null</exception>
+        /// <exception cref="OdinSearch_CommuncationClassException">Thrown by the communcations class if it can't initalize on a call to <see cref="OdinSearch_OutputConsumerBase.SearchBegin(DateTime)"/></exception>
         /// <remarks>Note that the search uses a default class <see cref="OdinSearch_ContainerFileInfo"/> if there's not container class</remarks>
         public void Search(OdinSearch_OutputConsumerBase Coms)
         {
@@ -1198,7 +1215,14 @@ namespace OdinSearchEngine
                     {
                         if (KeepCallingForThreads)
                         {
-                            KeepCallingForThreads = Coms.SearchBegin(DateTime.Now);
+                            try
+                            {
+                                KeepCallingForThreads = Coms.SearchBegin(DateTime.Now);
+                            }
+                            catch (InvalidOperationException e)
+                            {
+                                throw new OdinSearch_CommuncationClassException("Error: There was a problem initializing Search. Specific Message:" + e.Message, e); 
+                            }
                         }
                         t.Thread.Start(t.Args);
                     }
