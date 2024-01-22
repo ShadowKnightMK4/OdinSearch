@@ -259,7 +259,6 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
 
 #else
             throw new NotImplementedException("Need to add code to load the shared library/ DLL.");
-            return;
 #endif
 
             ExternAllDone = Marshal.GetDelegateForFunctionPointer<AllDonePtr>(GetProcAddr(DllHandle, "AllDone"));
@@ -268,7 +267,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased
             ExternMatch = Marshal.GetDelegateForFunctionPointer<MatchPtr>(GetProcAddr(DllHandle, "Match"));
             ExternMessage = Marshal.GetDelegateForFunctionPointer<MessagePtr>(GetProcAddr(DllHandle, "Messaging"));
             ExternResolve = Marshal.GetDelegateForFunctionPointer<ResolveActionPtr>(GetProcAddr(DllHandle, "ResolvePendingActions"));
-            ExternSearch = Marshal.GetDelegateForFunctionPointer<SeachBeginPtr>(GetProcAddress(DllHandle, "SearchBegin"));
+            ExternSearch = Marshal.GetDelegateForFunctionPointer<SeachBeginPtr>(GetProcAddr(DllHandle, "SearchBegin"));
             ExternWasNotMatched = Marshal.GetDelegateForFunctionPointer<WasNotMatchedPtr>(GetProcAddr(DllHandle, "WasNotMatched"));
             return true;
         }
