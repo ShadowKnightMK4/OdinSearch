@@ -1,6 +1,6 @@
-BETA BETA BETA.
+Version 1.
 
-This format is subject to change. Releases will have a set in stone version.   Corrent version is zero.
+This format is subject to change. Releases will have a set in stone version.   Current version passed is zero.
 
 PluginInit(DWORD Version) <- called on loading your plugin. will contain the highest version it supports.
                           <- your plugin should return true if supported and false if not.
