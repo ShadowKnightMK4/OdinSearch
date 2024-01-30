@@ -15,7 +15,7 @@ namespace OdinSearchEngine
     public class FileInfoExtract
     {
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool GetFileSizeEx(IntPtr Handle, out long LargeInt);
+        static extern bool GetFileSizeEx(IntPtr Handle, out long LargeInt);
         public FileInfoExtract(string Target)
         {
             Content = new FileInfo(Target);

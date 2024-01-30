@@ -1,8 +1,14 @@
 {
   "profiles": {
-    "B": {
+    "D": {
       "commandName": "Project",
-      "commandLineArgs": "/filename=\"*.exe*\"  /anchor=C:\\Euphoria  /subfolders /A=A /fileattrib_check=8 /minfilesize=4KB /maxfilesize=12GB /class=\"OdinSearch_OutputConsumerBaseTest\" /managed=\"C:\\Users\\Thoma\\source\\repos\\FileInventory\\ExternalManagedComsPlugin\\bin\\Debug\\net7.0\\ExternalManagedComsPlugin.dll\" /explain",
+      "commandLineArgs": "/anyfile /explain",
+      "nativeDebugging": false,
+      "remoteDebugEnabled": false
+    },
+    "Q": {
+      "commandName": "Project",
+      "commandLineArgs": "/filename=\"*.exe*\"  /anchor=C:\\Euphoria  /subfolders /A=A /fileattrib_check=8 /minfilesize=4KB /maxfilesize=12GB /action=cmd /command=\"explorer.exe /select,\\\"{0}\\\"\" /explain",
       "nativeDebugging": false,
       "remoteDebugEnabled": false
     }

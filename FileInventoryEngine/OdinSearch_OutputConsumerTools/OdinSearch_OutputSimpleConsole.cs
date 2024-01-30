@@ -226,12 +226,13 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                     errstream?.Dispose();
                 }
             }
+
             base.Dispose(disposing);
         }
         ~OdinSearch_OutputSimpleConsole()
         {
             Dispose(true);
-            GC.SuppressFinalize(this);
+            
         }
     }
 }
