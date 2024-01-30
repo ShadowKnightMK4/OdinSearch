@@ -12,7 +12,7 @@ namespace ConsoleAppUnitTests
     /// </summary>
     internal static class TestTools
     {
-        
+
     }
 
     [TestClass]
@@ -122,7 +122,7 @@ namespace ConsoleAppUnitTests
         }
 
 
-        
+
         [TestMethod]
         public void setMAXfilesize_bytes()
         {
@@ -140,7 +140,7 @@ namespace ConsoleAppUnitTests
             ArgHandling test = new ArgHandling();
             Assert.IsTrue(test.DoTheThing(new string[] { "/maxfilesize=12KB" }));
 
-            Assert.IsTrue(test.SearchTarget.FileSizeMax == (12*1024));
+            Assert.IsTrue(test.SearchTarget.FileSizeMax == (12 * 1024));
             Assert.IsTrue(test.SearchTarget.CheckFileSize);
         }
 
@@ -466,7 +466,7 @@ namespace ConsoleAppUnitTests
             foreach (DirectoryInfo i in Default.roots)
             {
                 bool found = false;
-                for (int step = 0; step < testme.SearchAnchor.roots.Count;step++)
+                for (int step = 0; step < testme.SearchAnchor.roots.Count; step++)
                 {
                     if (testme.SearchAnchor.roots[step].ToString() == i.ToString())
                     {
@@ -486,11 +486,11 @@ namespace ConsoleAppUnitTests
         public void ComboTest_SettingFileAttrib_NOATTRIB_NO_SPEC()
         {
             ArgHandling testme = new ArgHandling();
-            Assert.IsTrue(testme.DoTheThing(new string[] { "-F"}));
+            Assert.IsTrue(testme.DoTheThing(new string[] { "-F" }));
             Assert.IsFalse(testme.was_fileattribs_set);
             Assert.IsFalse(testme.was_fileattrib_check_specified);
             // note the attributes are fully tested at other places.
-            if ( !(testme.SearchTarget.AttributeMatching1 == 0) || (testme.SearchTarget.AttributeMatching1 == FileAttributes.Normal))
+            if (!(testme.SearchTarget.AttributeMatching1 == 0) || (testme.SearchTarget.AttributeMatching1 == FileAttributes.Normal))
             {
                 Assert.Fail("SEARCHTARGET was not set properly. Expected 0 or FileAttribute Normal.  Check Arg Handling first. If Standard changed in SearchTarget, update this");
             }
@@ -516,7 +516,7 @@ namespace ConsoleAppUnitTests
         public void ComboTest_SettingFileAttrib_without_spec()
         {
             ArgHandling testme = new ArgHandling();
-            Assert.IsTrue(testme.DoTheThing(new string[] { "/A=D"}));
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/A=D" }));
             Assert.IsTrue(testme.was_fileattribs_set);
             Assert.IsFalse(testme.was_fileattrib_check_specified);
             testme.FinalizeCommands();
@@ -557,7 +557,7 @@ namespace ConsoleAppUnitTests
             string beforedate = "Jan 1, 2000";
             string afterdate = "Dec 31, 2022";
             ArgHandling testme = new ArgHandling();
-            Assert.IsTrue(testme.DoTheThing(new string[] {  "/nolastaccessedbefore=" + afterdate }));
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/nolastaccessedbefore=" + afterdate }));
             Assert.IsTrue(testme.WasLastAccessDateSet);
 
             Assert.AreEqual(testme.SearchTarget.AccessAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
@@ -577,7 +577,7 @@ namespace ConsoleAppUnitTests
             string beforedate = "Jan 1, 2000";
             string afterdate = "Dec 31, 2022";
             ArgHandling testme = new ArgHandling();
-            Assert.IsTrue(testme.DoTheThing(new string[] { "/lastaccessedbefore=" + beforedate}));
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/lastaccessedbefore=" + beforedate }));
             Assert.IsTrue(testme.WasLastAccessDateSet);
 
             Assert.AreEqual(testme.SearchTarget.AccessAnchor.Day, 1);
@@ -621,11 +621,11 @@ namespace ConsoleAppUnitTests
             string beforedate = "Jan 1, 2000";
             string afterdate = "Dec 31, 2022";
             ArgHandling testme = new ArgHandling();
-            Assert.IsTrue(testme.DoTheThing(new string[] { "-F"}));
-            Assert.IsFalse(testme.WasLastChangedDateSet );
+            Assert.IsTrue(testme.DoTheThing(new string[] { "-F" }));
+            Assert.IsFalse(testme.WasLastChangedDateSet);
 
             Assert.AreEqual(testme.SearchTarget.WriteAnchor.Day, Default.Day);
-            Assert.AreEqual(testme.SearchTarget.WriteAnchor.Month, Default.Month) ;
+            Assert.AreEqual(testme.SearchTarget.WriteAnchor.Month, Default.Month);
             Assert.AreEqual(testme.SearchTarget.WriteAnchor.Year, Default.Year);
             Assert.AreEqual(testme.SearchTarget.WriteAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.Disable);
 
@@ -642,7 +642,7 @@ namespace ConsoleAppUnitTests
             string beforedate = "Jan 1, 2000";
             string afterdate = "Dec 31, 2022";
             ArgHandling testme = new ArgHandling();
-            Assert.IsTrue(testme.DoTheThing(new string[] { "/nolastmodifiedbefore=" + beforedate}));
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/nolastmodifiedbefore=" + beforedate }));
             Assert.IsTrue(testme.WasLastChangedDateSet);
 
             Assert.AreEqual(testme.SearchTarget.WriteAnchor.Day, 1);
@@ -676,7 +676,7 @@ namespace ConsoleAppUnitTests
 
         [TestMethod]
         public void ComboTest_NoLastModifiedBeforeYes_LastModifiedBeforeYes()
-        
+
         {
             string beforedate = "Jan 1, 2000";
             string afterdate = "Dec 31, 2022";
@@ -703,7 +703,7 @@ namespace ConsoleAppUnitTests
             string beforedate = "Jan 1, 2000";
             string afterdate = "Dec 31, 2022";
             ArgHandling testme = new ArgHandling();
-            Assert.IsTrue(testme.DoTheThing(new string[] {"-F"}));
+            Assert.IsTrue(testme.DoTheThing(new string[] { "-F" }));
             Assert.IsFalse(testme.WasCreationDateSet);
 
 
@@ -724,14 +724,14 @@ namespace ConsoleAppUnitTests
             string beforedate = "Jan 1, 2000";
             string afterdate = "Dec 31, 2022";
             ArgHandling testme = new ArgHandling();
-            Assert.IsTrue(testme.DoTheThing(new string[] { "/notcreatedbefore=" + beforedate}));
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/notcreatedbefore=" + beforedate }));
             Assert.IsTrue(testme.WasCreationDateSet);
 
             Assert.AreEqual(testme.SearchTarget.CreationAnchor.Day, 1);
             Assert.AreEqual(testme.SearchTarget.CreationAnchor.Month, 1);
             Assert.AreEqual(testme.SearchTarget.CreationAnchor.Year, 2000);
             Assert.AreEqual(testme.SearchTarget.CreationAnchorCheck1, OdinSearchEngine.SearchTarget.MatchStyleDateTime.NoEarlierThanThis);
-           
+
         }
 
 
@@ -757,7 +757,7 @@ namespace ConsoleAppUnitTests
             string beforedate = "Jan 1, 2000";
             string afterdate = "Dec 31, 2022";
             ArgHandling testme = new ArgHandling();
-            Assert.IsTrue(testme.DoTheThing(new string[] { "/notcreatedbefore=" + beforedate , "/notcreatedafter=" +afterdate}));
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/notcreatedbefore=" + beforedate, "/notcreatedafter=" + afterdate }));
             Assert.IsTrue(testme.WasCreationDateSet);
 
             Assert.AreEqual(testme.SearchTarget.CreationAnchor.Day, 1);
@@ -791,7 +791,7 @@ namespace ConsoleAppUnitTests
             ArgHandling testme = new ArgHandling();
             Assert.IsTrue(testme.DoTheThing(new string[] { "/filename=" + filename_arg }));
             Assert.AreEqual(testme.SearchTarget.FileName[0], filename_arg);
-            Assert.AreEqual(testme.SearchTarget.DirectoryPath.Count, 0); 
+            Assert.AreEqual(testme.SearchTarget.DirectoryPath.Count, 0);
 
         }
 
@@ -801,7 +801,7 @@ namespace ConsoleAppUnitTests
             string fullname_arg = "C:\\Windows\\something.exe";
             string filename_arg = "Something.exe";
             ArgHandling testme = new ArgHandling();
-            Assert.IsTrue(testme.DoTheThing(new string[] { "/fullname=" + fullname_arg}));
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/fullname=" + fullname_arg }));
             Assert.AreEqual(testme.SearchTarget.FileName.Count, 0);
             Assert.AreEqual(testme.SearchTarget.DirectoryPath[0], fullname_arg);
 
@@ -938,6 +938,82 @@ namespace ConsoleAppUnitTests
             testme.DoTheThing(new string[] { "/outstream=\"" + filename + "\"" });
             Assert.IsTrue((testme.TargetStream != null) && (testme.TargetStream.Name.ToLower() == filename.ToLower()));
             Assert.IsTrue(testme.TargetStreamHandling == ArgHandling.ConsoleLines.NoRedirect);
+
+        }
+    }
+
+    [TestClass]
+    public class ArgHandling_CommandFlag
+    {
+        [TestMethod]
+        public void TestNoneQuoted()
+        {
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/command=ignoreme" }));
+            Assert.AreEqual(testme.CommandString, "ignoreme");
+        }
+
+        
+        [TestMethod]
+        public void TestNoneDoubleQuotes()
+        {
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/command=\"ignoreme\"" }));
+            Assert.AreEqual(testme.CommandString, "\"ignoreme\"");
+        }
+    }
+    [TestClass]
+    public class ArgHandling_Combinatons
+    {
+        [TestMethod]
+        public void FlagSetHasConsumerTest_3Flags()
+        {
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/outstream=stdout", "/action=cmd", "/plugin=\"C:\\stuff.dll"}));
+            Assert.IsTrue(testme.MoreThanOnConsumerSet);
+        }
+
+        [TestMethod]
+        public void FlagSetHasConsumerTest_2Flags()
+        {
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/outstream=stdout", "/action=cmd"}));
+            Assert.IsTrue(testme.MoreThanOnConsumerSet);
+        }
+
+        [TestMethod]
+
+        public void FlagSetHasConsumerTest_1Flags_a()
+        {
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/outstream=stdout" }));
+            Assert.IsFalse(testme.MoreThanOnConsumerSet);
+        }
+
+        [TestMethod]
+
+        public void FlagSetHasConsumerTest_1Flags_c()
+        {
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/plugin=C:\\stuff\\plugin.dll" }));
+            Assert.IsFalse(testme.MoreThanOnConsumerSet);
+        }
+
+
+        [TestMethod]
+        public void FlagSetHasConsumerTest_1Flags_b()
+        {
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[] { "/action=cmd" , "/command=dontcare"}));
+            Assert.IsFalse(testme.MoreThanOnConsumerSet);
+        }
+
+
+        [TestMethod]
+        public void FlagSetHasConsumerTest_none()
+        {
+            ArgHandling testme = new ArgHandling();
+            Assert.IsTrue(testme.DoTheThing(new string[]{ "-f" }));
 
         }
     }

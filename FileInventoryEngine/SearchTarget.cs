@@ -14,10 +14,11 @@ namespace OdinSearchEngine
     /// <summary>
     /// Indicate what will be searched for.
     /// </summary>
-    public class SearchTarget: IEquatable<SearchTarget>
+    public class SearchTarget : IEquatable<SearchTarget>
     {
+
         /// <summary>
-        /// When added to <see cref="FileName"/> as in item, causes the compare to match sucessfully against any file.
+        /// When added to <see cref="FileName"/> as in item, causes the compare to match sucessfully against any file name.
         /// </summary>
         public const string MatchAnyFile = "*";
 

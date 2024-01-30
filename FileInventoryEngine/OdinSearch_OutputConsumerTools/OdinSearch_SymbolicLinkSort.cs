@@ -62,7 +62,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
         {
 
             /// <summary>
-            /// place a call to this in your subclassed code before attempting to make link. It will test for existance of the link location and if it does exist appear a number and keep trying until either it has the cap for uint128 or fails.
+            /// place a call to this in your subclassed code before attempting to make link. It will test for existance of the link location and if it does exist append a number and keep trying until either it has the cap for uint128 or fails.
             /// </summary>
             /// <param name="linklocation">Pass where you plan to create the link</param>
             /// <returns>returns the possibly altered location if there's an existing symbol file with that name there already.</returns>

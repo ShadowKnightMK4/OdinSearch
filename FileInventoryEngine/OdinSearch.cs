@@ -37,6 +37,9 @@ namespace OdinSearchEngine
     /// </summary>
     public class OdinSearch
     {
+        #region Static Messages and Strings
+        const string WorkerThread_NullArgMessage = "Worker Thread was called with null argument value. It expects an instance of WorkerThreadArgs wrapped in an object. This shouldn't normally happen.";
+        #endregion
         #region DEBUG_AIDS
 #if DEBUG
         public bool DebugVerboseMode
@@ -53,7 +56,7 @@ namespace OdinSearchEngine
 
         private bool DebugVerboseModeHandle = true;
 #else
-    
+
         public bool DebugVerboseMode
         {
             set
@@ -254,12 +257,12 @@ namespace OdinSearchEngine
         /// <summary>
         /// Unpack the WorkerThreadArgs and go to work. Not intended to to called without having done by its own thread
         /// </summary>
-        /// <param name="Args"></param>
+        /// <param name="Args">This is an instance of <see cref="WorkerThreadArgs"/> boxed in an object</param>
         void WorkerThreadProc(object Args)
         {
             
 
-            if (Args == null) throw new ArgumentNullException();
+            if (Args == null) throw new ArgumentNullException(nameof(Args));
             
             Queue<DirectoryInfo> FolderList = new Queue<DirectoryInfo>();
             //Queue<OdinSearch_ContainerSystemItem> FolderList = new Queue<OdinSearch_ContainerSystemItem>();
@@ -563,8 +566,8 @@ namespace OdinSearchEngine
         /// <summary>
         /// Call Thread.Join() for all worker threads spawned in the list. Your code will functionally be awaiting until it is done
         /// </summary>
-        /// <exception cref="ThreadStart">Can potentially trigger if a thread has not started yet.</exception>
-        /// <exception cref=">"
+        /// <exception cref="ThreadStart">Can potentially trigger if a thread has not started yet. This is why the example code in the readme Thread.Sleep(200) in it.</exception>
+        /// <exception cref="InvalidOperationException">Is thrown if calling this without first calling <see cref="Search(OdinSearch_OutputConsumerBase)"/> or the worker thread pool is empty</exception>
         /// <remarks></remarks>
         public void WorkerThreadJoin()
         {
@@ -1252,24 +1255,26 @@ namespace OdinSearchEngine
         }
 
         /// <summary>
-        /// Search specs must pass this before search is go. We are looking to just fail impossible combinations
+        /// Search specs must pass this before search is go. We are looking to just fail impossible combinations. Currently just a place holder to return true
         /// </summary>
-        /// <param name="Arg"></param>
-        /// <returns></returns>
-        /// <remarks>Honstestly just returns true with this current build.</remarks>
+        /// <param name="Arg">TODO: <see cref="WorkerThreadArgs"/> to eval</param>
+        /// <returns>true if it passes and false if not</returns>
+        /// <remarks>Honstestly just returns true with this current build. Use <see cref="SkipSanityCheck"/> to true to skip this call</remarks>
         bool SanityChecks(WorkerThreadArgs _1)
         {
             // TODO:  Ensure conflicting filename and DirectoryName can actually match. For example, we're not attempting to compare contrarray
             //  settings in the filename array and directory path
             // TODO: Ensure we can have allowable file attributes. For example we're not wanting something that's botha file and a file.
+#if DEBUG
             System.Diagnostics.Debug.Write("Add code SanityCheck() routine");
+#endif 
             return true;
         }
 
         
 
         
-        #endregion
+#endregion
         #region Container Handling
         /// <summary>
         /// When called, your routine should do what it needs to do to see if there's a class to handle this location.
@@ -1287,13 +1292,24 @@ namespace OdinSearchEngine
         readonly List<ContainerCheckDirectoryCallback> DirectoryContainerList = new();
         readonly List<ContainerCheckFileCallback> FileContainerList = new();
 
+        /// <summary>
+        /// Not implemented
+        /// </summary>
+        /// <param name="ContainerCheckDirectoryCallback"></param>
+        /// <exception cref="NotImplementedException"></exception>
         public void AddFileContainerCallback(ContainerCheckDirectoryCallback ContainerCheckDirectoryCallback)
         {
-            DirectoryContainerList.Add(ContainerCheckDirectoryCallback);
+            throw new NotImplementedException(nameof(AddFileContainerCallback));
         }
+
+        /// <summary>
+        /// Not implemented
+        /// </summary>
+        /// <param name="ContainerCheckFileCallback"></param>
+        /// <exception cref="NotImplementedException"></exception>
         public void AddDirectoryContainerCallback(ContainerCheckFileCallback ContainerCheckFileCallback)
         {
-            FileContainerList.Add(ContainerCheckFileCallback);
+            throw new NotImplementedException(nameof(AddDirectoryContainerCallback));
         }
 
         public void ClearFileContainerCallback()

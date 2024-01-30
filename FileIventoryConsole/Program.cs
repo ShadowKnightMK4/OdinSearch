@@ -40,6 +40,7 @@ namespace FileIventoryConsole
             #region scracth pad
             #endregion
 
+            
             OdinSearch_OutputConsumer_PluginCheck.Init();
             if (IsDebugMode)
             {
@@ -48,6 +49,7 @@ namespace FileIventoryConsole
                 Console.WriteLine("Status Messages follow:");
                 Console.WriteLine("Plugin cert signed only status: " + OdinSearch_OutputConsumer_PluginCheck.WeAreSigned);
                 Console.WriteLine("END DEBUG INFO:");
+                System.Diagnostics.Debugger.Launch();
             }
             ArgHandling ArgHandling = new();
             ArgHandling.DisplayBannerText();
@@ -69,6 +71,18 @@ namespace FileIventoryConsole
                         OdinSearch_OutputConsumer_PluginCheck.CheckAgainstThis?.Dispose();
                         OdinSearch_OutputConsumer_PluginCheck.CheckAgainstThis = null;
                     }
+
+                    if (ArgHandling.WasActionSet)
+                    {
+                        if ( (ArgHandling.CommandString == null) && (ArgHandling.DesiredPlugin == null))
+                        {
+                            Console.WriteLine("*******************");
+                            Console.WriteLine("Error: This command needed a function string set with the /command flag");
+                            Console.WriteLine("*******************");
+                            return;
+
+                        }
+                    }
                     if (!ArgHandling.WantUserExplaination)
                     {
                         if ((ArgHandling.WasStartPointSet == false) && (ArgHandling.WasWholeMachineSet == false))
@@ -89,18 +103,20 @@ namespace FileIventoryConsole
                             Console.WriteLine("*******************");
                         }
 
-                        if (!(ArgHandling.WasOutStreamSet ^ ArgHandling.WasActionSet ^ ArgHandling.WasNetPluginSet ^ ArgHandling.WasUnmanagedPluginSet))
+                        if ((ArgHandling.MoreThanOnConsumerSet))
                         {
                             ArgHandling.Usage();
                             Console.WriteLine("*******************");
-                            Console.WriteLine("Error: Please use either the /outstream settings, the /action settings the /managed setting or the /plugin setting but not more than 1");
+                            Console.WriteLine("Error: Please use either the /outstream settings, the /action settings, the /managed setting or the /plugin setting but not more than 1.");
                             Console.WriteLine("*******************");
                         }
                     }
                     else
                     {
+                        Console.WriteLine("Explanation Mode");
                         Console.WriteLine("*******************");
-                        Console.WriteLine("Arguments were parses as follows with one on each line. If it's weird, check \" chars");
+                        Console.WriteLine("Arguments were parses as follows with one on each line. If it's weird, check \" chars.");
+                        Console.WriteLine("If you are using the /command flag, ensure the \" symbol has a \\ prefix as in \\\"");
                         DisplayArguments(args);
                         Console.WriteLine("*******************");
                         Console.WriteLine("Explaining what the arguments will do. To execute the commands drop the /explain flag");
@@ -127,7 +143,7 @@ namespace FileIventoryConsole
 
             if (ArgHandling.DesiredPlugin == null)
             {
-                Console.WriteLine("Fatal Error: No output was set. Note this should not be reached in normal execution.");
+                Console.WriteLine("Fatal Error: No valid consumer was set.");
                 Console.Write("Quitting...\r\n");
                 return;
             }
