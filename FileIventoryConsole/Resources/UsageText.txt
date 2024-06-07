@@ -1,11 +1,25 @@
-﻿FileInventoryConsole.exe  /Arguments -Flags
+﻿FileInventoryConsole.exe  [/Arguments] [-Flags]
 
+	FileInventoryConsole is a tool to locate files on your PC that may not possibly not be indexed
+by normal services and do some action with them such as make a list or run a shell command on them.
+There are few key data types for the software and each of them has its own rules and formatting. 
+The key data types are File Attributes - what kind of OS file attribute are you looking for if any,
+MatchStyleFileAttribute - just exactly how will the compare of your targeted attributes will work,
+MatchStyleString -  how your filename and fullname string compares will work and Date Time String 
+- a .NET date time data type.  
+    There are a couple additional data types thru this app but should be self explaining. One 
+important thing to note is that while arguments such as /filename and /FiLeNaMe are case 
+insensitive, specifics to the arguments are NOT.
+
+do not eval this part
+````
 There are some special data types to be aware of for this app. Each once has its own set of values 
 and format; however, this help file is intended to let someone pick it up quickly. The 4 main data 
 types are File Attributes, MatchStyleFileAttributes, MatchStyleString and the Date Time string. There
 are a few extra data types beyond this, but hopefully they are self explanatory in this file. The 
 table below lists the data types and defines what they are. While arguments are case insensitive, 
 your specifics to the arguments are usually not.
+`````
 
 -----------------------------------------------------------------------------------------------------
 File Attributes          | These are attributes of the item to search for.       
@@ -108,7 +122,11 @@ Date Time specifics
 Wildcard specifics
 -----------------------------------------------------------------------------------------------------
 	Use the * symbol to match any number of characters and the ? symbol to match a single char.
-	This is the same as using commands like Window’s ‘dir’.
+	This is the same as using commands like Window’s ‘dir’. For example "*.*" matches files with an 
+	extention, "*help.*" matches files whoses names end in help, have a dot and any extension such 
+	as "syshelp.docx.""  There is a special case of indicating "*" alone to positively match any file 
+	name.
+
 
 
 -----------------------------------------------------------------------------------------------------

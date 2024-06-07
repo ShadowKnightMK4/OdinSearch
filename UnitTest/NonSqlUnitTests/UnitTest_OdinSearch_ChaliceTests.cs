@@ -484,6 +484,37 @@ namespace NonSqlUnitTests
 
         #region FileName Tests
 
+        [TestMethod]
+        public void TestNULL_BackRegEx_OnInput_bad_pattern()
+        {
+            const string offend = @"[";
+            var Demo = new OdinSearch();
+            OdinSearch_OutputConsumerGatherResults testresults = new OdinSearch_OutputConsumerGatherResults();
+            SearchTarget target = new SearchTarget();
+            target.FileName.Add(offend);
+            target.RegSaftyMode = false;
+            target.FileNameMatching = MatchStyleString.RawRegExMode;
+            Demo.AddSearchTarget(target);
+            Demo.AddSearchAnchor(new SearchAnchor(false));
+            Demo.GetSearchAnchorsAsArray()[0].roots.Add(new DirectoryInfo("C:\\"));
+
+            Demo.Search(testresults);
+            //var test = Demo.GetWorkerThreadList();
+
+            
+            Demo.WorkerThreadJoin();
+
+            //Assert.IsTrue(Demo.WorkerThreadCount == 1);
+
+            var testme = Demo.GetWorkerThreadException();
+
+            Assert.IsTrue(Demo.WorkerThreadCrashed == true);
+            var keyo = testme.Keys.First();
+            Assert.IsTrue(testme[keyo].Count == 1);
+
+            return;
+        }
+
         [TestCategory("FileName Tests")]
         [TestMethod]
         public void TEST5_FileMatchingFiles_in_One_Branch_BUT_not_other()
@@ -494,7 +525,7 @@ namespace NonSqlUnitTests
                 var Demo = new OdinSearch();
                 OdinSearch_OutputConsumerGatherResults testresults = new OdinSearch_OutputConsumerGatherResults();
                 Demo.KillSearch();
-                Demo.ClearSearchAnchorList();
+                Demo.ClearSearchAnchorList(); 
                 Demo.ClearSearchTargetList();
 
                 SearchAnchor start = new SearchAnchor(false);

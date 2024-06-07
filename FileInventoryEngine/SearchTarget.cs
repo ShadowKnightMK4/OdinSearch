@@ -29,6 +29,25 @@ namespace OdinSearchEngine
         }
 
 
+#if DEBUG
+        /// <summary>
+        /// This is used in DEBUG unit testing. clearing this to false disables a call to <see cref="Regex.Escape(string)"/>. 
+        /// </summary>
+        public bool RegSaftyMode
+        {
+            get => SafetyMode;
+            set => SafetyMode = value;  
+        }
+#else
+        /// <summary>
+        /// This is used in DEBUG unit testing. clearing this to false disables a call to <see cref="Regex.Escape(string)"/>.  RELEASE MODE DOES NOT GIVE PUBLIC ability to set to false.
+        /// </summary>
+        public bool RegSaftyMode 
+        {
+            get => SafetyMode;
+        }
+#endif
+        internal bool SafetyMode = true;
         /// <summary>
         ///  internal class used to convert lists of strings to lists of predone REGEX expresses. 
         /// </summary>
@@ -37,24 +56,50 @@ namespace OdinSearchEngine
         /// <returns></returns>
         internal static List<Regex> ConvertToRegEx(SearchTarget Target, ConvertToRegExMode mode)
         {
+            string pattern_prep(string pattern, MatchStyleString mode)
+            {
+                string ret;
+                if (!mode.HasFlag(MatchStyleString.RawRegExMode))
+                {
+                    ret = "^" + Regex.Escape(pattern) + "$";
+                    ret = ret.Replace("\\*", ".*").Replace("\\?", ".");
+                    
+                }
+                else
+                {
+                    if (Target.RegSaftyMode)
+                        ret = Regex.Escape(pattern);
+                    else
+                        ret = pattern;
+                }
+                return ret;
+            }
             List<string> loopthru = null;
-            
+            MatchStyleString modethru = 0;
             if ((mode & ConvertToRegExMode.WantFileNameRegs | ConvertToRegExMode.WantDirectoryNameRegs) == 0)
             {
                 throw new InvalidOperationException("Internal ConverToRegEx() with unspecified mode");
             }
             if (mode.HasFlag(ConvertToRegExMode.WantFileNameRegs))
+            {
                 loopthru = Target.FileName;
+                modethru = Target.FileNameMatching;
+            }
             if (mode.HasFlag(ConvertToRegExMode.WantDirectoryNameRegs))
+            {
                 loopthru = Target.DirectoryPath;
+                modethru = Target.DirectoryMatching;
+            }
 
             var ret = new List<Regex>();
             foreach (string s in loopthru)
             {
                 string pattern;
 
-                pattern = "^" + Regex.Escape(s) + "$";
-                pattern = pattern.Replace("\\*", ".*").Replace("\\?", ".");
+
+                pattern = pattern_prep(s, modethru);
+                //pattern = "^" + Regex.Escape(s) + "$";
+                //pattern = pattern.Replace("\\*", ".*").Replace("\\?", ".");
                 /* this is the match anything regexpression for.
                  * This is hard coded to returning a clear regex list. The code that does the searching treats
                  * it skipping the compare and treating it as a positive match.
@@ -813,12 +858,21 @@ namespace OdinSearchEngine
         /// A REGEX express that will be compared againt the <see cref="FileInfoExtract.Name"/>
         /// </summary>
         public readonly List<string> FileName = new List<string>();
+        /// <summary>
+        /// Determines how will will be comparing input file names against the filters at <see cref="FileName"/>
+        /// </summary>
+        /// <example>Consider C:\\Windows\\notepad.exe.  The string compared would be notepad.exe.</example>
         public MatchStyleString FileNameMatching = MatchStyleString.MatchAny;
 
         /// <summary>
         /// REGEX expressthat that's compared against <see cref="FileInfoExtract.FullName"/>
         /// </summary>
         public readonly List<string> DirectoryPath = new List<string>() ;
+
+        /// <summary>
+        /// Determines how will will be comparing input complate file location and names against the filters at <see cref="FileName"/>
+        /// </summary>
+        /// <example>Consider C:\\Windows\\notepad.exe.  The string compared would be C:\\Windows\\notepad.exe.</example>
         public MatchStyleString DirectoryMatching = MatchStyleString.MatchAny;
 
         /// <summary>
@@ -826,7 +880,7 @@ namespace OdinSearchEngine
         /// </summary>
         public FileAttributes AttributeMatching1 = 0;
         /// <summary>
-        /// How to comare <see cref="AttributeMatching1"/> with possible entries
+        /// How to compare <see cref="AttributeMatching1"/> with possible entries
         /// </summary>
         public MatchStyleFileAttributes AttribMatching1Style = MatchStyleFileAttributes.Skip;
 
@@ -834,6 +888,9 @@ namespace OdinSearchEngine
         /// Expression that's (by default) compared to be LACKING in <see cref="FileInfoExtract.FileAttributes"/>
         /// </summary>
         public FileAttributes AttributeMatching2 =  FileAttributes.Normal;
+        /// <summary>
+        /// How to compare <see cref="AttributeMatching2"/> with possible entries
+        /// </summary>
         public MatchStyleFileAttributes AttribMatching2Style = MatchStyleFileAttributes.Invert | MatchStyleFileAttributes.Skip;
 
 
@@ -850,19 +907,6 @@ namespace OdinSearchEngine
         /// If true we compare the <see cref="FileSizeMax"/> and <see cref="FileSizeMax"/>. This does involve casting the generic <see cref="FileSystemInfo"/> to a <see cref="FileInfo"/>
         /// </summary>
         public bool CheckFileSize = false;
-
-        /// <summary>
-        /// Additional checks are points one can add for additional checks / x
-        /// </summary>
-
-        /*
-        public readonly List<CustomizedCheck> AdditionalChecks1 = new List<CustomizedCheck>();
-        public MatchStyleString AdditionalChecks1Matching = MatchStyleString.MatchAny;
-
-
-
-        public readonly List<CustomizedCheck> AdditionalChecks2 = new List<CustomizedCheck>();
-        public MatchStyleString AdditionalChecks2Matching = MatchStyleString.MatchAny | MatchStyleString.Invert;*/
 
         /// <summary>
         /// Tell the search what do do with the same times specified
@@ -918,7 +962,7 @@ namespace OdinSearchEngine
         /// <returns>true if it's a valid combo and false if not</returns>
         public static bool VerifyMatchStyleStringValue(MatchStyleString e)
         {
-            return (e is >= (MatchStyleString)1 and <= (MatchStyleString)64) && (e.HasFlag( MatchStyleString.ReservedUnused) == false);
+            return (e is >= (MatchStyleString)1 and <= (MatchStyleString)128) && (e.HasFlag( MatchStyleString.ReservedUnused) == false);
         }
 
         /// <summary>
@@ -950,11 +994,9 @@ namespace OdinSearchEngine
             /// A sucessful match to the target fails the compaire i.e. now this part of the <see cref="SearchTarget"/> specifies what it must NOT match
             /// </summary>
             Invert = 4,
-            [Obsolete("Not Implemented")]
-            /// <summary>
-            /// Reserved for future. Currently not used for this enum.
+            /// This causes your string to be passed to the regex compare without assuming it's a file. Note. you need to ensure proper RegEx encoding.
             /// </summary>
-            ReservedUnused = 8,
+            RawRegExMode= 8,
             /// <summary>
             /// Disable this matching.. 
             /// </summary>
@@ -962,7 +1004,11 @@ namespace OdinSearchEngine
             /// <summary>
             /// Add to make the search string case sensitive.
             /// </summary>
-            CaseImportant = 32
+            CaseImportant = 32,
+            /// <summary>
+            /// Reserved for future. Currently not used for this enum beyond a cap in the sanit ychecvk
+            /// </summary>
+            ReservedUnused = 64
         }
     }
 }

@@ -343,7 +343,7 @@ namespace FileInventoryConsole
             if (Target.AttribMatching1Style.HasFlag(SearchTarget.MatchStyleFileAttributes.Skip) ||
                 ((Target.AttributeMatching1 == FileAttributes.Normal) || (Target.AttributeMatching1 == 0)))
             {
-                Console.WriteLine("file or directories with no special attributes set.");
+                Console.WriteLine("file or directories with no special attributes considered.");
             }
             else
             {
@@ -388,7 +388,7 @@ namespace FileInventoryConsole
                 }
                 else
                 {
-                    Console.WriteLine("against the file sytem item's exact location and name at all.");
+                    Console.WriteLine("against the file system item's exact location and name at all.");
                 }
             }
             else

@@ -73,6 +73,8 @@ namespace OdinSearchEngine
 
         #endregion
         #region Public Class Variables and Properties
+
+
         /// <summary>
         /// False Means we don't lock a object to aid synching when sending output to a <see cref="OdinSearch_OutputConsumerBase"/> based class.  
         /// </summary>
@@ -92,6 +94,13 @@ namespace OdinSearchEngine
         /// Get the current number of worker thread
         /// </summary>
         public int WorkerThreadCount { get { return WorkerThreads.Count; } }
+
+        
+
+        WorkerThreadExceptionCounter ETracker = new();
+
+        
+
 
         /// <summary>
         /// When starting a search, if this is true, the call to <see cref="SanityChecks(WorkerThreadArgs)"/> is skipped. Currently, that routine does nothing, but is intended to be a way to guard against silly/impossible things such as searching for a file that's also a folder for example
@@ -130,6 +139,29 @@ namespace OdinSearchEngine
         #endregion
 
         #region Worker Thread Routines
+
+        /// <summary>
+        /// Track Exceptions triggered by the worker threads that are crashing.
+        /// </summary>
+        internal class WorkerThreadExceptionCounter
+        {
+            public readonly Dictionary<Thread, List<Exception>> Errors = new();
+            public void AddException(Thread thread, Exception e)
+            {
+                if (Errors.ContainsKey(thread) == false)
+                {
+                    Errors[thread] = new List<Exception> { e };
+                }
+                else
+                {
+                    Errors[thread].Add(e);
+                }
+            }
+
+
+        }
+
+
         /// <summary>
         /// Loop thru the worker threads and if any aren't alive, call <see cref="OdinSearch_OutputConsumerBase.ResolvePendingActions"/> on them
         /// </summary>
@@ -186,6 +218,8 @@ namespace OdinSearchEngine
             ClearSearchAnchorList();
             ClearSearchTargetList();
 
+
+            ETracker.Errors.Clear();
             SkipSanityCheck = true;
             ThreadSynchResultsBacking = false;
             SearchCalled = false;
@@ -210,6 +244,7 @@ namespace OdinSearchEngine
         /// </summary>
         internal class SearchTargetPreDoneRegEx
         {
+            
             public SearchTargetPreDoneRegEx(SearchTarget SearchTarget)
             {
                 PreDoneRegExFileName = SearchTarget.ConvertFileNameToRegEx();
@@ -217,8 +252,17 @@ namespace OdinSearchEngine
 
                 PreDoneRegExDirectoryName = SearchTarget.ConvertDirectoryPathToRegEx();
             }
+            /// <summary>
+            /// The SearchTarget used to make the class
+            /// </summary>
             public SearchTarget SearchTarget;
+            /// <summary>
+            /// THe precomputed RegEx for the FileName part of the SerachTarget
+            /// </summary>
             public List<Regex> PreDoneRegExFileName;
+            /// <summary>
+            /// The precompated RegEx for the fullname of the SearchTarget
+            /// </summary>
             public List<Regex> PreDoneRegExDirectoryName;
         }
         /// <summary>
@@ -246,11 +290,43 @@ namespace OdinSearchEngine
             public Semaphore ComTalk;
 
             
+            public WorkerThreadExceptionCounter Tracker;
+            
             //public ReadOnlyCollection<OdinSearchContainer_GenericItem> ContainerList { get; internal set; }
         }
         #endregion
 
         #region Worker Thread stuff
+
+        /// <summary>
+        /// Get a list of logged fatal exceptions that happend while the worker threads ran. Note: expected exceptions do NOT appear here.
+        /// </summary>
+        /// <returns></returns>
+        public ReadOnlyDictionary<Thread, List<Exception>> GetWorkerThreadException()
+        {
+            lock(this.ETracker)
+            {
+                return ETracker.Errors.AsReadOnly();    
+            }
+        }
+
+        /// <summary>
+        /// Return if a worker thread crashed while executing. 
+        /// </summary>
+        public bool WorkerThreadCrashed
+        {
+            get
+            {
+                foreach (Thread i in ETracker.Errors.Keys)
+                {
+                    if (ETracker.Errors[i] is not null)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
 
         #region Worker Thread Routine
 
@@ -269,211 +345,243 @@ namespace OdinSearchEngine
 
             List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
             WorkerThreadArgs TrueArgs = Args as WorkerThreadArgs;
-            //Thread.CurrentThread.Name = TrueArgs.StartFrom.roots[0].ToString() + " Scanner";
+            
+
+            ///Add this exception to the list of exceptions tracked for the thread this is ran on.
+            void RegisterExceptionWithThread(Exception e)
+            {
+#if DEBUG
+                Debug.WriteLine(Thread.CurrentThread.Name + $"logging exception {e.Message} to our tracking class. Can be viewed /interacted with");
+#endif 
+                TrueArgs.Tracker.AddException(Thread.CurrentThread, e);
+            }
 #if DEBUG
             if (DebugVerboseModeHandle)
                 Debug.WriteLine(Thread.CurrentThread.Name + " is working with " + TrueArgs.StartFrom.roots[0]);
 #endif
 
-            if (TrueArgs != null)
+            // this wrapper is not the best in theory. It's there for catching unhandled exceptions that roll outside
+            // of code and saving them to the tracking class so someone can go back and handle it later.
+            try
             {
-                if (TrueArgs.Targets.Count > 0)
+                if (TrueArgs != null)
                 {
-                    if (TrueArgs.StartFrom != null)
+                    if (TrueArgs.Targets.Count > 0)
                     {
-
-                        // prececulate the search target info
-                        foreach (SearchTarget Target in TrueArgs.Targets)
+                        if (TrueArgs.StartFrom != null)
                         {
-                            TargetWithRegEx.Add(new SearchTargetPreDoneRegEx(Target));
-                        }
 
-                        // add root[0] to the queue to pull from
-                        FolderList.Enqueue(TrueArgs.StartFrom.roots[0]);
-
-                    // label is used as a starting point to loop back to for looking at subfolders when we get
-                    // looping
-                    Reset:
-
-
-                        if (FolderList.Count > 0)
-                        {
-                            // should an exception happen during getting folder/file names, this is set
-                            bool ErrorPrune = false;
-
-                            DirectoryInfo CurrentLoc = FolderList.Dequeue();
-
-                            // files in the CurrentLoc
-                            FileInfo[] Files = null;
-                            // folders in the CurrentLoc
-                            DirectoryInfo[] Folders = null;
                             try
                             {
-                                Files = CurrentLoc.GetFiles();
-                                Folders = CurrentLoc.GetDirectories();
-
+                                // prececulate the search target info
+                                foreach (SearchTarget Target in TrueArgs.Targets)
+                                {
+                                    TargetWithRegEx.Add(new SearchTargetPreDoneRegEx(Target));
+                                }
                             }
-                            catch (IOException e)
+                            catch (RegexParseException e)
                             {
-                                try
-                                {
-                                    //LockThisAccess(TrueArgs.ComTalk);
-                                    lock (TrueArgs.ComTalk)
-                                    {
-                                        TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason: " + e.Message);
-                                        TrueArgs.Coms.Blocked(CurrentLoc.ToString());
-                                    }
-                                }
-                                finally
-                                {
-                                    //UnlockThisAccess(TrueArgs.ComTalk);
-                                }
-                                ErrorPrune = true;
-                            }
-                            catch (UnauthorizedAccessException)
-                            {
-                                try
-                                {
-                                    //LockThisAccess(TrueArgs.ComTalk);
-                                    lock (TrueArgs.ComTalk)
-                                    {
-                                        TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason Access Denied");
-                                        TrueArgs.Coms.Blocked(CurrentLoc.ToString());
-                                    }
-                                }
-                                finally
-                                {
-                                    //UnlockThisAccess(TrueArgs.ComTalk);
-                                }
-
-                                ErrorPrune = true;
-                            }
-
-
-
-                            if (!ErrorPrune)
-
-                                foreach (SearchTargetPreDoneRegEx Target in TargetWithRegEx)
-                                {
-                                    bool Pruned = false;
-
-                                    // skip this compare if we're  looking for a directory
-
-                                    if (Target.SearchTarget.AttributeMatching1 != 0)
-                                    {
-                                        if (Target.SearchTarget.AttributeMatching1.HasFlag(FileAttributes.Directory))
-                                        {
-                                            Pruned = true;
-                                        }
-                                    }
-
-
-                                    if (!Pruned)
-                                    {
-                                        // file check
-
-
-                                        foreach (FileInfo Possible in Files)
-                                        {
-                                            bool isMatched = MatchThis(Target, Possible);
-                                            if (isMatched)
-                                            {
-                                                if (!ThreadSynchResults)
-                                                {
-                                                    TrueArgs.Coms.Match(Possible);
-                                                }
-                                                else
-                                                {
-                                                    try
-                                                    {
-                                                        lock (TrueArgs.ComTalk)
-                                                        {
-                                                            TrueArgs.Coms.Match(Possible);
-                                                        }
-                                                    }
-                                                    finally
-                                                    {
-
-                                                    }
-
-
-                                                }
-                                            }
-                                        }
-                                    }
-                                    Pruned = false;
-
-                                    if (!Pruned)
-                                    {
-                                        // folder check
-                                        foreach (DirectoryInfo Possible in Folders)
-                                        {
-
-                                            try
-                                            {
+                                RegisterExceptionWithThread((Exception)e);
 #if DEBUG
-                                                if (DebugVerboseModeHandle)
-                                                {
-                                                    lock (TrueArgs.ComTalk)
-                                                    {
-                                                        TrueArgs.Coms.Messaging("DEBUG: attempt to match folder " + Targets[0].FileName.ToString() + " against " + Possible.Name);
-                                                    }
-                                                }
+                                if (DebugVerboseModeHandle)
+                                    Debug.WriteLine(Thread.CurrentThread.Name + $" has failed to start searching due to invalid RegEx received. Exception error {e.Message}\r\n");
 #endif
-                                            }
-                                            finally
+
+                                return;
+                            }
+
+                            // add root[0] to the queue to pull from
+                            FolderList.Enqueue(TrueArgs.StartFrom.roots[0]);
+
+                        // label is used as a starting point to loop back to for looking at subfolders when we get
+                        // looping
+                        Reset:
+
+
+                            if (FolderList.Count > 0)
+                            {
+                                // should an exception happen during getting folder/file names, this is set
+                                // which triggers an early bailout on comparing.
+                                bool ErrorPrune = false;
+
+                                DirectoryInfo CurrentLoc = FolderList.Dequeue();
+
+                                // files in the CurrentLoc
+                                FileInfo[] Files = null;
+                                // folders in the CurrentLoc
+                                DirectoryInfo[] Folders = null;
+                                try
+                                {
+                                    Files = CurrentLoc.GetFiles();
+                                    Folders = CurrentLoc.GetDirectories();
+
+                                }
+                                catch (IOException e)
+                                {
+                                    try
+                                    {
+                                        //LockThisAccess(TrueArgs.ComTalk);
+                                        lock (TrueArgs.ComTalk)
+                                        {
+                                            TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason: " + e.Message);
+                                            TrueArgs.Coms.Blocked(CurrentLoc.ToString());
+                                        }
+                                    }
+                                    finally
+                                    {
+                                        //UnlockThisAccess(TrueArgs.ComTalk);
+                                    }
+                                    ErrorPrune = true;
+                                }
+                                catch (UnauthorizedAccessException)
+                                {
+                                    try
+                                    {
+                                        //LockThisAccess(TrueArgs.ComTalk);
+                                        lock (TrueArgs.ComTalk)
+                                        {
+                                            TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason Access Denied");
+                                            TrueArgs.Coms.Blocked(CurrentLoc.ToString());
+                                        }
+                                    }
+                                    finally
+                                    {
+                                        //UnlockThisAccess(TrueArgs.ComTalk);
+                                    }
+
+                                    ErrorPrune = true;
+                                }
+
+
+
+                                if (!ErrorPrune)
+
+                                    foreach (SearchTargetPreDoneRegEx Target in TargetWithRegEx)
+                                    {
+                                        bool Pruned = false;
+
+                                        // skip this compare if we're  looking for a directory
+
+                                        if (Target.SearchTarget.AttributeMatching1 != 0)
+                                        {
+                                            if (Target.SearchTarget.AttributeMatching1.HasFlag(FileAttributes.Directory))
                                             {
-
+                                                Pruned = true;
                                             }
+                                        }
 
-                                            bool isMatched = MatchThis(Target, Possible);
-                                            if (isMatched)
+
+                                        if (!Pruned)
+                                        {
+                                            // file check
+
+
+                                            foreach (FileInfo Possible in Files)
                                             {
-                                                if (!ThreadSynchResults)
+                                                bool isMatched = MatchThis(Target, Possible);
+                                                if (isMatched)
                                                 {
-
-                                                    try
-                                                    {
-                                                        lock (TrueArgs.ComTalk)
-                                                        {
-                                                            TrueArgs.Coms.Match(Possible);
-                                                        }
-                                                    }
-                                                    finally
-                                                    {
-
-                                                    }
-
-                                                    
-                                                }
-                                                else
-                                                {
-                                                    lock (TrueArgs.ComTalk)
+                                                    if (!ThreadSynchResults)
                                                     {
                                                         TrueArgs.Coms.Match(Possible);
                                                     }
+                                                    else
+                                                    {
+                                                        try
+                                                        {
+                                                            lock (TrueArgs.ComTalk)
+                                                            {
+                                                                TrueArgs.Coms.Match(Possible);
+                                                            }
+                                                        }
+                                                        finally
+                                                        {
+
+                                                        }
+
+
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        Pruned = false;
+
+                                        if (!Pruned)
+                                        {
+                                            // folder check
+                                            foreach (DirectoryInfo Possible in Folders)
+                                            {
+
+                                                try
+                                                {
+#if DEBUG
+                                                    if (DebugVerboseModeHandle)
+                                                    {
+                                                        lock (TrueArgs.ComTalk)
+                                                        {
+                                                            TrueArgs.Coms.Messaging("DEBUG: attempt to match folder " + Targets[0].FileName.ToString() + " against " + Possible.Name);
+                                                        }
+                                                    }
+#endif
+                                                }
+                                                finally
+                                                {
+
+                                                }
+
+                                                bool isMatched = MatchThis(Target, Possible);
+                                                if (isMatched)
+                                                {
+                                                    if (!ThreadSynchResults)
+                                                    {
+
+                                                        try
+                                                        {
+                                                            lock (TrueArgs.ComTalk)
+                                                            {
+                                                                TrueArgs.Coms.Match(Possible);
+                                                            }
+                                                        }
+                                                        finally
+                                                        {
+
+                                                        }
+
+
+                                                    }
+                                                    else
+                                                    {
+                                                        lock (TrueArgs.ComTalk)
+                                                        {
+                                                            TrueArgs.Coms.Match(Possible);
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
                                     }
+
+                                if (TrueArgs.StartFrom.EnumSubFolders)
+                                {
+                                    if (!ErrorPrune)
+                                        foreach (DirectoryInfo Folder in Folders)
+                                        {
+                                            FolderList.Enqueue(Folder);
+                                        }
                                 }
-
-                            if (TrueArgs.StartFrom.EnumSubFolders)
-                            {
-                                if (!ErrorPrune)
-                                    foreach (DirectoryInfo Folder in Folders)
-                                    {
-                                        FolderList.Enqueue(Folder);
-                                    }
                             }
-                        }
 
-                        if (FolderList.Count > 0)
-                        {
-                            goto Reset;
+                            if (FolderList.Count > 0)
+                            {
+                                goto Reset;
+                            }
                         }
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                RegisterExceptionWithThread(e);
             }
         }
         #endregion
@@ -1204,7 +1312,7 @@ namespace OdinSearchEngine
                             Worker.Args = Args;
                             Args.Token = Worker.Token.Token;
                             Args.ComTalk = LockThis;
-
+                            Args.Tracker = ETracker;
                             WorkerThreads.Add(Worker);
                             Args = null;
                         }

@@ -22,9 +22,10 @@ namespace FileIventoryConsole
     {
         static void DisplayArguments(string[] args)
         {
+            Console.WriteLine("Arguments Seen:");
             foreach (string arg in args)
             {
-                Console.WriteLine(arg);
+                Console.WriteLine($"\t{arg}");
             }
         }
 
@@ -113,10 +114,10 @@ namespace FileIventoryConsole
                     }
                     else
                     {
-                        Console.WriteLine("Explanation Mode");
+                        Console.WriteLine("Explanation Mode Active - no search was performed.");
                         Console.WriteLine("*******************");
-                        Console.WriteLine("Arguments were parses as follows with one on each line. If it's weird, check \" chars.");
-                        Console.WriteLine("If you are using the /command flag, ensure the \" symbol has a \\ prefix as in \\\"");
+                        Console.WriteLine("Arguments were parsed as follows with one on each line below. If it's weird, check the quote (\") chars.");
+                        Console.WriteLine("If you are using the /command flag, ensure all \" symbol in your string has a \\ prefix as in \\\".\r\n");
                         DisplayArguments(args);
                         Console.WriteLine("*******************");
                         Console.WriteLine("Explaining what the arguments will do. To execute the commands drop the /explain flag");
