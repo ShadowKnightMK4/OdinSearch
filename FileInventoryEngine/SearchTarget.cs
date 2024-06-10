@@ -62,12 +62,12 @@ namespace OdinSearchEngine
 
 #if DEBUG
         /// <summary>
-        /// This is used in DEBUG unit testing. clearing this to false disables a call to <see cref="Regex.Escape(string)"/>. 
+        /// This is used in DEBUG unit testing. clearing this to false disables a call to <see cref="Regex.Escape(string)"/>. Note For Release Builds, this CANNOT be turned off.
         /// </summary>
         public bool RegSaftyMode
         {
             get => SafetyMode;
-            set => SafetyMode = value;  
+            set => SafetyMode = value;   
         }
 #else
         /// <summary>
@@ -76,6 +76,7 @@ namespace OdinSearchEngine
         public bool RegSaftyMode 
         {
             get => SafetyMode;
+            set => throw new InvalidOperationException("Not supported in RELEASE BUILD.");
         }
 #endif
         internal bool SafetyMode = true;
@@ -1025,7 +1026,7 @@ namespace OdinSearchEngine
             /// A sucessful match to the target fails the compaire i.e. now this part of the <see cref="SearchTarget"/> specifies what it must NOT match
             /// </summary>
             Invert = 4,
-            /// This causes your string to be passed to the regex compare without assuming it's a file. Note. you need to ensure proper RegEx encoding.
+            /// This causes your string to be passed to the regex compare without assuming it's a file. Note. you need to ensure proper RegEx encoding or Worker threads may crash.
             /// </summary>
             RawRegExMode= 8,
             /// <summary>

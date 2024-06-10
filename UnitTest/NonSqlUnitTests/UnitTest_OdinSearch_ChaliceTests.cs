@@ -146,7 +146,7 @@ namespace NonSqlUnitTests
 
             SearchAnchor Start = new SearchAnchor(false);
             SearchTarget Target = new SearchTarget();
-            Target.FileName.Add(SearchTarget.MatchAnyFile);
+            Target.FileName.Add(SearchTarget.MatchAnyFileName);
             Start.AddAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
             OdinSearch_OutputSimpleConsole TestOutput = new OdinSearch_OutputSimpleConsole();
             TestOutput[OdinSearch_SymbolicLinkSort.OutputFolderArgument] = "C:\\TestScrubLocation\\SymbolicSearch";
@@ -166,7 +166,7 @@ namespace NonSqlUnitTests
         {
             SearchAnchor Start = new SearchAnchor(false);
             SearchTarget Target = new SearchTarget();
-            Target.FileName.Add(SearchTarget.MatchAnyFile);
+            Target.FileName.Add(SearchTarget.MatchAnyFileName);
             Start.AddAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
             OdinSearch_SymbolicLinkSort TestOutput = new OdinSearch_SymbolicLinkSort();
             TestOutput[OdinSearch_SymbolicLinkSort.OutputFolderArgument] = "C:\\TestScrubLocation\\SymbolicSearch";
@@ -485,8 +485,23 @@ namespace NonSqlUnitTests
         #region FileName Tests
 
         [TestMethod]
-        public void TestNULL_BackRegEx_OnInput_bad_pattern()
+        public void TestNULL_BackRegEx_OnInput_bad_pattern_SafetyOn()
         {
+            TestNULL_BackRegEx_OnInput_bad_pattern_private(true);
+        }
+        [TestMethod]
+        public void TestNULL_BackRegEx_OnInput_bad_pattern_SafetyOff()
+        {
+            TestNULL_BackRegEx_OnInput_bad_pattern_private(false);
+        }
+        void TestNULL_BackRegEx_OnInput_bad_pattern_private(bool RegExSafety)
+        {
+            bool AutoNotify_called = false;
+            void err(Thread t, Exception e)
+            {
+                AutoNotify_called = true;
+                Console.WriteLine("Auto Notify called: " + e.Message);
+            }
             const string offend = @"[";
             var Demo = new OdinSearch();
             OdinSearch_OutputConsumerGatherResults testresults = new OdinSearch_OutputConsumerGatherResults();
@@ -498,7 +513,7 @@ namespace NonSqlUnitTests
             Demo.AddSearchAnchor(new SearchAnchor(false));
             Demo.GetSearchAnchorsAsArray()[0].roots.Add(new DirectoryInfo("C:\\"));
 
-            Demo.Search(testresults);
+            Demo.Search(testresults, err);
             //var test = Demo.GetWorkerThreadList();
 
             
@@ -508,10 +523,22 @@ namespace NonSqlUnitTests
 
             var testme = Demo.GetWorkerThreadException();
 
-            Assert.IsTrue(Demo.WorkerThreadCrashed == true);
-            var keyo = testme.Keys.First();
-            Assert.IsTrue(testme[keyo].Count == 1);
-
+            if (target.RegSaftyMode)
+            {
+                Console.WriteLine("RegSaftyMode on: That usings Regex.Escape() to help prevent bad Regex reaching worker threads.");
+                Assert.IsTrue(Demo.WorkerThreadCrashed == false);
+                Assert.IsTrue(testme.Keys.Count == 0);
+                Console.WriteLine("The worker thread didn't crash. Callback error routine not needed");
+            }
+            else
+            {
+                Console.WriteLine("RegSaftyMode off: Regex is passed as is to the worker thread from the caller without validation. This should trigger it crashing.");
+                Assert.IsTrue(Demo.WorkerThreadCrashed == true);
+                Assert.IsTrue(testme.Keys.Count == 1);
+                var keyo = testme.Keys.First();
+                Assert.IsTrue(testme[keyo].Count == 1);
+                Console.WriteLine($"The worker thread crashed. Call back routine called  \"{AutoNotify_called}\"");
+            }
             return;
         }
 
@@ -532,7 +559,7 @@ namespace NonSqlUnitTests
                 start.EnumSubFolders = true;
                 start.AddAnchor(Path.Combine(TestFolderFullLocation, "test5"));
                 SearchTarget lookfor = new SearchTarget();
-                lookfor.FileName.Add(SearchTarget.MatchAnyFile); // match any.
+                lookfor.FileName.Add(SearchTarget.MatchAnyFileName); // match any.
                 lookfor.DirectoryPath.Add("*NopePath*");
                 lookfor.DirectoryMatching = MatchStyleString.Invert;
 

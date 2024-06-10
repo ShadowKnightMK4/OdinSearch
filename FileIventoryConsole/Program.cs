@@ -192,7 +192,7 @@ namespace FileIventoryConsole
             SearchAnchor Desktop = new SearchAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
 
             SearchTarget AnyThing = new SearchTarget();
-            AnyThing.FileName.Add(SearchTarget.MatchAnyFile);
+            AnyThing.FileName.Add(SearchTarget.MatchAnyFileName);
 
             SearchThis.AddSearchAnchor(Desktop);
             SearchThis.AddSearchTarget(AnyThing);

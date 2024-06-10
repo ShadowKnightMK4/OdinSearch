@@ -149,7 +149,7 @@ namespace UnitTest
 
             Demo.AddSearchAnchor(TestAnchor);
             Demo.AddSearchTarget(TestSearch);
-            TestSearch.FileName.Add(SearchTarget.MatchAnyFile);
+            TestSearch.FileName.Add(SearchTarget.MatchAnyFileName);
 
             try
             {

@@ -28,7 +28,7 @@ namespace NonSqlUnitTests
 
             SearchAnchor a = new();
             SearchTarget b = new();
-            b.FileName.Add(SearchTarget.MatchAnyFile);
+            b.FileName.Add(SearchTarget.MatchAnyFileName);
 
             Demo.AddSearchAnchor(a);
             Demo.AddSearchTarget(b);

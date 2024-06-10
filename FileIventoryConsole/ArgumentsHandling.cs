@@ -379,7 +379,7 @@ namespace FileInventoryConsole
             }
             if ((GenStyle == SearchTarget.MatchStyleString.Skip) ||
                 (GenMatch.Count == 0) ||
-                (GenMatch.Contains(SearchTarget.MatchAnyFile)))
+                (GenMatch.Contains(SearchTarget.MatchAnyFileName)))
             {
                 Console.Write("The match does not care about comparing something ");
                 if (String == ExplainStringMatchFlag.FileMode)
@@ -464,6 +464,8 @@ namespace FileInventoryConsole
      /// </summary>
     public class ArgHandling
     {
+        internal Dictionary<string, object> ArgsBacking = new();
+        internal Dictionary<string, object> PluginArgs = new();   
         
         #region STATIC TOOLS
 
@@ -2078,7 +2080,7 @@ namespace FileInventoryConsole
 
                 if (!WasFileNameSet)
                 {
-                    SearchTarget.FileName.Add(SearchTarget.MatchAnyFile);
+                    SearchTarget.FileName.Add(SearchTarget.MatchAnyFileName);
                 }
 
                 if (!was_fileattribs_set)
@@ -2116,7 +2118,7 @@ namespace FileInventoryConsole
 
                 if (!WasFileCompareSet)
                 {
-                    if (SearchTarget.FileName.Contains(SearchTarget.MatchAnyFile) == false)
+                    if (SearchTarget.FileName.Contains(SearchTarget.MatchAnyFileName) == false)
                     {
                         if (SearchTarget.FileName.Count > 1)
                         {
@@ -2134,6 +2136,9 @@ namespace FileInventoryConsole
             }*/
             else
             {
+                SearchTarget = SearchTarget.AllFiles;
+                /// this code is not part of SearchTarget.AllFiles
+                /*
                 SearchTarget = new SearchTarget();
                 SearchTarget.FileName.Add(SearchTarget.MatchAnyFile);
                 SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
@@ -2144,7 +2149,7 @@ namespace FileInventoryConsole
                 SearchTarget.WriteAnchorCheck1 = SearchTarget.WriteAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
                 SearchTarget.CreationAnchorCheck1 = SearchTarget.CreationAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
                 SearchTarget.CheckFileSize = false;
-                SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
+                SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;*/
             }
           
             if (!WasOutStreamSet)

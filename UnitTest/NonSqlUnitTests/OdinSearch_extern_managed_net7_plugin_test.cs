@@ -35,7 +35,7 @@ namespace NonSqlUnitTests
             SearchAnchor a = new(false);
 
             SearchTarget b = new();
-            b.FileName.Add(SearchTarget.MatchAnyFile);
+            b.FileName.Add(SearchTarget.MatchAnyFileName);
             a.AddAnchor("C:\\Windows");
             a.EnumSubFolders = false;
             Demo.AddSearchAnchor(a);
@@ -65,7 +65,7 @@ namespace NonSqlUnitTests
             SearchAnchor a = new(false);
 
             SearchTarget b = new();
-            b.FileName.Add(SearchTarget.MatchAnyFile);
+            b.FileName.Add(SearchTarget.MatchAnyFileName);
             a.AddAnchor("C:\\Windows");
             a.EnumSubFolders = false;
             Demo.AddSearchAnchor(a);
