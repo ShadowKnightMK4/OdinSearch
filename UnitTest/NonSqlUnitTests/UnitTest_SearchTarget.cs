@@ -15,7 +15,7 @@ namespace NonSqlUnitTests
         [TestMethod]
         public void SearchTarget_AnyFileTest_TriggrAndCompare()
         {
-            // anyfile original
+            // anyfile original 
             var SearchTarget = new SearchTarget();
             SearchTarget.FileName.Add(SearchTarget.MatchAnyFileName);
             SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
