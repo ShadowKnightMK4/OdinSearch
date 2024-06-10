@@ -7,11 +7,13 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using OdinSearchEngine;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
@@ -68,6 +70,50 @@ namespace FileInventoryConsole
 
         }
 
+        /// <summary>
+        /// this routine sees if we can make instances of the regex raw if that flag is set.
+        /// </summary>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        static bool testregex_instancing(SearchTarget t)
+        {
+            bool OK = false;
+            if (t.FileNameMatching.HasFlag(SearchTarget.MatchStyleString.RawRegExMode))
+            {
+                try
+                {
+                    for (int step = 0; step < t.FileName.Count; step++)
+                    {
+                        var _d = new Regex(t.FileName[step]);
+                    }
+                    OK = true;
+                }
+                catch (RegexParseException)
+                {
+                    OK = false;
+                }
+            }
+            if (!OK)
+                return OK;
+
+            if (t.DirectoryMatching.HasFlag(SearchTarget.MatchStyleString.RawRegExMode))
+            {
+             
+                try
+                {
+                    for (int step = 0; step < t.DirectoryPath.Count; step++)
+                    {
+                        var _d = new Regex(t.DirectoryPath[step]);
+                    }
+                    OK = true;
+                }
+                catch (RegexParseException)
+                {
+                    OK = false;
+                }
+            }
+            return OK;
+        }
 
         /// <summary>
         /// Explain to stdout what this seach will do.
@@ -87,6 +133,18 @@ namespace FileInventoryConsole
             ExplainAnchors(SearchAnchor);
             ExplainSize(SearchTarget);
 
+            
+            if (!ArgHandlingExplainHandling.testregex_instancing(SearchTarget))
+            {
+                Console.WriteLine("Error: The filename or fullname specified in RegEx mode appears invalid and this can be compared against files or full paths.");
+                Console.WriteLine("This command as it is currently, is not supported.");
+            }
+
+            if (that.WasNetPluginSet && that.PluginHasClassNameSet == false)
+            {
+                Console.WriteLine("Error: Attempt to set a .NET plugin without a class indicated to load.");
+                Console.WriteLine("This command as it is currently, is not supported.");
+            }
             if (that.MoreThanOnConsumerSet)
             {
                 Console.WriteLine("Error: Please use either the /outstream settings, the /action settings, the /managed setting or the /plugin setting but not more than 1.");
@@ -453,7 +511,16 @@ namespace FileInventoryConsole
                     Console.Write("any ");
                 }
 
-                Console.WriteLine("of the search strings");
+                Console.Write ("of the search strings");
+
+                if (GenStyle.HasFlag(SearchTarget.MatchStyleString.RawRegExMode))
+                {
+                    Console.WriteLine(" in Regular Expression parsing.");
+                }
+                else
+                {
+                    Console.WriteLine(".");
+                }
             }
 
         }

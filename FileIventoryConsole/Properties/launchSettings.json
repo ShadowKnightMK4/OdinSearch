@@ -2,7 +2,7 @@
   "profiles": {
     "D": {
       "commandName": "Project",
-      "commandLineArgs": "/anyfile /explain",
+      "commandLineArgs": "/filename=\"[\" /anchor=C:\\Windows\\System32  /filecompare=8 /explain",
       "nativeDebugging": false,
       "remoteDebugEnabled": false
     },

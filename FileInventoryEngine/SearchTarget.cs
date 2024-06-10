@@ -60,26 +60,18 @@ namespace OdinSearchEngine
         }
 
 
-#if DEBUG
         /// <summary>
-        /// This is used in DEBUG unit testing. clearing this to false disables a call to <see cref="Regex.Escape(string)"/>. Note For Release Builds, this CANNOT be turned off.
+        /// This is used in some unit testing. clearing this to false disables a call to <see cref="Regex.Escape(string)"/> if in in <see cref="MatchStyleString.RawRegExMode"/>
         /// </summary>
-        public bool RegSafetyMode
+        public bool RegEscapeMode
         {
-            get => SafetyMode;
-            set => SafetyMode = value;   
+            get => EscapeRegExBeforeUse;
+            set => EscapeRegExBeforeUse = value;   
         }
-#else
         /// <summary>
-        /// This is used in DEBUG unit testing. clearing this to false disables a call to <see cref="Regex.Escape(string)"/>.  RELEASE MODE DOES NOT GIVE PUBLIC ability to set to false.
+        /// if true will make a call to <see cref="Regex.Escape(string)"/> before dealing with regex <see cref="MatchStyleString.RawRegExMode"/>
         /// </summary>
-        public bool RegSaftyMode 
-        {
-            get => SafetyMode;
-            set => throw new InvalidOperationException("Not supported in RELEASE BUILD.");
-        }
-#endif
-        internal bool SafetyMode = true;
+        internal bool EscapeRegExBeforeUse = false;
         /// <summary>
         ///  internal class used to convert lists of strings to lists of predone REGEX expresses. 
         /// </summary>
@@ -99,7 +91,7 @@ namespace OdinSearchEngine
                 }
                 else
                 {
-                    if (Target.RegSafetyMode)
+                    if (Target.RegEscapeMode)
                         ret = Regex.Escape(pattern);
                     else
                         ret = pattern;
@@ -1029,7 +1021,7 @@ namespace OdinSearchEngine
             /// <summary>
             /// This causes your string to be passed to the regex compare without assuming it's a file. Note. you need to ensure proper RegEx encoding or Worker threads may crash.
             /// </summary>
-            /// <remarks>There is a single guarde for your. <see cref="RegSafetyMode"/>. It enforces a call to <see cref="Regex.Escape(string)"/> on input regardless </remarks>
+            /// <remarks>There is a single guarde for your. <see cref="RegEscapeMode"/>. It enforces a call to <see cref="Regex.Escape(string)"/> on input regardless </remarks>
             RawRegExMode= 8,
             /// <summary>
             /// Disable this matching.. 

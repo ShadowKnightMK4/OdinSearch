@@ -134,6 +134,7 @@ namespace FileIventoryConsole
             }
             OdinSearch Search = new OdinSearch();
             Search.DebugVerboseMode = false;
+            
             //var SearchDeal = new OdinSearch_OutputSimpleConsole();
             //            var SearchDeal = new OdinSearch_OutputConsumer_ExternUnmangedPlugin();
 
@@ -141,7 +142,7 @@ namespace FileIventoryConsole
             OdinSearch_OutputConsumerBase SearchDeal;
             Search.AddSearchAnchor(ArgHandling.SearchAnchor);
             Search.AddSearchTarget(ArgHandling.SearchTarget);
-
+            ArgHandling.SearchTarget.RegEscapeMode = false;
             if (ArgHandling.DesiredPlugin == null)
             {
                 Console.WriteLine("Fatal Error: No valid consumer was set.");
@@ -168,12 +169,18 @@ namespace FileIventoryConsole
             }
             Console.WriteLine("Searching for things, this may take a while.");*/
 
-            Console.WriteLine("Searching for things, this may take a while.");
-            Search.Search(SearchDeal);
+            Console.WriteLine("Searching for things, this may take a while.\r\n");
+
+            static void error_workerThread(Thread t, Exception e)
+            {
+                Console.WriteLine($"WARNING: One of the worker threads crashed and that starting point is not being searched. Error message {e.Message}\r\n");
+            }
+            Search.Search(SearchDeal, error_workerThread);
             while(true)
             {
-                Search.WorkerThreadJoin();
-                if (!Search.HasActiveSearchThreads)
+                if (Search.HasActiveSearchThreads)
+                    Search.WorkerThreadJoin();
+                else
                 {
                     if (Search.IsZombied)
                     {
@@ -183,38 +190,22 @@ namespace FileIventoryConsole
                     break;
                 }
             }
-
-            Console.WriteLine("Search is finished....");
-            Console.WriteLine(string.Format("You have {0} file system items that matched.", SearchDeal.TimesMatchCalled));
-            SearchDeal.Dispose();
-            return;
-            OdinSearch SearchThis = new OdinSearch();
-            SearchAnchor Desktop = new SearchAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
-
-            SearchTarget AnyThing = new SearchTarget();
-            AnyThing.FileName.Add(SearchTarget.MatchAnyFileName);
-
-            SearchThis.AddSearchAnchor(Desktop);
-            SearchThis.AddSearchTarget(AnyThing);
-
-            var Comsclass = new OdinSearch_SymbolicLinkSort();
-            Comsclass[OdinSearch_SymbolicLinkSort.OutputFolderArgument] = "C:\\Results\\";
-            // currently unsured but is a required setting. It always creates subfolders
-            Comsclass[OdinSearch_SymbolicLinkSort.CreateSubfoldersOption] = null;
-            // default works, but if one wants to customize, they set like below with their implementation of a OdinSearch_SymbolicLinkSort.OdinSearch_SymbolicLinkSort_FileSystemHelp class
-            //Comsclass[OdinSearch_SymbolicLinkSort.LinkSearchHelperClass] = new OdinSearch_SymbolicLinkSort.OdinSearch_SymbolicLinkSort_FileSystemHelp();
-            SearchThis.Search(Comsclass);
-            while (SearchThis.HasActiveSearchThreads)
+            var Errors = Search.GetWorkerThreadException();
+            Console.Write("Search is finished....");
+            if (Errors.Keys.Count == 0)
             {
-                Thread.Sleep(1000);
-                SearchThis.WorkerThreadJoin();
-
+                Console.WriteLine(string.Format("You have {0} file system items that matched.", SearchDeal.TimesMatchCalled));
+             
+                return;
             }
-
-
-            Console.WriteLine("{0} Files and Folders matched. {1} files and folders did not match.", Comsclass.TimesMatchCalled, Comsclass.TimesNoMatchCalled);
-            //Console.WriteLine("Out of the matched files, {0} failed the filter check and were excluded.", results.FilteredResults);
-            return;
+            else
+            {
+                Console.WriteLine("but a few starting threads failed to begin ok as weren't seached.");
+                Console.WriteLine("Please be mindful that due to this, there may be additional matches in said points that were not checked.");
+                Console.WriteLine(string.Format("You have {0} file system items that matched.", SearchDeal.TimesMatchCalled));
+            }
+            SearchDeal.Dispose();
+            return; 
         
         }
     }
