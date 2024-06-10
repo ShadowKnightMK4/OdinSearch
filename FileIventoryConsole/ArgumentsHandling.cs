@@ -464,6 +464,9 @@ namespace FileInventoryConsole
      /// </summary>
     public class ArgHandling
     {
+        /// <summary>
+        /// This is central thing the properties now add too.
+        /// </summary>
         internal Dictionary<string, object> ArgsBacking = new();
         internal Dictionary<string, object> PluginArgs = new();   
         
@@ -705,7 +708,21 @@ namespace FileInventoryConsole
         /// <summary>
         /// If set, we accept relative plugin paths
         /// </summary>
-        public bool AcceptRelativePlugin = false;
+        public bool AcceptRelativePlugin
+        {
+            get
+            {
+                if (ArgsBacking.ContainsKey("AcceptRelativePlugin"))
+                {
+                    return (bool)ArgsBacking["AcceptRelativePlugin"];
+                }
+                return false;
+            }
+            set
+            {
+               ArgsBacking["AcceptRelativePlugin"] = value;
+            }
+        }
 
         /// <summary>
         /// Once done, this is the Coms class to use in the search
@@ -1428,6 +1445,11 @@ namespace FileInventoryConsole
                     if (EnumString.Contains("caseimportant") || EnumString.Contains("casesensitive"))
                     {
                         Result |= SearchTarget.MatchStyleString.CaseImportant;
+                    }
+
+                    if (EnumString.Contains("regex") || EnumString.Contains("regularexpressions"))
+                    {
+                        Result |= SearchTarget.MatchStyleString.RawRegExMode;
                     }
 
                     if (Result == 0)
@@ -2210,6 +2232,12 @@ namespace FileInventoryConsole
 
                     }
                 }
+            }
+
+            // didn't think of checking until now. 
+            if ((WasNetPluginSet) && (PluginHasClassNameSet == false) ) 
+            {
+                Valid = false;
             }
 
             if (Valid == true)

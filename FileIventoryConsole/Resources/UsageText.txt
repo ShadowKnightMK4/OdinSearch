@@ -110,6 +110,8 @@ MatchStylesString specifics
 	MatchAll=2;         Positive effect means at any match found must have *all* specified values.
                         Invert effect means any match found must have NONE of the values set. 
 	Invert=4;           This inverts the indicated match effect (MatchAny or MatchAll)
+	RegexMode8;         Default is Off which assumes input strings are wildcard spec. Use this to
+						have input strings treated as raw regex. 
 	CaseImportant=32;   This means the match will case about the case such as CAT not matching cAt.
 
 -----------------------------------------------------------------------------------------------------

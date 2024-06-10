@@ -507,7 +507,7 @@ namespace NonSqlUnitTests
             OdinSearch_OutputConsumerGatherResults testresults = new OdinSearch_OutputConsumerGatherResults();
             SearchTarget target = new SearchTarget();
             target.FileName.Add(offend);
-            target.RegSaftyMode = false;
+            target.RegSafetyMode = false;
             target.FileNameMatching = MatchStyleString.RawRegExMode;
             Demo.AddSearchTarget(target);
             Demo.AddSearchAnchor(new SearchAnchor(false));
@@ -523,7 +523,7 @@ namespace NonSqlUnitTests
 
             var testme = Demo.GetWorkerThreadException();
 
-            if (target.RegSaftyMode)
+            if (target.RegSafetyMode)
             {
                 Console.WriteLine("RegSaftyMode on: That usings Regex.Escape() to help prevent bad Regex reaching worker threads.");
                 Assert.IsTrue(Demo.WorkerThreadCrashed == false);
