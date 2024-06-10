@@ -16,12 +16,43 @@ namespace OdinSearchEngine
     /// </summary>
     public class SearchTarget : IEquatable<SearchTarget>
     {
+        /// <summary>
+        /// from the /anyfile flag in the CLI app, this is a shorthand way to turn off all file system item compares and just feed seen file system items to the consumer class.
+        /// </summary>
+        public static SearchTarget AllFiles
+        {
+            get
+            {
+                return AllFilesBackup;
+            }
+        }
+        private static readonly SearchTarget AllFilesBackup;
+        static SearchTarget()
+        {
+            AllFilesBackup = new SearchTarget();
+            AllFilesBackup.FileName.Add(MatchAnyFileName);
+            AllFilesBackup.DirectoryMatching = MatchStyleString.Skip;
+            AllFilesBackup.FileNameMatching = MatchStyleString.Skip;
+            AllFilesBackup.AttributeMatching1 = AllFilesBackup.AttributeMatching2 = FileAttributes.Normal;
+            AllFilesBackup.AttribMatching1Style = AllFilesBackup.AttribMatching2Style = MatchStyleFileAttributes.Skip;
+            AllFilesBackup.AccessAnchorCheck1 = AllFilesBackup.AccessAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
+            AllFilesBackup.WriteAnchorCheck1 = AllFilesBackup.WriteAnchorCheck2 = MatchStyleDateTime.Disable;
+            AllFilesBackup.CreationAnchorCheck1 = AllFilesBackup.CreationAnchorCheck2 = MatchStyleDateTime.Disable;
+            AllFilesBackup.CheckFileSize = false;
+            AllFilesBackup.DirectoryMatching = MatchStyleString.Skip;
+        }
 
+
+        [Obsolete("Please use MatchAnyFileName.  They are the same but with the adding of the AnyFile static SearchTarget, this string may be ambigious. There is the possibility of this being removed.")]
         /// <summary>
         /// When added to <see cref="FileName"/> as in item, causes the compare to match sucessfully against any file name.
         /// </summary>
         public const string MatchAnyFile = "*";
-
+        /// <summary>
+        /// When added to <see cref="FileName"/> as in item, causes the compare to match sucessfully against any file name.
+        /// </summary>
+        public const string MatchAnyFileName = "*";
+        
         internal enum ConvertToRegExMode
         {
             WantFileNameRegs = 1,

@@ -12,6 +12,7 @@ using System.Collections;
 using System.Diagnostics;
 using ThreadState = System.Threading.ThreadState;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Concurrent;
 
 namespace OdinSearchEngine
 {
@@ -145,7 +146,16 @@ namespace OdinSearchEngine
         /// </summary>
         internal class WorkerThreadExceptionCounter
         {
-            public readonly Dictionary<Thread, List<Exception>> Errors = new();
+            /// <summary>
+            /// Exceptions are here, and each worker thread shares the tracker class. 
+            /// </summary>
+            public readonly ConcurrentDictionary<Thread, List<Exception>> Errors = new();
+            
+            /// <summary>
+            /// mainly used to be an easy way to add exceptions
+            /// </summary>
+            /// <param name="thread"></param>
+            /// <param name="e"></param>
             public void AddException(Thread thread, Exception e)
             {
                 if (Errors.ContainsKey(thread) == false)
@@ -157,9 +167,15 @@ namespace OdinSearchEngine
                     Errors[thread].Add(e);
                 }
             }
-
-
         }
+        
+
+        /// <summary>
+        /// Delegate to let the user of OdinSearch.Search() get a notification if a thread crashes.
+        /// </summary>
+        /// <param name="T"></param>
+        /// <param name="e"></param>
+        public delegate void WorkerThreadUserNotifyError(Thread T, Exception e);
 
 
         /// <summary>
@@ -289,8 +305,17 @@ namespace OdinSearchEngine
 
             public Semaphore ComTalk;
 
-            
+
+            /// <summary>
+            /// If non null, will be called when an error is logged. 
+            /// </summary>
+            public WorkerThreadUserNotifyError AutoNotify = null;
+            /// <summary>
+            /// tracks exceptions.
+            /// </summary>
             public WorkerThreadExceptionCounter Tracker;
+
+            
             
             //public ReadOnlyCollection<OdinSearchContainer_GenericItem> ContainerList { get; internal set; }
         }
@@ -354,6 +379,7 @@ namespace OdinSearchEngine
                 Debug.WriteLine(Thread.CurrentThread.Name + $"logging exception {e.Message} to our tracking class. Can be viewed /interacted with");
 #endif 
                 TrueArgs.Tracker.AddException(Thread.CurrentThread, e);
+                TrueArgs.AutoNotify?.Invoke(Thread.CurrentThread, e);
             }
 #if DEBUG
             if (DebugVerboseModeHandle)
@@ -1255,12 +1281,29 @@ namespace OdinSearchEngine
         /// Start the search rolling. 
         /// </summary>
         /// <param name="Coms">This class is how the search communicates with your code. Cannot be null</param>
+        /// <param name="RedAlarm">If a worker thread created from the anchor crashes, this is called.</param>
         /// <exception cref="InvalidOperationException">Is thrown if Search is called while searching. </exception>
         /// <exception cref="ArgumentNullException">Is thrown if the Coms argument is null</exception>
         /// <exception cref="OdinSearch_CommuncationClassException">Thrown by the communcations class if it can't initalize on a call to <see cref="OdinSearch_OutputConsumerBase.SearchBegin(DateTime)"/></exception>
         /// <remarks>Note that the search uses a default class <see cref="OdinSearch_ContainerFileInfo"/> if there's not container class</remarks>
         public void Search(OdinSearch_OutputConsumerBase Coms)
         {
+            Search(Coms, null);
+        }
+
+
+        /// <summary>
+        /// Start the search rolling. 
+        /// </summary>
+        /// <param name="Coms">This class is how the search communicates with your code. Cannot be null</param>
+        /// <param name="RedAlarm">If a worker thread created from the anchor crashes, this is called.</param>
+        /// <exception cref="InvalidOperationException">Is thrown if Search is called while searching. </exception>
+        /// <exception cref="ArgumentNullException">Is thrown if the Coms argument is null</exception>
+        /// <exception cref="OdinSearch_CommuncationClassException">Thrown by the communcations class if it can't initalize on a call to <see cref="OdinSearch_OutputConsumerBase.SearchBegin(DateTime)"/></exception>
+        /// <remarks>Note that the search uses a default class <see cref="OdinSearch_ContainerFileInfo"/> if there's not container class</remarks>
+        public void Search(OdinSearch_OutputConsumerBase Coms, WorkerThreadUserNotifyError RedAlarm)
+        {
+            // before we begin, verify we're in a valid state, check for required non null arg and if we're searching.
             if (Anchors.Count <= 0)
             {
                 throw new InvalidOperationException(EmptyAnchorList);
@@ -1277,17 +1320,18 @@ namespace OdinSearchEngine
                 }
                 else
                 {
+                    // begin init the search.
                     Semaphore LockThis = new(0, 1);
                     WorkerThreadArgs Args = null;
                     foreach (SearchAnchor Anchor in Anchors)
                     {
                         var AnchorList = Anchor.SplitRoots();
+                        // crit fail. No starting point.
                         if (AnchorList.Length == 0)
                         {
                             throw new InvalidOperationException(NonEmptyAnchorListEmptySplitRoots);
                         }
                         for (int smallstep = 0; smallstep < AnchorList.Length; smallstep++)
-                        //foreach (SearchAnchor SmallAnchor in AnchorList)
                         {
                             Args = new();
                             Args.StartFrom = AnchorList[smallstep];
@@ -1304,16 +1348,36 @@ namespace OdinSearchEngine
                                 }
                             }
 
+                            // make our class that will deal with the thread.
+                            // thread and rotuine
                             WorkerThreadWithCancelToken Worker = new WorkerThreadWithCancelToken();
-                            //Worker.Thread = new Thread(() => WorkerThreadProc(Args));
                             Worker.Thread = new Thread(WorkerThreadProc);
+
+                            // assign the thread name to be the location where the search starts
                             Worker.Thread.Name = AnchorList[smallstep].roots[0].ToString();
+
+                            // create the cancel token
                             Worker.Token = new CancellationTokenSource();
+
+                            // set the args to be passed to be the Args we want;
                             Worker.Args = Args;
+
+                            // assign the cancel token
                             Args.Token = Worker.Token.Token;
+
+                            // assign commincate base, the exception tracker class and the RegAlarm ok.
                             Args.ComTalk = LockThis;
                             Args.Tracker = ETracker;
+                            Args.AutoNotify = RedAlarm;
+
+                            // add it to the list.
                             WorkerThreads.Add(Worker);
+
+
+
+                           // IMPORTANT! Deleting this Args = null code will bring back the bug described
+                           // https://github.com/ShadowKnightMK4/OdinSearch/issues/1 which to briefly state
+                           //  adding multiple starting points such as C:\ D:\ E:\ Z:\ would ONLY use "Z:\"
                             Args = null;
                         }
                     }

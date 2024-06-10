@@ -30,6 +30,16 @@ namespace UnitTest
             Assert.IsNotNull(Demo);
         }
 
+        [TestMethod]
+        public void OdinSearch_DoesCrashAndBurn_Notify()
+        {
+            OdinSearch_Output_UnitTesting_class Coms = new OdinSearch_Output_UnitTesting_class();
+            Assert.IsNotNull(Demo);
+            Demo.Reset();
+            Demo.AddSearchTarget(new SearchTarget());
+
+
+        }
         /// <summary>
         /// used for testing. It sets various public bools when doing 
         /// </summary>
