@@ -13,6 +13,7 @@ using System.Diagnostics;
 using ThreadState = System.Threading.ThreadState;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Concurrent;
+using OdinSearchEngine.SearchSupport;
 
 namespace OdinSearchEngine
 {
@@ -100,8 +101,11 @@ namespace OdinSearchEngine
 
         WorkerThreadExceptionCounter ETracker = new();
 
-        
 
+        /// <summary>
+        /// Skip visiting locations more than 1 that are in the anchor lists. 
+        /// </summary>
+        public bool PruneAlreadyVisitedLocations { get; set; }
 
         /// <summary>
         /// When starting a search, if this is true, the call to <see cref="SanityChecks(WorkerThreadArgs)"/> is skipped. Currently, that routine does nothing, but is intended to be a way to guard against silly/impossible things such as searching for a file that's also a folder for example
@@ -112,6 +116,10 @@ namespace OdinSearchEngine
 
         #region Protected or Private Class Variables / properties
 
+        /// <summary>
+        /// This is used to skip checking the same folder more than once
+        /// </summary>
+        DupSearchPruning SearchPruneCheck = new();
         /// <summary>
         /// Backing Varible for <see cref="ThreadSynchResults"/>
         /// </summary>
@@ -429,18 +437,31 @@ namespace OdinSearchEngine
                                 // should an exception happen during getting folder/file names, this is set
                                 // which triggers an early bailout on comparing.
                                 bool ErrorPrune = false;
-
+                                
                                 DirectoryInfo CurrentLoc = FolderList.Dequeue();
 
+                                if (SearchPruneCheck.CheckToPrune(CurrentLoc.FullName))
+                                    ErrorPrune = true;
+                                
                                 // files in the CurrentLoc
                                 FileInfo[] Files = null;
                                 // folders in the CurrentLoc
                                 DirectoryInfo[] Folders = null;
                                 try
                                 {
-                                    Files = CurrentLoc.GetFiles();
-                                    Folders = CurrentLoc.GetDirectories();
+                                    if (!ErrorPrune)
+                                    {
+                                        Files = CurrentLoc.GetFiles();
+                                        Folders = CurrentLoc.GetDirectories();
+                                    }
+                                    else
+                                    {
+#if DEBUG
+                                        if (DebugVerboseModeHandle)
+                                            Debug.WriteLine($"Searching {CurrentLoc.FullName} has been pruned due to it being in the already visited list\r\n");
+#endif
 
+                                    }
                                 }
                                 catch (IOException e)
                                 {
@@ -1206,7 +1227,17 @@ namespace OdinSearchEngine
         {
             Targets.Add(target);
         }
+        
+        /// <summary>
+        /// Add Serveral new things to look for.
+        /// </summary>
+        /// <param name="targetlist"></param>
+        public void AddSearchTarget(IEnumerable<SearchTarget> targetlist)
+        {
+            Targets.AddRange(targetlist);
+        }
 
+        
         /// <summary>
         /// Clear the Search target list
         /// </summary>
@@ -1243,6 +1274,10 @@ namespace OdinSearchEngine
         public void AddSearchAnchor(SearchAnchor Anchor)
         {
             Anchors.Add(Anchor);
+        }
+        public void AddSearchAnchor(IEnumerable<SearchAnchor> AnchorList)
+        {
+            Anchors.AddRange(AnchorList);
         }
 
         /// <summary>
