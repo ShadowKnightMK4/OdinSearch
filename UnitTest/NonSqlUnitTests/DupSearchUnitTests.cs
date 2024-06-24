@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OdinSearchEngine;
 using OdinSearchEngine.SearchSupport;
@@ -30,9 +31,9 @@ namespace NonSqlUnitTests
             SearchAnchor One = new SearchAnchor(false);
             SearchAnchor Two = new SearchAnchor(false);
             One.EnumSubFolders = true;
-            Two.EnumSubFolders = true;
-            One.AddAnchor("C:\\Euphoria");
-            Two.AddAnchor("C:\\Euphoria\\demo");
+            Two.EnumSubFolders = false;
+            One.AddAnchor("C:\\Euphoria\\");
+            Two.AddAnchor("C:\\Euphoria\\bin");
 
             TestMe.AddSearchAnchor( new SearchAnchor[] { One, Two });
             TestMe.AddSearchTarget(SearchTarget.AllFiles);
@@ -45,6 +46,11 @@ namespace NonSqlUnitTests
             TestMe.KillSearch();
 
             Console.WriteLine("Note this one requires seeing the output manually");
+            DupSearchPruning testout = TestMe.DEBUGCHECK;
+            foreach (var key in testout.Links)
+            {
+                Console.WriteLine(key);
+            }
         }
     }
 }

@@ -120,6 +120,13 @@ namespace OdinSearchEngine
         /// This is used to skip checking the same folder more than once
         /// </summary>
         DupSearchPruning SearchPruneCheck = new();
+
+#if DEBUG
+        /// <summary>
+        /// Only FOR DEBUG BUILDS
+        /// </summary>
+        public DupSearchPruning DEBUGCHECK => SearchPruneCheck;
+#endif
         /// <summary>
         /// Backing Varible for <see cref="ThreadSynchResults"/>
         /// </summary>
@@ -458,7 +465,7 @@ namespace OdinSearchEngine
                                     {
 #if DEBUG
                                         if (DebugVerboseModeHandle)
-                                            Debug.WriteLine($"Searching {CurrentLoc.FullName} has been pruned due to it being in the already visited list\r\n");
+                                            Debug.WriteLine($"Thread {Thread.CurrentThread.Name}: ID {Thread.CurrentThread.ManagedThreadId} Searching {CurrentLoc.FullName} has been pruned due to it being in the already visited list\r\n");
 #endif
 
                                     }
