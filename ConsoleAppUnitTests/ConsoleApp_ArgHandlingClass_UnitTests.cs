@@ -4,6 +4,7 @@ using Microsoft.VisualBasic;
 using Newtonsoft.Json.Bson;
 using NuGet.Frameworks;
 using OdinSearchEngine;
+using System.Diagnostics;
 
 namespace ConsoleAppUnitTests
 {
@@ -851,7 +852,7 @@ namespace ConsoleAppUnitTests
         public void outformat_arg_test_for_excel_assign()
         {
             ArgHandling testme_unicode = new ArgHandling();
-            Assert.IsTrue(testme_unicode.DoTheThing(new string[] { "/outformat=cvsfile" }));
+            Assert.IsTrue(testme_unicode.DoTheThing(new string[] { "/outformat=csvfile" }));
 
             Assert.AreEqual(testme_unicode.UserFormat, ArgHandling.TargetFormat.CSVFile);
         }
@@ -1353,10 +1354,10 @@ namespace ConsoleAppUnitTests
         {
             string loc = "C:\\Plugins\\NetPlugin.dll";
             ArgHandling testme = new ArgHandling();
-            testme.DoTheThing(new string[] { "/managed=" + loc });
+            testme.DoTheThing(new string[] { "/managed=" + loc , "/class=example"});
             loc = ArgHandling.Trim(loc);
             Assert.AreEqual(testme.ExternalPluginDll, loc);
-            Assert.AreEqual(testme.ExternalPluginName, string.Empty);
+            Assert.AreEqual(testme.ExternalPluginName, "example");
         }
 
         [TestMethod]
@@ -1364,10 +1365,10 @@ namespace ConsoleAppUnitTests
         {
             string loc = "\"C:\\Plugins and Stuff\\NetPlugin.dll\"";
             ArgHandling testme = new ArgHandling();
-            testme.DoTheThing(new string[] { "/managed=" + loc });
+            testme.DoTheThing(new string[] { "/managed=" + loc , "/class=example" });
             loc = ArgHandling.Trim(loc);
             Assert.AreEqual(testme.ExternalPluginDll, loc);
-            Assert.AreEqual(testme.ExternalPluginName, string.Empty);
+            Assert.AreEqual(testme.ExternalPluginName, "example");
         }
 
         [TestMethod]
@@ -1375,10 +1376,10 @@ namespace ConsoleAppUnitTests
         {
             string loc = "C:\\Plugins and Stuff\\NetPlugin.dll";
             ArgHandling testme = new ArgHandling();
-            testme.DoTheThing(new string[] { "/managed=" + loc });
+            testme.DoTheThing(new string[] { "/managed=" + loc,  "/class=example" });
             loc = ArgHandling.Trim(loc);
             Assert.AreEqual(testme.ExternalPluginDll, loc);
-            Assert.AreEqual(testme.ExternalPluginName, string.Empty);
+            Assert.AreEqual(testme.ExternalPluginName, "example");
         }
 
         [TestMethod]
@@ -1444,14 +1445,17 @@ namespace ConsoleAppUnitTests
             ArgHandling testme = new ArgHandling();
             testme.DoTheThing(new string[] { "/anchor=" + loc , "/anchor=" + loc2});
 
-            Assert.AreEqual(Tests.Count, testme.SearchAnchor.roots.Count);
+            Assert.AreEqual(Tests.Count + Tests2.Count, testme.SearchAnchor.roots.Count);
             for (int step = 0; step < Tests.Count; step++)
             {
+                Debug.WriteLine($"Testing if {Tests[step]} in in the root list.");
                 bool found = false;
                 for (int check = 0; check < testme.SearchAnchor.roots.Count; check++)
                 {
-                    if (Tests[step].Equals(testme.SearchAnchor.roots[check]))
+                    Debug.Write($"Comparing {Tests[step]} to {testme.SearchAnchor.roots[check]}");
+                    if (string.Compare(Tests[step], testme.SearchAnchor.roots[check].FullName) ==0)
                     {
+                        Debug.WriteLine("<< A MATCH!");
                         found = true;
                         break;
                     }
@@ -1460,8 +1464,10 @@ namespace ConsoleAppUnitTests
                 {
                     for (int check = 0; check < testme.SearchAnchor.roots.Count; check++)
                     {
-                        if (Tests2[step].Equals(testme.SearchAnchor.roots[check]))
+                        Debug.Write($"Comparing {Tests[step]} to {testme.SearchAnchor.roots[check]}");
+                        if (string.Compare(Tests2[step], testme.SearchAnchor.roots[check].FullName) ==0)
                         {
+                            Debug.WriteLine("<< A MATCH!");
                             found = true;
                             break;
                         }
@@ -1507,7 +1513,7 @@ namespace ConsoleAppUnitTests
                 bool found = false;
                 for (int check = 0; check < testme.SearchAnchor.roots.Count; check++)
                 {
-                    if (Tests[step].Equals(testme.SearchAnchor.roots[check]))
+                    if (string.Compare(Tests[step], testme.SearchAnchor.roots[check].FullName) == 0)
                     {
                         found = true;
                         break;
@@ -1567,6 +1573,8 @@ namespace ConsoleAppUnitTests
 
             Assert.AreEqual((int)testme_unicode.SearchTarget.DirectoryMatching, 1);
 
+            testme_unicode = new ArgHandling();
+            Assert.IsFalse(testme_unicode.DoTheThing(new string[] { "/fullcompare=" + ((int)SearchTarget.MatchStyleString.ReservedUnused).ToString() }));
 
             // do we know MatchStyleString.MatchAll?
             testme_unicode = new ArgHandling();
@@ -1580,11 +1588,11 @@ namespace ConsoleAppUnitTests
 
             Assert.AreEqual((int)testme_unicode.SearchTarget.DirectoryMatching, 4);
 
-            // this particulater instance ReservedUnused value (8) should be catched and returned as failure
+            
             testme_unicode = new ArgHandling();
 
-            // do we know MatchStyleString.ReservedUnused and fail it?
-            Assert.IsFalse(testme_unicode.DoTheThing(new string[] { "/fullcompare=8" }));
+            // do we know MatchStyleString.Rawreg and fail it?
+            Assert.IsTrue(testme_unicode.DoTheThing(new string[] { "/fullcompare=8" }));
             // this test not needed
             //Assert.AreEqual((int)testme_unicode.SearchTarget.DirectoryMatching, 8);
 
@@ -1609,9 +1617,9 @@ namespace ConsoleAppUnitTests
             testme_unicode = new ArgHandling();
             Assert.IsFalse(testme_unicode.DoTheThing(new string[] { "/fullcompare=" }));
 
-            // do we know  something the MatchStyle.ReservedUnused Flag and fail it?
+            
             testme_unicode = new ArgHandling();
-            Assert.IsFalse(testme_unicode.DoTheThing(new string[] { "/fullcompare=24" }));
+            Assert.IsTrue(testme_unicode.DoTheThing(new string[] { "/fullcompare=24" }));
 
             //Assert.AreEqual((int)testme_unicode.SearchTarget.DirectoryMatching, 24);
 
@@ -1650,6 +1658,8 @@ namespace ConsoleAppUnitTests
 
             Assert.AreEqual((int)testme_unicode.SearchTarget.FileNameMatching, 1);
 
+            testme_unicode = new ArgHandling();
+            Assert.IsFalse(testme_unicode.DoTheThing(new string[] { "/filecompare=" + SearchTarget.MatchStyleFileAttributes.Reserved.ToString() }));
 
             // do we know MatchStyleString.MatchAll?
             testme_unicode = new ArgHandling();
@@ -1663,11 +1673,11 @@ namespace ConsoleAppUnitTests
 
             Assert.AreEqual((int)testme_unicode.SearchTarget.FileNameMatching, 4);
 
-            // this particulater instance ReservedUnused value (8) should be catched and returned as failure
+            // this particulater instance ReservedUnused value (8) should be catched and sucessuffed as raw regex
             testme_unicode = new ArgHandling();
 
-            // do we know MatchStyleString.ReservedUnused and fail it?
-            Assert.IsFalse(testme_unicode.DoTheThing(new string[] { "/filecompare=8" }));
+            // do we know MatchStyleString. and fail it?
+            Assert.IsTrue(testme_unicode.DoTheThing(new string[] { "/filecompare=8" }));
             // this test not needed
             //Assert.AreEqual((int)testme_unicode.SearchTarget.DirectoryMatching, 8);
 
@@ -1692,9 +1702,9 @@ namespace ConsoleAppUnitTests
             testme_unicode = new ArgHandling();
             Assert.IsFalse(testme_unicode.DoTheThing(new string[] { "/filecompare=" }));
 
-            // do we know  something the MatchStyle.ReservedUnused Flag and fail it?
+            // do we know  something the MatchStyle.RegExFlag Flag and fail it?
             testme_unicode = new ArgHandling();
-            Assert.IsFalse(testme_unicode.DoTheThing(new string[] { "/filecompare=24" }));
+            Assert.IsTrue(testme_unicode.DoTheThing(new string[] { "/filecompare=24" }));
 
             //Assert.AreEqual((int)testme_unicode.SearchTarget.DirectoryMatching, 24);
 

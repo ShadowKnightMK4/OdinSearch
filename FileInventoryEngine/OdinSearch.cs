@@ -768,7 +768,19 @@ namespace OdinSearchEngine
         List<WorkerThreadWithCancelToken> WorkerThreads = new List<WorkerThreadWithCancelToken>();
 
 
-
+        /// <summary>
+        /// Get a queue of the worker threads. Intented to advoid collection modification exceptions.
+        /// </summary>
+        /// <returns></returns>
+        Queue<WorkerThreadWithCancelToken> GetWorkerThreadsQueue()
+        {
+            Queue<WorkerThreadWithCancelToken> Works = new();
+            for (int i = 0; i < WorkerThreads.Count; i++)
+            {
+                Works.Enqueue(WorkerThreads[i]);
+            }
+            return Works;
+        }
         /// <summary>
         /// Call Thread.Join() for all worker threads spawned in the list. Your code will functionally be awaiting until it is done
         /// </summary>
@@ -788,13 +800,14 @@ namespace OdinSearchEngine
             // This is here to also guard against premature starting and throwing an exception.
             Thread.Sleep(200);
 
-            Queue<WorkerThreadWithCancelToken> Works = new();
-            for (int i = 0; i < WorkerThreads.Count; i++) {
-                Works.Enqueue(WorkerThreads[i]); 
-            }
+            // another ready we put them it a queue is to avoid a collection modified exception.
+            Queue<WorkerThreadWithCancelToken> Works = GetWorkerThreadsQueue();
+
+
+            WorkerThreadWithCancelToken pop=null;
             while (Works.Count > 0)
             {
-                WorkerThreadWithCancelToken pop;
+                
                 pop = Works.Dequeue();
                 if (pop != null)
                 {
@@ -807,13 +820,6 @@ namespace OdinSearchEngine
                 }    
             }
             return;
-            WorkerThreads.ForEach(
-                p => {
-                    if (p.Thread.ThreadState == System.Threading.ThreadState.Running)
-                    {
-                        p.Thread.Join();
-                    }
-                });
         }
 
 
@@ -831,14 +837,19 @@ namespace OdinSearchEngine
         {
             get
             {
+                
                 if (WorkerThreads.Count == 0)
                     return false;
 
                 int running_count = 0;
-                for (int step = 0; step < WorkerThreads.Count; step++)
+                var Threads = GetWorkerThreadsQueue();
+                WorkerThreadWithCancelToken pop = null;
+                while (Threads.Count > 0)
                 {
+                    pop = Threads.Dequeue();
+                    if (pop != null)
                     {
-                        if (!WorkerThreads[step].Thread.IsAlive)
+                        if (pop.Thread.IsAlive)
                         {
                             running_count++;
                             break;
