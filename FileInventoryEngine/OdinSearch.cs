@@ -34,6 +34,22 @@ namespace OdinSearchEngine
 
         }
     }
+
+    /// <summary>
+    /// This is thrown if someone calls <see cref="OdinSearch.KillSearch()"/>. It gets logged in the exception tracker and can be safely ignored.
+    /// </summary>
+    public class OdinSearch_WorkerThreadCanceled: Exception
+    {
+        public OdinSearch_WorkerThreadCanceled(string message) : base(message)
+        {
+
+        }
+
+        public OdinSearch_WorkerThreadCanceled(string message, Exception Inner) : base(message, Inner)
+        {
+
+        }
+    }
     /// <summary>
     /// Search the local system for files/folders 
     /// </summary>
@@ -387,6 +403,21 @@ namespace OdinSearchEngine
             WorkerThreadArgs TrueArgs = Args as WorkerThreadArgs;
             
 
+            // how this thread cancels.
+            void BailingOutIfRequested(bool Cancel)
+            {
+
+                //if (TrueArgs.Token.IsCancellationRequested)
+                if (Cancel)
+                {
+                    string msg = Thread.CurrentThread.Name + $" Thread aborted due to cancil request\r\n";
+#if DEBUG
+                    if (DebugVerboseModeHandle)
+                        Debug.WriteLine(msg);
+#endif
+                    throw new OdinSearch_WorkerThreadCanceled(msg);
+                }
+            }
             ///Add this exception to the list of exceptions tracked for the thread this is ran on.
             void RegisterExceptionWithThread(Exception e)
             {
@@ -431,12 +462,16 @@ namespace OdinSearchEngine
                                 return;
                             }
 
+                            BailingOutIfRequested(TrueArgs.Token.IsCancellationRequested);
+
                             // add root[0] to the queue to pull from
                             FolderList.Enqueue(TrueArgs.StartFrom.roots[0]);
 
                         // label is used as a starting point to loop back to for looking at subfolders when we get
                         // looping
                         Reset:
+
+                            BailingOutIfRequested(TrueArgs.Token.IsCancellationRequested);
 
 
                             if (FolderList.Count > 0)
@@ -528,7 +563,7 @@ namespace OdinSearchEngine
                                         if (!Pruned)
                                         {
                                             // file check
-
+                                            BailingOutIfRequested(TrueArgs.Token.IsCancellationRequested);
 
                                             foreach (FileInfo Possible in Files)
                                             {
@@ -658,20 +693,29 @@ namespace OdinSearchEngine
                     KeepGoing = false;
                     for (int step =0; step < WorkerThreads.Count;step++)
                     {
-                        if (WorkerThreads[step].Args.Coms.HasPendingActions())
+                        try
                         {
-                            KeepGoing = true;
-                            WorkerThreads[step].Args.Coms.ResolvePendingActions();
-                        }
-                        else
-                        {
-                            if (WorkerThreads[step].Thread.IsAlive == true)
+                            if (WorkerThreads[step].Args.Coms.HasPendingActions())
                             {
                                 KeepGoing = true;
-                                break;
+                                WorkerThreads[step].Args.Coms.ResolvePendingActions();
+                            }
+                            else
+                            {
+                                if (WorkerThreads[step].Thread.IsAlive == true)
+                                {
+                                    KeepGoing = true;
+                                    break;
+                                }
                             }
                         }
+                        catch (ArgumentOutOfRangeException)
+                        {
+                            if (WorkerThreads.Count == 0)
+                                KeepGoing = false;
+                        }
                     }
+
                 }
             }
 
@@ -743,6 +787,26 @@ namespace OdinSearchEngine
             }
             // This is here to also guard against premature starting and throwing an exception.
             Thread.Sleep(200);
+
+            Queue<WorkerThreadWithCancelToken> Works = new();
+            for (int i = 0; i < WorkerThreads.Count; i++) {
+                Works.Enqueue(WorkerThreads[i]); 
+            }
+            while (Works.Count > 0)
+            {
+                WorkerThreadWithCancelToken pop;
+                pop = Works.Dequeue();
+                if (pop != null)
+                {
+                    switch (pop.Thread.ThreadState)
+                    {
+                        case ThreadState.Running:
+                            pop.Thread.Join();
+                            break;
+                    }
+                }    
+            }
+            return;
             WorkerThreads.ForEach(
                 p => {
                     if (p.Thread.ThreadState == System.Threading.ThreadState.Running)
@@ -1460,8 +1524,26 @@ namespace OdinSearchEngine
             {
                 foreach (var workerThread in WorkerThreads)
                 {
-                    workerThread.Token.Cancel();
-                    
+                    if (workerThread.Thread.IsAlive)
+                    {
+#if DEBUG
+        if (DebugVerboseMode)
+                        {
+                            Debug.WriteLine($"Sending Command to ask Thread for {workerThread.Thread.Name} to quit");
+                        }
+#endif
+                        workerThread.Token.Cancel();
+                    }
+                    else
+                    {
+#if DEBUG
+                        if (DebugVerboseMode)
+                        {
+                            Debug.WriteLine($"NOT SENDING Command to ask Thread for {workerThread.Thread.Name} to quit: Reason {workerThread.Thread.ThreadState}");
+                        }
+#endif
+                    }
+
                 }
             }
 
@@ -1481,7 +1563,7 @@ namespace OdinSearchEngine
             // TODO: Ensure we can have allowable file attributes. For example we're not wanting something that's botha file and a file.
 #if DEBUG
             System.Diagnostics.Debug.Write("Add code SanityCheck() routine");
-#endif 
+#endif
             return true;
         }
 

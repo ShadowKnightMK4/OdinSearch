@@ -9,6 +9,9 @@ using System.Text;
 using System.Threading.Tasks;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollector.InProcDataCollector;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Net.WebSockets;
 
 namespace UnitTest
 {
@@ -18,6 +21,45 @@ namespace UnitTest
     [TestClass]
     public class UnitTest_OdinSearchBasics
     {
+        [TestMethod]
+        public void OdinSearch_CanWeCancilSearch_AfterStartingARun()
+        {
+            bool found = false;
+            void cal(Thread T, Exception E)
+            {
+                Console.WriteLine($"Thread {T.Name} had a game ending exception.  {E.Message}");
+                found = true;
+            }
+            OdinSearch Demo = new();
+            Assert.IsNotNull(Demo);
+            var sa = new SearchAnchor();
+            sa.EnumSubFolders = true;
+            Demo.AddSearchAnchor(sa);
+            Demo.AddSearchTarget(SearchTarget.AllFiles);
+
+            var discard = new UnitTest_OdinSearchBasics.OdinSearch_Output_UnitTesting_class();
+
+            Demo.Search(discard,cal );
+            
+            for (int i =0; i < 3; i++)
+            {
+                Thread.Sleep(2000);
+                if (found)
+                    break;
+                else
+                {
+                    Demo.KillSearch();
+                }
+            }
+
+            //Demo.KillSearch();
+
+            var dbg =Demo.GetWorkerThreadException();
+            Assert.IsTrue(found);
+            
+
+
+        }
         OdinSearch Demo = null;
         [TestInitialize]
         public void Init()
@@ -27,12 +69,14 @@ namespace UnitTest
         [TestMethod]
         public void OdinSearch_CanInstance()
         {
+            OdinSearch Demo = new();
             Assert.IsNotNull(Demo);
         }
 
         [TestMethod]
         public void OdinSearch_DoesCrashAndBurn_Notify()
         {
+            OdinSearch Demo = new();
             OdinSearch_Output_UnitTesting_class Coms = new OdinSearch_Output_UnitTesting_class();
             Assert.IsNotNull(Demo);
             Demo.Reset();
