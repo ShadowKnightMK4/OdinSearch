@@ -14,6 +14,7 @@ using ThreadState = System.Threading.ThreadState;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Concurrent;
 using OdinSearchEngine.SearchSupport;
+using DeepDirPrune;
 
 namespace OdinSearchEngine
 {
@@ -135,14 +136,17 @@ namespace OdinSearchEngine
         /// <summary>
         /// This is used to skip checking the same folder more than once
         /// </summary>
-        DupSearchPruning SearchPruneCheck = new();
+        DeepDirPrune.DeepDirTracking SearchPruneCheck = new();
 
 #if DEBUG
         /// <summary>
         /// Only FOR DEBUG BUILDS
         /// </summary>
-        public DupSearchPruning DEBUGCHECK => SearchPruneCheck;
+        public DeepDirTracking DEBUGCHECK => SearchPruneCheck;
+
 #endif
+        public bool DebugDisablePrune { get; set; }
+
         /// <summary>
         /// Backing Varible for <see cref="ThreadSynchResults"/>
         /// </summary>
@@ -482,7 +486,8 @@ namespace OdinSearchEngine
                                 
                                 DirectoryInfo CurrentLoc = FolderList.Dequeue();
 
-                                if (SearchPruneCheck.CheckToPrune(CurrentLoc.FullName))
+                                if (!DebugDisablePrune)
+                                if (SearchPruneCheck.DoesDirPathExist(CurrentLoc.FullName))
                                     ErrorPrune = true;
                                 
                                 // files in the CurrentLoc

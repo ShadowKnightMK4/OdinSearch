@@ -46,11 +46,8 @@ namespace NonSqlUnitTests
             TestMe.KillSearch();
 
             Console.WriteLine("Note this one requires seeing the output manually");
-            DupSearchPruning testout = TestMe.DEBUGCHECK;
-            foreach (var key in testout.Links)
-            {
-                Console.WriteLine(key);
-            }
+            //var testout = TestMe.DEBUGCHECK;
+            
         }
     }
 }
