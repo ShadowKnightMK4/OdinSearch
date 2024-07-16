@@ -276,8 +276,17 @@ namespace DeepDirPrune
             if (!Bail)
             {
                 if (pin.toplevel != null)
-                    walker = walker.Substring(Math.Min(part.Length + 1, walker.Length));
+                {
+                    if (part != null)
+                    {
+                        walker = walker.Substring(Math.Min(part.Length + 1, walker.Length));
+                    }
+                    else
+                    {
+                        walker = walker.Substring(Math.Min(0, walker.Length));
+                    }
 
+                }
                 if (walker != string.Empty)
                     part = NextDirLevel(walker);
 

@@ -4,6 +4,9 @@ namespace UnitTestsDirDirTracking
     [TestClass]
     public class UnitTest1
     {
+        /// <summary>
+        /// After adding the folder C:\Windows\System32 to the list, we test if we get the expected reference (system32) is returned. 
+        /// </summary>
         [TestMethod]
         public void LimbCheck_AndRoot2_DoesGetLimbReturnTheFinalOneInQuestion()
         {
@@ -23,6 +26,10 @@ namespace UnitTestsDirDirTracking
             Assert.IsTrue(testroot.DoesDirPathExist("C:\\Windows\\System32"));
             Assert.IsTrue(ReferenceEquals(L3, testroot.GetLimb("C:\\Windows\\System32")));
         }
+
+        /// <summary>
+        /// like <see cref="LimbCheck_AndRoot2_DoesGetLimbReturnTheFinalOneInQuestion"/> but tests if the name matches
+        /// </summary>
         [TestMethod]
         public void LimbCheck_AndRoot1_DoesGetLimbReturnOneWithTheSameNameAsTheFinalPart()
         {
@@ -32,6 +39,9 @@ namespace UnitTestsDirDirTracking
             DeepDirTracking branch = testroot.GetLimb("C:\\Windows\\system32");
             Assert.IsTrue(branch.toplevel == "system32");
         }
+        /// <summary>
+        /// Add C:\Windows\system32 to the class and test if the search thing finds it as well as 0 subbranches.
+        /// </summary>
         [TestMethod]
         public void RootCheck_DoesDirPathExist()
         {
@@ -50,6 +60,10 @@ namespace UnitTestsDirDirTracking
 
             Assert.IsTrue(testroot.DoesDirPathExist("C:\\Windows\\System32"));
         }
+
+        /// <summary>
+        /// Adds the C:\Windows\system32 thing to a class by <see cref="DeepDirTracking.AddDirPath(string)"/> and by manually adding it. Sees if they match
+        /// </summary>
         [TestMethod]
         public void  RootCheck_AddDirTest()
         {
@@ -73,6 +87,9 @@ namespace UnitTestsDirDirTracking
             Assert.IsTrue(testfinale.DoesDirPathExist("C:\\Windows\\System32"));
         }
 
+        /// <summary>
+        /// Tests paths.
+        /// </summary>
         [TestMethod]
         public void RootCheck_AddPath()
         {

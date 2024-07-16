@@ -93,7 +93,10 @@ namespace OdinSearchEngine
         #endregion
         #region Public Class Variables and Properties
 
-
+        /// <summary>
+        /// If true, when any match is file, we end the search.
+        /// </summary>
+        public bool SoleMatch { get; set; } = false;
         /// <summary>
         /// False Means we don't lock a object to aid synching when sending output to a <see cref="OdinSearch_OutputConsumerBase"/> based class.  
         /// </summary>
@@ -350,8 +353,12 @@ namespace OdinSearchEngine
             /// </summary>
             public WorkerThreadExceptionCounter Tracker;
 
-            
-            
+            /// <summary>
+            /// initalized before the worker thread is spawned.
+            /// </summary>
+            public List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
+
+
             //public ReadOnlyCollection<OdinSearchContainer_GenericItem> ContainerList { get; internal set; }
         }
         #endregion
@@ -390,6 +397,14 @@ namespace OdinSearchEngine
 
         #region Worker Thread Routine
 
+        internal void WorkerThreadInitRegEx(WorkerThreadArgs Args)
+        {
+            // prececulate the search target info
+            foreach (SearchTarget Target in Args.Targets)
+            {
+                Args.TargetWithRegEx.Add(new SearchTargetPreDoneRegEx(Target));
+            }
+        }
         /// <summary>
         /// Unpack the WorkerThreadArgs and go to work. Not intended to to called without having done by its own thread
         /// </summary>
@@ -403,7 +418,8 @@ namespace OdinSearchEngine
             Queue<DirectoryInfo> FolderList = new Queue<DirectoryInfo>();
             //Queue<OdinSearch_ContainerSystemItem> FolderList = new Queue<OdinSearch_ContainerSystemItem>();
 
-            List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
+            //List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
+            
             WorkerThreadArgs TrueArgs = Args as WorkerThreadArgs;
             
 
@@ -449,10 +465,9 @@ namespace OdinSearchEngine
 
                             try
                             {
-                                // prececulate the search target info
-                                foreach (SearchTarget Target in TrueArgs.Targets)
+                                if (TrueArgs.TargetWithRegEx == null)
                                 {
-                                    TargetWithRegEx.Add(new SearchTargetPreDoneRegEx(Target));
+                                    WorkerThreadInitRegEx(TrueArgs);
                                 }
                             }
                             catch (RegexParseException e)
@@ -550,7 +565,7 @@ namespace OdinSearchEngine
 
                                 if (!ErrorPrune)
 
-                                    foreach (SearchTargetPreDoneRegEx Target in TargetWithRegEx)
+                                    foreach (SearchTargetPreDoneRegEx Target in TrueArgs.TargetWithRegEx)
                                     {
                                         bool Pruned = false;
 
@@ -1495,8 +1510,14 @@ namespace OdinSearchEngine
                             // add it to the list.
                             WorkerThreads.Add(Worker);
 
-
-
+                            try
+                            {
+                                WorkerThreadInitRegEx(Args);
+                            }
+                            catch (RegexParseException e)
+                            {
+                                throw;
+                            }
                            // IMPORTANT! Deleting this Args = null code will bring back the bug described
                            // https://github.com/ShadowKnightMK4/OdinSearch/issues/1 which to briefly state
                            //  adding multiple starting points such as C:\ D:\ E:\ Z:\ would ONLY use "Z:\"

@@ -13,6 +13,7 @@ using System.Diagnostics;
 using static OdinSearchEngine.SearchTarget;
 using System.Security.Cryptography.X509Certificates;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace NonSqlUnitTests
 {
@@ -487,12 +488,33 @@ namespace NonSqlUnitTests
         [TestMethod]
         public void TestNULL_BackRegEx_OnInput_bad_pattern_SafetyOn()
         {
-            TestNULL_BackRegEx_OnInput_bad_pattern_private(true);
+            try
+            {
+                TestNULL_BackRegEx_OnInput_bad_pattern_private(true);
+            }
+            catch (RegexParseException ex)
+            {
+                Assert.IsNotNull(ex);
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("Sucessfully caught the regex error before starting the search");
+                return;
+            }
+            
         }
         [TestMethod]
         public void TestNULL_BackRegEx_OnInput_bad_pattern_SafetyOff()
         {
-            TestNULL_BackRegEx_OnInput_bad_pattern_private(false);
+            try
+            {
+                TestNULL_BackRegEx_OnInput_bad_pattern_private(false);
+            }
+            catch (RegexParseException ex) 
+            {
+                Assert.IsNotNull(ex);
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("Sucessfully caught the regex error before starting the search");
+                return;
+            }
         }
         void TestNULL_BackRegEx_OnInput_bad_pattern_private(bool RegExSafety)
         {

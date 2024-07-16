@@ -14,6 +14,7 @@ using System.Runtime.InteropServices;
 using DeepDirPrune;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Diagnostics.Tracing.Extensions;
+using BenchmarkDotNet.Toolchains.InProcess.Emit;
 
 namespace Benchmarks
 {
@@ -21,6 +22,7 @@ public class AntiVirusFriendlyConfig : ManualConfig
 {
     public AntiVirusFriendlyConfig()
     {
+          //  AddJob(InProcessEmitToolchain.Instance())
         //AddJob(Job.MediumRun
           //  .WithToolchain(Process));
     }
@@ -30,113 +32,79 @@ public class AntiVirusFriendlyConfig : ManualConfig
 
 namespace varients
 {
-    public class DeepDirPrune_FasterPathExistTest: DeepDirTracking
+    public class BasicList: DeepDirTracking
     {
-        public override bool DoesDirPathExist(string path)
+        List<string> mylist = new();
+        public BasicList()
         {
-            throw new NotImplementedException();
-            var walk = this;
-            StringComparison comparison = StringComparison.OrdinalIgnoreCase;
-            if (CaseSensitive)
-            {
-                comparison = StringComparison.InvariantCulture;
-            }
-            else
-            {
-                comparison = StringComparison.InvariantCultureIgnoreCase;
-            }
 
-            if (!toplevel.Equals( walk.toplevel) )
-            {
-                return false;
-            }
-            else
-            {
-                if (walk.branches.Count == 0)
-                {
-                    return false;
-                }
-                else
-                {
-                    //for (int step = 0; step < walk.branches.Count;step=++)
-                    {
-                        //if (walk.branches[step].toplevel == )
-                    }
-                }
-            }
-            
         }
-    }
-    public class DDDP_LIST: DeepDirTrackingBase
-    {
-        List<string> items = new();
         public override void AddDirPath(string path)
         {
-            items.Add(path);
+            mylist.Add(path);
         }
         public override bool DoesDirPathExist(string path)
         {
-            return items.Contains(path);
+            return mylist.Contains(path);
         }
-        public override string sani_path(string path)
-        {
-            return path.Trim();
-        }
+
+        
     }
 }
 
 namespace Benchmarks
 {
-    [Config(typeof(AntiVirusFriendlyConfig))]
+    public static class list_fill
+    {
+        static list_fill()
+        {
+            fill_list(ref Tiny200_depth4, 200, 4);
+            fill_list(ref Medium2000_depth6, 2000, 6);
+            fill_list(ref Large20000_depth2, 20000, 2);
+            fill_list(ref Gigantic200000_depth8, 200000, 8);
+        }
+        public static List<string> Tiny200_depth4 = new List<string>();
+        public static List<string> Medium2000_depth6 = new List<string>();
+        public static List<string> Large20000_depth2 = new List<string>();
+        public static List<string> Gigantic200000_depth8 = new List<string>();
+
+
+        public static void fill_list(ref List<string> thing, uint numbers, uint depth)
+        {
+            var random = new Random();
+            var basePaths = new List<string> { "C:\\Alpha", "C:\\Beta", "C:\\Gamma", "C:\\Delta", "C:\\Epsilon", "C:\\Zeta", "C:\\Eta", "C:\\Theta", "C:\\Iota", "C:\\Kappa", "C:\\Lambda", "C:\\Mu", "C:\\Nu", "C:\\Xi", "C:\\Omicron", "C:\\Pi", "C:\\Rho", "C:\\Sigma", "C:\\Tau", "C:\\Upsilon", "C:\\Phi", "C:\\Chi", "C:\\Psi", "C:\\Omega" };
+
+            while (thing.Count < numbers)
+            {
+                string path = basePaths[random.Next(basePaths.Count)];
+                //int depth = random.Next(1, 6); // Depth between 1 and 5
+
+                for (int i = 1; i < depth; i++)
+                {
+                    path = Path.Combine(path, basePaths[random.Next(basePaths.Count)].Substring(3)); // Remove the "C:\\" part and combine
+                }
+
+                thing.Add(path);
+            }
+        }
+    }
+    //[Config(typeof(AntiVirusFriendlyConfig))]
     [MemoryDiagnoser]
     /// <summary>
     /// see how long it takes to map my system.
     /// </summary>
     public class SearchAddStuff
     {
-        public SearchAddStuff()
+        public static int MaxMS = 30 * 1000;
+
+
+
+
+        void DeepDirTracking_CommonCode(Type Template, string kind, ref List<string> folders)
         {
-             void Main()
-            {
-                var random = new Random();
-                var basePaths = new List<string> { "C:\\Alpha", "C:\\Beta", "C:\\Gamma", "C:\\Delta", "C:\\Epsilon", "C:\\Zeta", "C:\\Eta", "C:\\Theta", "C:\\Iota", "C:\\Kappa", "C:\\Lambda", "C:\\Mu", "C:\\Nu", "C:\\Xi", "C:\\Omicron", "C:\\Pi", "C:\\Rho", "C:\\Sigma", "C:\\Tau", "C:\\Upsilon", "C:\\Phi", "C:\\Chi", "C:\\Psi", "C:\\Omega" };
-
-                while (folders.Count < 200000)
-                {
-                    string path = basePaths[random.Next(basePaths.Count)];
-                    int depth = random.Next(1, 6); // Depth between 1 and 5
-
-                    for (int i = 1; i < depth; i++)
-                    {
-                        path = Path.Combine(path, basePaths[random.Next(basePaths.Count)].Substring(3)); // Remove the "C:\\" part and combine
-                    }
-
-                    folders.Add(path);
-                }
-
-
-            }
-            Main();
-        }
-        OdinSearch WithStuff;
-        OdinSearch WithoutStuff;
-
-
-        void StandardSearch(OdinSearch e)
-        {
-
-            SearchTarget t = SearchTarget.AllFiles;
-            SearchAnchor a = new SearchAnchor();
-            a.EnumSubFolders = true;
-            e.AddSearchAnchor(a);
-            e.AddSearchTarget(t);
-        }
-
-        List<string> folders = new();
-
-
-        void DeepDirTracking_CommonCode(Type Template, string kind)
-        {
+            uint found;
+            uint lost;
+            found = lost = 0;
             Console.WriteLine("Current Plan" + kind);
             DeepDirTrackingBase Testme = (DeepDirTrackingBase) Activator.CreateInstance(Template);
             bool yes = false;
@@ -146,20 +114,142 @@ namespace Benchmarks
             foreach (string s in folders)
             {
                 yes = Testme.DoesDirPathExist(s);
+                if (yes) found++;
+                else lost++;
             }
-            Console.WriteLine("Test done: " + kind + " " + yes);
+            //Console.WriteLine("Test done: " + kind + " " + yes);
+            //Console.WriteLine($"Found {found} matches but failed with lost {lost} matches. Note lost should be zero. ");
+            if (lost > 0)
+            {
+                throw new InvalidDataException("Somehow the code didn't find the folder added eariler. May have a bug");
+            }
+            else
+            {
+                Console.WriteLine($"Code ran as expected, {nameof(Testme.DoesDirPathExist)} returned {found} items and didn't fail to find any");
+            }
         }
 
+
         [Benchmark]
-        public void DeepDirTracking_HASHCMP()
+        public void DeepDirTracking_ListCode_TinyList()
         {
-            DeepDirTracking_CommonCode(typeof(DeepDirPrune.DeepDirTracking), "Standard code");
+            Task x = Task.Run(() =>
+            {
+                DeepDirTracking_CommonCode(typeof(varients.BasicList), $"List code: {nameof(list_fill.Tiny200_depth4)}", ref list_fill.Tiny200_depth4);
+            });
+            if (!x.Wait(MaxMS))
+            {
+                throw new TimeoutException("Ran out of time");
+            }
+        }
+
+
+        [Benchmark]
+        public void DeepDirTracking_DeepDirTracking_TinyList()
+        {
+            Task x = Task.Run(() =>
+            {
+                DeepDirTracking_CommonCode(typeof(DeepDirPrune.DeepDirTracking), $"Standard code: {nameof(list_fill.Tiny200_depth4)}", ref list_fill.Tiny200_depth4);
+            });
+            if (!x.Wait(MaxMS))
+            {
+                throw new TimeoutException("Ran out of time");
+            }
+        }
+
+
+        [Benchmark]
+        public void DeepDirTracking_ListCode_MediumList()
+        {
+            Task x = Task.Run(() =>
+            {
+                DeepDirTracking_CommonCode(typeof(varients.BasicList), $"Basic List code: {nameof(list_fill.Medium2000_depth6)}", ref list_fill.Medium2000_depth6);
+            });
+            if (!x.Wait(MaxMS))
+            {
+                throw new TimeoutException("Ran out of time");
+            }
+        }
+
+
+        [Benchmark]
+        public void DeepDirTracking_DeepDirTracking_MediumList()
+        {
+            Task x = Task.Run(() =>
+            {
+                DeepDirTracking_CommonCode(typeof(varients.BasicList), $"Standard code: {nameof(list_fill.Medium2000_depth6)}", ref list_fill.Medium2000_depth6);
+            });
+            if (!x.Wait(MaxMS))
+            {
+                throw new TimeoutException("Ran out of time");
+            }
+        }
+
+
+        [Benchmark]
+        public void DeepDirTracking_DeepDirTracking_LargeList()
+        {
+            Task x = Task.Run(() =>
+            {
+                DeepDirTracking_CommonCode(typeof(DeepDirPrune.DeepDirTracking), $"Standard code: {nameof(list_fill.Large20000_depth2)}", ref list_fill.Large20000_depth2);
+            });
+            if (!x.Wait(MaxMS))
+            {
+                throw new TimeoutException("Ran out of time");
+            }
         }
 
         [Benchmark]
+        public void DeepDirTracking_ListCode_LargeList()
+        {
+            Task x = Task.Run(() =>
+            {
+                DeepDirTracking_CommonCode(typeof(varients.BasicList), $"List code: {nameof(list_fill.Large20000_depth2)}", ref list_fill.Large20000_depth2);
+            });
+            if (!x.Wait(MaxMS))
+            {
+                throw new TimeoutException("Ran out of time");
+            }
+        }
+
+
+        [Benchmark]
+        public void DeepDirTracking_ListCode_GiganticList()
+        {
+            Task x = Task.Run(() =>
+            {
+                DeepDirTracking_CommonCode(typeof(varients.BasicList), "List code:", ref list_fill.Gigantic200000_depth8);
+            });
+            if (!x.Wait(MaxMS))
+            {
+                throw new TimeoutException("Ran out of time");
+            }
+        }
+
+
+
+        [Benchmark]
+        public void DeepDirTracking_DeepDirTracking_GiganticList()
+        {
+            Task x = Task.Run(() =>
+            {
+                DeepDirTracking_CommonCode(typeof(DeepDirPrune.DeepDirTracking), "Standard code:", ref list_fill.Gigantic200000_depth8);
+            });
+            if (!x.Wait(MaxMS))
+            {
+                throw new TimeoutException("Ran out of time");
+            }
+        }
+
+
+
+
+
+
+        
         public void DeepDirTracking_LISTCMP()
         {
-            DeepDirTracking_CommonCode(typeof(varients.DDDP_LIST), "Using a list instead of the standard");
+            //DeepDirTracking_CommonCode(typeof(varients.BasicList), "Using a list instead of the standard");
         }
 
 
@@ -168,6 +258,8 @@ namespace Benchmarks
     {
         static void Main(string[] args)
         {
+            Console.WriteLine("This benchmark tests the DeepDirTracking, comparing memory usage and runtime between that and one that uses a simple list.");
+            
             var summery = BenchmarkRunner.Run(typeof(SearchAddStuff));
             Console.WriteLine(summery.ToString());
         }
