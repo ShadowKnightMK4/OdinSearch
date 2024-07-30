@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NonSqlUnitTests
+namespace NonSqlUnitTests.OlderTests.TestFeature_SearchComsClasses
 {
     [TestClass]
     public class ExternalPowerShellCmdBash_test
@@ -55,7 +55,7 @@ namespace NonSqlUnitTests
             SearchAnchor st = new(Environment.GetFolderPath(Environment.SpecialFolder.System));
 
             OdinSearch_OutputConsumer_CmdProcessor WindowsTest = new();
-            WindowsTest.CommandToExecute =cmd ;
+            WindowsTest.CommandToExecute = cmd;
             Assert.IsTrue(cmd == WindowsTest.CommandToExecute);
             Assert.IsTrue(WindowsTest.WasCommandSet);
 
@@ -65,8 +65,8 @@ namespace NonSqlUnitTests
 
             demo.Search(WindowsTest);
 
-            
-            while (demo.IsZombied ==false)
+
+            while (demo.IsZombied == false)
             {
                 Thread.Sleep(0);
             }

@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NonSqlUnitTests
+namespace NonSqlUnitTests.OlderTests.TestFeature_SearchComsClasses
 {
     [TestClass]
     public class OdinSearch_extern_managed_net7_plugin_test
@@ -61,7 +61,7 @@ namespace NonSqlUnitTests
             OdinSearch_OutputConsumer_PluginCheck.Init();
             OdinSearch Demo = new OdinSearch();
             OdinSearch_OutputConsumer_ExternManaged Test = new(StaticHardcodedPlugin, null, "OdinSearch_OutputConsumerBaseTest");
-            
+
             SearchAnchor a = new(false);
 
             SearchTarget b = new();

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OdinSearchEngine;
 
-namespace NonSqlUnitTests
+namespace NonSqlUnitTests.OlderTests.Basic_DataTypes
 {
     [TestClass]
     public class UnitTest_SearchTarget
@@ -91,10 +91,10 @@ namespace NonSqlUnitTests
             searchTarget.CheckFileSize = true;
 
             searchTarget.AttribMatching1Style = SearchTarget.MatchStyleFileAttributes.MatchAny | SearchTarget.MatchStyleFileAttributes.Exacting;
-            searchTarget.AttributeMatching1 = System.IO.FileAttributes.System | System.IO.FileAttributes.Temporary;
+            searchTarget.AttributeMatching1 = FileAttributes.System | FileAttributes.Temporary;
 
             searchTarget.AttribMatching2Style = SearchTarget.MatchStyleFileAttributes.Invert | SearchTarget.MatchStyleFileAttributes.MatchAll;
-            searchTarget.AttributeMatching2 = System.IO.FileAttributes.Compressed | System.IO.FileAttributes.Hidden;
+            searchTarget.AttributeMatching2 = FileAttributes.Compressed | FileAttributes.Hidden;
 
 
             searchTarget.FileName.Add("*.dll");

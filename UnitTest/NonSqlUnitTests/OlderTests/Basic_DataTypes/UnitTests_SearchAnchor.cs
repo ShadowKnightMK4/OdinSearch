@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 
-namespace UnitTest
+namespace NonSqlUnitTests.OlderTests.Basic_DataTypes
 {
 
     [TestClass]
@@ -62,8 +62,8 @@ namespace UnitTest
                             DriveInfo localtest = new DriveInfo(D.FullName);
                             if (localtest.IsReady == false)
                             {
-                                if ((localtest.DriveType.HasFlag(DriveType.Fixed) == false) ||
-                                     (localtest.DriveType.HasFlag(DriveType.Removable) == false))
+                                if (localtest.DriveType.HasFlag(DriveType.Fixed) == false ||
+                                     localtest.DriveType.HasFlag(DriveType.Removable) == false)
                                 {
                                     Assert.Fail("SearchAnchor Default Constructor Did not get list of ready drives or a local drive's ready status has  changed. ");
                                 }
@@ -90,7 +90,7 @@ namespace UnitTest
             SearchAnchor Demo = new SearchAnchor(false);
 
             SearchAnchor_BuildRoot_comparer(Demo, false);
-            
+
         }
 
         [TestCategory("Simple Anchor")]
@@ -148,14 +148,14 @@ namespace UnitTest
             Assert.IsTrue(Demo.roots[0].FullName.Equals(DemoLocation), "Did not add DemoLocation \" " + DemoLocation + "\" to root list ok");
         }
 
-       
+
 
         [TestCategory("Simple Anchor")]
         /// <summary>
         /// does <see cref="SearchAnchor.AddAnchor(string)"/> it add something that was not there already
         /// </summary>
         [TestMethod]
-        public void SearchAnchor_Adding_newlocation_DoesItAddUnique_DriveInfoAnchor() 
+        public void SearchAnchor_Adding_newlocation_DoesItAddUnique_DriveInfoAnchor()
         {
             SearchAnchor Demo = new SearchAnchor();
             if (Demo.roots.Count == 0) { Assert.Fail("No ready drives for test"); }
@@ -166,7 +166,7 @@ namespace UnitTest
 
             Demo.AddAnchor(dummy);
 
-            Assert.IsTrue( !Demo.roots.Contains(new DirectoryInfo(dummy.Name)) , "AddAnchor() failed to add new location based on drive " + dummy.Name + "after unittest removed from demo object");
+            Assert.IsTrue(!Demo.roots.Contains(new DirectoryInfo(dummy.Name)), "AddAnchor() failed to add new location based on drive " + dummy.Name + "after unittest removed from demo object");
 
         }
 

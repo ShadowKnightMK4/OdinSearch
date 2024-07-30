@@ -36,7 +36,7 @@ namespace FileIventoryConsole
 #endif
         static void Main(string[] args)
         {
-
+            
 
             #region scracth pad
             #endregion

@@ -15,6 +15,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Collections.Concurrent;
 using OdinSearchEngine.SearchSupport;
 using DeepDirPrune;
+using System.ComponentModel;
 
 namespace OdinSearchEngine
 {
@@ -50,6 +51,22 @@ namespace OdinSearchEngine
         {
 
         }
+    }
+
+    public enum OdinSearch_DupCheck_Mode
+    {
+        /// <summary>
+        /// Current released mode. We don't check, duplicates be darned.
+        /// </summary>
+        Default = 0,
+        /// <summary>
+        /// If user indicates hints, we add the hints folders and skip thoses hte next time we add. Otherwise same as off.
+        /// </summary>
+        OnlyHints,
+        /// <summary>
+        /// Find a folder, add to the list.
+        /// </summary>
+        Everything
     }
     /// <summary>
     /// Search the local system for files/folders 
@@ -94,9 +111,29 @@ namespace OdinSearchEngine
         #region Public Class Variables and Properties
 
         /// <summary>
-        /// If true, when any match is file, we end the search.
+        /// If true, when any match is file, we end the search.  
         /// </summary>
+        /// <remarks>IMPORTANT! Once the search starts, changing this will do nothing.</remarks>
         public bool SoleMatch { get; set; } = false;
+
+        public OdinSearch_DupCheck_Mode DupMode
+        {
+            get => _BackingDupMode;
+            set
+            {
+                switch (value)
+                {
+                    case OdinSearch_DupCheck_Mode.Default:
+                    case OdinSearch_DupCheck_Mode.OnlyHints:
+                    case OdinSearch_DupCheck_Mode.Everything:
+                        _BackingDupMode = value;
+                        break;
+                    default: throw new InvalidEnumArgumentException();
+                }
+                
+            }
+        }
+        internal OdinSearch_DupCheck_Mode _BackingDupMode = OdinSearch_DupCheck_Mode.Default;
         /// <summary>
         /// False Means we don't lock a object to aid synching when sending output to a <see cref="OdinSearch_OutputConsumerBase"/> based class.  
         /// </summary>
@@ -122,10 +159,7 @@ namespace OdinSearchEngine
         WorkerThreadExceptionCounter ETracker = new();
 
 
-        /// <summary>
-        /// Skip visiting locations more than 1 that are in the anchor lists. 
-        /// </summary>
-        public bool PruneAlreadyVisitedLocations { get; set; }
+        
 
         /// <summary>
         /// When starting a search, if this is true, the call to <see cref="SanityChecks(WorkerThreadArgs)"/> is skipped. Currently, that routine does nothing, but is intended to be a way to guard against silly/impossible things such as searching for a file that's also a folder for example
@@ -139,8 +173,8 @@ namespace OdinSearchEngine
         /// <summary>
         /// This is used to skip checking the same folder more than once
         /// </summary>
-        DeepDirPrune.DeepDirTracking SearchPruneCheck = new();
-
+        DeepDirTracking SearchPruneCheck = new();
+        OdinSeachHintsSystem HintsSystem = new();
 #if DEBUG
         /// <summary>
         /// Only FOR DEBUG BUILDS
@@ -358,7 +392,10 @@ namespace OdinSearchEngine
             /// </summary>
             public List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
 
-
+            /// <summary>
+            /// Received from <see cref="OdinSearch.SoleMatch"/> on creation.
+            /// </summary>
+            public bool SoleMatchFlag;
             //public ReadOnlyCollection<OdinSearchContainer_GenericItem> ContainerList { get; internal set; }
         }
         #endregion
@@ -405,6 +442,8 @@ namespace OdinSearchEngine
                 Args.TargetWithRegEx.Add(new SearchTargetPreDoneRegEx(Target));
             }
         }
+
+        
         /// <summary>
         /// Unpack the WorkerThreadArgs and go to work. Not intended to to called without having done by its own thread
         /// </summary>
@@ -416,23 +455,31 @@ namespace OdinSearchEngine
             if (Args == null) throw new ArgumentNullException(nameof(Args));
             
             Queue<DirectoryInfo> FolderList = new Queue<DirectoryInfo>();
-            //Queue<OdinSearch_ContainerSystemItem> FolderList = new Queue<OdinSearch_ContainerSystemItem>();
 
+
+            //Queue<OdinSearch_ContainerSystemItem> FolderList = new Queue<OdinSearch_ContainerSystemItem>();
             //List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
             
             WorkerThreadArgs TrueArgs = Args as WorkerThreadArgs;
-            
+
 
             // how this thread cancels.
-            void BailingOutIfRequested(bool Cancel)
+            void BailingOutIfRequested(bool Cancel, string msg = null)
             {
 
                 //if (TrueArgs.Token.IsCancellationRequested)
                 if (Cancel)
                 {
-                    string msg = Thread.CurrentThread.Name + $" Thread aborted due to cancil request\r\n";
+                    if (msg == null)
+                    {
+                        msg = Thread.CurrentThread.Name + $" Thread aborted due to cancel request\r\n";
+                    }
+                    else
+                    {
+                        msg = Thread.CurrentThread.Name + $" Thread finished due to finding match and SoleMatch flag is set\r\n";
+                    }
 #if DEBUG
-                    if (DebugVerboseModeHandle)
+                        if (DebugVerboseModeHandle)
                         Debug.WriteLine(msg);
 #endif
                     throw new OdinSearch_WorkerThreadCanceled(msg);
@@ -483,6 +530,18 @@ namespace OdinSearchEngine
 
                             BailingOutIfRequested(TrueArgs.Token.IsCancellationRequested);
 
+                            // place the hints first
+                            {
+
+                            hintpop:
+                                DirectoryInfo Hints = null;
+                                Hints = HintsSystem.GetNextEntry();
+                                if (Hints != null)
+                                {
+                                    FolderList.Enqueue(Hints);
+                                    goto hintpop;
+                                }
+                            }
                             // add root[0] to the queue to pull from
                             FolderList.Enqueue(TrueArgs.StartFrom.roots[0]);
 
@@ -498,13 +557,25 @@ namespace OdinSearchEngine
                                 // should an exception happen during getting folder/file names, this is set
                                 // which triggers an early bailout on comparing.
                                 bool ErrorPrune = false;
-                                
+
                                 DirectoryInfo CurrentLoc = FolderList.Dequeue();
 
-                                if (!DebugDisablePrune)
-                                if (SearchPruneCheck.DoesDirPathExist(CurrentLoc.FullName))
-                                    ErrorPrune = true;
-                                
+                                switch (DupMode)
+                                {
+                                    case OdinSearch_DupCheck_Mode.Default:
+                                        break;
+                                    case OdinSearch_DupCheck_Mode.OnlyHints:
+                                        throw new NotImplementedException();
+                                        break;
+                                    case OdinSearch_DupCheck_Mode.Everything:
+                                        if (SearchPruneCheck.DoesDirPathExist(CurrentLoc.FullName))
+                                            ErrorPrune = true;
+                                        else
+                                        {
+                                            SearchPruneCheck.AddDirPath(CurrentLoc.FullName);
+                                        }
+                                        break;
+                                   }
                                 // files in the CurrentLoc
                                 FileInfo[] Files = null;
                                 // folders in the CurrentLoc
@@ -590,9 +661,14 @@ namespace OdinSearchEngine
                                                 bool isMatched = MatchThis(Target, Possible);
                                                 if (isMatched)
                                                 {
+
                                                     if (!ThreadSynchResults)
                                                     {
                                                         TrueArgs.Coms.Match(Possible);
+                                                        if (isMatched && TrueArgs.SoleMatchFlag)
+                                                        {
+                                                            BailingOutIfRequested(true, "Bailing out due to finding a match with SoleMatch set to true.");
+                                                        }
                                                     }
                                                     else
                                                     {
@@ -607,8 +683,10 @@ namespace OdinSearchEngine
                                                         {
 
                                                         }
-
-
+                                                        if (isMatched && TrueArgs.SoleMatchFlag)
+                                                        {
+                                                            BailingOutIfRequested(true, "Bailing out due to finding a match with SoleMatch set to true.");
+                                                        }
                                                     }
                                                 }
                                             }
@@ -639,6 +717,7 @@ namespace OdinSearchEngine
                                                 }
 
                                                 bool isMatched = MatchThis(Target, Possible);
+
                                                 if (isMatched)
                                                 {
                                                     if (!ThreadSynchResults)
@@ -655,14 +734,20 @@ namespace OdinSearchEngine
                                                         {
 
                                                         }
-
-
+                                                        if (isMatched && TrueArgs.SoleMatchFlag)
+                                                        {
+                                                            BailingOutIfRequested(true, "Bailing out due to finding a match with SoleMatch set to true.");
+                                                        }
                                                     }
                                                     else
                                                     {
                                                         lock (TrueArgs.ComTalk)
                                                         {
                                                             TrueArgs.Coms.Match(Possible);
+                                                        }
+                                                        if (isMatched && TrueArgs.SoleMatchFlag)
+                                                        {
+                                                            BailingOutIfRequested(true, "Bailing out due to finding a match with SoleMatch set to true.");
                                                         }
                                                     }
                                                 }
@@ -1024,6 +1109,13 @@ namespace OdinSearchEngine
             bool AttribCheck(SearchTarget.MatchStyleFileAttributes HowToCompare, FileAttributes SearchTargetCompare, FileAttributes FileInfoCompare)
             {
                 bool CompareMe = false;
+                if (!HowToCompare.HasFlag(MatchStyleFileAttributes.MatchAll))
+                {
+                    if (!HowToCompare.HasFlag(MatchStyleFileAttributes.MatchAny))
+                    {
+                        HowToCompare |= MatchStyleFileAttributes.MatchAll;
+                    }
+                }
 
                 // treat check if true if no attributeres were specified or normal was
                 if ((HowToCompare == MatchStyleFileAttributes.Skip) || ((SearchTargetCompare == FileAttributes.Normal) || (SearchTargetCompare == 0)))
@@ -1315,6 +1407,34 @@ namespace OdinSearchEngine
 
         #endregion
 
+        #region Code for setting Hints
+        public void AddSearchHint(DirectoryInfo Info)
+        {
+            HintsSystem.AddEntry(Info);
+        }
+
+        public void AddSearchHint(string Info)
+        {
+            HintsSystem.AddEntry(Info);
+        }
+
+        public void AddSearchHint(IEnumerable<DirectoryInfo> Info)
+        {
+            HintsSystem.AddEntry(Info);
+        }
+
+        public void AddSearchHint(SearchAnchor Info)
+        {
+            HintsSystem.AddEntry(Info);
+        }
+
+        public void AddSearchHint(IEnumerable<SearchAnchor> Info)
+        {
+            HintsSystem.AddEntry(Info);
+        }
+
+
+        #endregion
         #region Code for dealing with setting targets
         /// <summary>
         /// Add what to look for here.
@@ -1460,6 +1580,7 @@ namespace OdinSearchEngine
                     // begin init the search.
                     Semaphore LockThis = new(0, 1);
                     WorkerThreadArgs Args = null;
+
                     foreach (SearchAnchor Anchor in Anchors)
                     {
                         var AnchorList = Anchor.SplitRoots();
@@ -1506,7 +1627,7 @@ namespace OdinSearchEngine
                             Args.ComTalk = LockThis;
                             Args.Tracker = ETracker;
                             Args.AutoNotify = RedAlarm;
-
+                            Args.SoleMatchFlag = this.SoleMatch;
                             // add it to the list.
                             WorkerThreads.Add(Worker);
 

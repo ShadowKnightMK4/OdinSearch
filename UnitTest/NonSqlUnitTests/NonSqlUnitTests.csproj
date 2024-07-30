@@ -19,4 +19,8 @@
     <ProjectReference Include="..\..\FileInventoryEngine\OdinSearchEngine.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="OlderTests\TestFeature_HintsSystem\" />
+  </ItemGroup>
+
 </Project>

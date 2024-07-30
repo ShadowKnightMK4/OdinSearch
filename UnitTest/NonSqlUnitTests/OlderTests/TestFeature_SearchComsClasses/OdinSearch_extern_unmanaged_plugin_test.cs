@@ -8,12 +8,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NonSqlUnitTests
+namespace NonSqlUnitTests.OlderTests.TestFeature_SearchComsClasses
 {
     [TestClass]
     public class OdinSearch_extern_unmanaged_plugin_test
 
-    { 
+    {
         /// <summary>
         /// Update this to the plugin to test with.
         /// </summary>

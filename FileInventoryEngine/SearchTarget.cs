@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
@@ -498,7 +500,7 @@ namespace OdinSearchEngine
 
             if (AttribMatch1 != null)
             {
-                if (!Enum.TryParse<FileAttributes>(AttribMatch1.InnerText, out ret.AttributeMatching1))
+                if (!Enum.TryParse<FileAttributes>(AttribMatch1.InnerText, out ret.Attrib1_Backing))
                 {
                     throw new ArgumentException();
                 }
@@ -514,7 +516,7 @@ namespace OdinSearchEngine
 
             if (AttribMatch2 != null)
             {
-                if (!Enum.TryParse<FileAttributes>(AttribMatch2.InnerText, out ret.AttributeMatching2))
+                if (!Enum.TryParse<FileAttributes>(AttribMatch2.InnerText, out ret.Attrib2_Backing))
                 {
                     throw new ArgumentException();
                 }
@@ -827,6 +829,16 @@ namespace OdinSearchEngine
 
         }
 
+        #region BACKING_VALUES
+        protected FileAttributes Attrib1_Backing = 0;
+        protected FileAttributes Attrib2_Backing = FileAttributes.Normal;
+        #endregion
+        #region INTERNAL_CONSTS
+        /// <summary>
+        /// used as the upper valid limit for file attributes
+        /// </summary>
+        private const int OneOffFileAttrib = 262144;
+        #endregion
         /// <summary>
         /// Check against <see cref="FileSystemInfo.CreationTime"/>
         /// </summary>
@@ -910,7 +922,21 @@ namespace OdinSearchEngine
         /// <summary>
         /// expression that's compared against <see cref="FileInfoExtract.FileAttributes"/>.  If equal to zero or <see cref="FileAttributes.Normal"/>, the compare is skipped
         /// </summary>
-        public FileAttributes AttributeMatching1 = 0;
+        public FileAttributes AttributeMatching1
+        {
+            get
+            {
+                return Attrib1_Backing;
+            }
+            set
+            {
+                if (value >= (FileAttributes)SearchTarget.OneOffFileAttrib)
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                Attrib1_Backing = value;
+            }
+        }
         /// <summary>
         /// How to compare <see cref="AttributeMatching1"/> with possible entries
         /// </summary>
@@ -919,7 +945,21 @@ namespace OdinSearchEngine
         /// <summary>
         /// Expression that's (by default) compared to be LACKING in <see cref="FileInfoExtract.FileAttributes"/>
         /// </summary>
-        public FileAttributes AttributeMatching2 =  FileAttributes.Normal;
+        public FileAttributes AttributeMatching2
+        {
+            get
+            {
+                return Attrib2_Backing;
+            }
+            set
+            {
+                if (value >= (FileAttributes)OneOffFileAttrib)
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                Attrib2_Backing = value;
+            }
+        }
         /// <summary>
         /// How to compare <see cref="AttributeMatching2"/> with possible entries
         /// </summary>
