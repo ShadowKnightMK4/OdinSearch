@@ -12,4 +12,8 @@
     <ProjectReference Include="..\DeepDirPrune\DeepDirPrune.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="ConsumerBaseTests\" />
+  </ItemGroup>
+
 </Project>

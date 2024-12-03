@@ -1768,9 +1768,11 @@ namespace FileInventoryConsole
             }
             if (low.StartsWith(FlagToSetFileAttributes))
             {
+                FileAttributes tmp = 0;
                 string low_part = arg[step].Substring(FlagToSetFileAttributes.Length);
-                if (DealWithFileAttribEnum(low_part, out SearchTarget.AttributeMatching1, false))
+                if (DealWithFileAttribEnum(low_part, out tmp, false))
                 {
+                    SearchTarget.AttributeMatching1 = tmp;
                     was_fileattribs_set = true;
                     return true;
                 }
@@ -1908,9 +1910,11 @@ namespace FileInventoryConsole
              * */
             if (low.StartsWith(FlagToSetFileAttributeViaDir) && (low.Contains(FlagSetAnchor) == false))
             {
+                FileAttributes tmp;
                 string low_part = arg[step].Substring(FlagToSetFileAttributeViaDir.Length);
-                if (DealWithFileAttribEnum(low_part, out SearchTarget.AttributeMatching1, true))
+                if (DealWithFileAttribEnum(low_part, out tmp, true))
                 {
+                    SearchTarget.AttributeMatching1 = tmp;
                     was_fileattribs_set = true;
                     return true;
                 }

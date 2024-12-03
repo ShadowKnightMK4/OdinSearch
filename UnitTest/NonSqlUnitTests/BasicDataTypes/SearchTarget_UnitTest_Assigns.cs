@@ -45,7 +45,7 @@ namespace NonSqlUnitTests.BasicDataTypes
         [DataRow(SearchTarget.MatchStyleFileAttributes.MatchAll)]
         [DataRow(SearchTarget.MatchStyleFileAttributes.MatchAny)]
 
-        public void SearchTarget_CanReadWrite_Valid_MatchStyleFileAttributes_enum(SearchTarget.MatchStyleFileAttributes Input)
+        public void SearchTarget_CanReadWrite_Valid_MatchStyleFileAttributes1_enum(SearchTarget.MatchStyleFileAttributes Input)
         {
             SearchTarget TestMe = new();
             Assert.IsNotNull(TestMe);
@@ -53,6 +53,27 @@ namespace NonSqlUnitTests.BasicDataTypes
             TestMe.AttribMatching1Style = Input;
             Assert.AreEqual(TestMe.AttribMatching1Style, Input);
         }
+
+
+        [DataTestMethod]
+        [DataRow(SearchTarget.MatchStyleFileAttributes.Skip)]
+        [DataRow(SearchTarget.MatchStyleFileAttributes.Reserved)]
+        [DataRow(SearchTarget.MatchStyleFileAttributes.Invert)]
+        //[DataRow(SearchTarget.MatchStyleFileAttributes.Reserved)]
+        [DataRow(SearchTarget.MatchStyleFileAttributes.MatchAll)]
+        [DataRow(SearchTarget.MatchStyleFileAttributes.MatchAny)]
+
+        public void SearchTarget_CanReadWrite_Valid_MatchStyleFileAttributes2_enum(SearchTarget.MatchStyleFileAttributes Input)
+        {
+            SearchTarget TestMe = new();
+            Assert.IsNotNull(TestMe);
+
+            TestMe.AttribMatching2Style = Input;
+            Assert.AreEqual(TestMe.AttribMatching2Style, Input);
+        }
+
+
+
 
         #region file size min
         [TestMethod]
@@ -119,6 +140,7 @@ namespace NonSqlUnitTests.BasicDataTypes
         }
 
         [DataTestMethod]
+        [DataRow(-2)]
         [DataRow(262144)] // Invalid
         [DataRow(524288)] // Invalid
         [DataRow(1048576)] // Invalid
@@ -196,6 +218,218 @@ namespace NonSqlUnitTests.BasicDataTypes
         }
 
         #endregion
+
+        #region check file size
+        [TestMethod]
+        void SearchTarget_CanReadWrite_CheckFileSize()
+        {
+            SearchTarget TestMe = new();
+            Assert.IsFalse(TestMe.CheckFileSize);
+            TestMe.CheckFileSize = true;
+            Assert.IsTrue(TestMe.CheckFileSize);
+        }
+        #endregion
+
+        #region creationanchor1
+        [DataTestMethod]
+        [DataRow("2024-08-02T11:51:15Z")] // ISO 8601
+        [DataRow("08/02/2024 11:51:15 AM")] // US format
+        [DataRow("02/08/2024 11:51:15")] // European format
+        [DataRow("Friday, August 2, 2024 11:51:15 AM")] // Full date/time pattern (long)
+        [DataRow("2024-08-02")] // Date only
+        [DataRow("11:51:15")] // Time only
+        [DataRow("2024-08-02 11:51:15.123")] // Date and time with milliseconds
+        [DataRow("2024-08-02T11:51:15+00:00")] // ISO 8601 with timezone
+        [DataRow("2024-08-02T11:51:15.1234567Z")] // ISO 8601 with nanoseconds
+        [DataRow("2024-08-02 11:51:15 PM")] // 12-hour clock with PM]
+        public void SearchTarget_CanReadWrite_CreationAnchor1(string x)
+        {
+            bool test;
+            var time = DateTime.Parse(x);
+            SearchTarget TestMe = new();
+            TestMe.CreationAnchor = time;
+            test = (0 == time.CompareTo(TestMe.CreationAnchor));
+            Assert.IsTrue(test);
+        }
+        #endregion
+
+        #region creation anchor2
+        [DataTestMethod]
+        [DataRow("2024-08-02T11:51:15Z")] // ISO 8601
+        [DataRow("08/02/2024 11:51:15 AM")] // US format
+        [DataRow("02/08/2024 11:51:15")] // European format
+        [DataRow("Friday, August 2, 2024 11:51:15 AM")] // Full date/time pattern (long)
+        [DataRow("2024-08-02")] // Date only
+        [DataRow("11:51:15")] // Time only
+        [DataRow("2024-08-02 11:51:15.123")] // Date and time with milliseconds
+        [DataRow("2024-08-02T11:51:15+00:00")] // ISO 8601 with timezone
+        [DataRow("2024-08-02T11:51:15.1234567Z")] // ISO 8601 with nanoseconds
+        [DataRow("2024-08-02 11:51:15 PM")] // 12-hour clock with PM]
+        public void SearchTarget_CanReadWrite_CreationAnchor2(string x)
+        {
+            bool test;
+            var time = DateTime.Parse(x);
+            SearchTarget TestMe = new();
+            TestMe.CreationAnchor2 = time;
+            test = (0 == time.CompareTo(TestMe.CreationAnchor2));
+            Assert.IsTrue(test);
+        }
+        #endregion
+
+        [DataTestMethod]
+        [DataRow(SearchTarget.MatchStyleDateTime.Disable)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoLaterThanThis)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoEarlierThanThis)]
+        public void SearchTarget_CanReadWrite_CreationMatchStyle1_goodenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.CreationAnchorCheck1 = Style;
+        }
+
+        [DataTestMethod]
+        [DataRow(-9992)]
+        [DataRow(4)]
+        [DataRow(-1)]
+        [DataRow(3)]
+        [DataRow(99992)]
+        [ExpectedException(typeof(InvalidEnumArgumentException))]
+        public void SearchTarget_CanReadWrite_CreationMatchStyle1_badenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.CreationAnchorCheck1 = Style;
+            Assert.Fail("CreationAnchorCheck1 failed to sucessfully reject invalid input. Ensure it does.");
+        }
+
+
+
+        [DataTestMethod]
+        [DataRow(SearchTarget.MatchStyleDateTime.Disable)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoLaterThanThis)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoEarlierThanThis)]
+        public void SearchTarget_CanReadWrite_CreationMatchStyle2_goodenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.CreationAnchorCheck2 = Style;
+        }
+
+        [DataTestMethod]
+        [DataRow(-9992)]
+        [DataRow(4)]
+        [DataRow(-1)]
+        [DataRow(3)]
+        [DataRow(99992)]
+        [ExpectedException(typeof(InvalidEnumArgumentException))]
+        public void SearchTarget_CanReadWrite_CreationMatchStyle2_badenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.CreationAnchorCheck2 = Style;
+            Assert.Fail("CreationAnchorCheck2 failed to sucessfully reject invalid input. Ensure it does.");
+        }
+
+
+        [DataTestMethod]
+        [DataRow(SearchTarget.MatchStyleDateTime.Disable)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoLaterThanThis)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoEarlierThanThis)]
+        public void SearchTarget_CanReadWrite_AccessAnchorCheck1_goodenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.AccessAnchorCheck1 = Style;
+        }
+
+        [DataTestMethod]
+        [DataRow(-9992)]
+        [DataRow(4)]
+        [DataRow(-1)]
+        [DataRow(3)]
+        [DataRow(99992)]
+        [ExpectedException(typeof(InvalidEnumArgumentException))]
+        public void SearchTarget_CanReadWrite_AccessAnchorCheck1_badenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.AccessAnchorCheck1 = Style;
+            Assert.Fail("AccessAnchorCheck1 failed to sucessfully reject invalid input. Ensure it does.");
+        }
+
+
+        [DataTestMethod]
+        [DataRow(SearchTarget.MatchStyleDateTime.Disable)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoLaterThanThis)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoEarlierThanThis)]
+        public void SearchTarget_CanReadWrite_AccessAnchorCheck2_goodenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.AccessAnchorCheck2 = Style;
+        }
+
+        [DataTestMethod]
+        [DataRow(-9992)]
+        [DataRow(4)]
+        [DataRow(-1)]
+        [DataRow(3)]
+        [DataRow(99992)]
+        [ExpectedException(typeof(InvalidEnumArgumentException))]
+        public void SearchTarget_CanReadWrite_AccessAnchorCheck2_badenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.AccessAnchorCheck2 = Style;
+            Assert.Fail("AccessAnchorCheck2 failed to sucessfully reject invalid input. Ensure it does.");
+        }
+
+
+
+
+        [DataTestMethod]
+        [DataRow(SearchTarget.MatchStyleDateTime.Disable)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoLaterThanThis)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoEarlierThanThis)]
+        public void SearchTarget_CanReadWrite_WriteAnchorCheck1_goodenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.WriteAnchorCheck1 = Style;
+        }
+
+        [DataTestMethod]
+        [DataRow(-9992)]
+        [DataRow(4)]
+        [DataRow(-1)]
+        [DataRow(3)]
+        [DataRow(99992)]
+        [ExpectedException(typeof(InvalidEnumArgumentException))]
+        public void SearchTarget_CanReadWrite_WriteAnchorCheck1_badenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.WriteAnchorCheck1 = Style;
+            Assert.Fail("WriteAnchorCheck1 failed to sucessfully reject invalid input. Ensure it does.");
+        }
+
+
+
+
+
+        [DataTestMethod]
+        [DataRow(SearchTarget.MatchStyleDateTime.Disable)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoLaterThanThis)]
+        [DataRow(SearchTarget.MatchStyleDateTime.NoEarlierThanThis)]
+        public void SearchTarget_CanReadWrite_WriteAnchorCheck2_goodenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.WriteAnchorCheck2 = Style;
+        }
+
+        [DataTestMethod]
+        [DataRow(-9992)]
+        [DataRow(4)]
+        [DataRow(-1)]
+        [DataRow(3)]
+        [DataRow(99992)]
+        [ExpectedException(typeof(InvalidEnumArgumentException))]
+        public void SearchTarget_CanReadWrite_WriteAnchorCheck2_badenum(SearchTarget.MatchStyleDateTime Style)
+        {
+            SearchTarget TestMe = new();
+            TestMe.WriteAnchorCheck2 = Style;
+            Assert.Fail("WriteAnchorCheck1 failed to sucessfully reject invalid input. Ensure it does.");
+        }
     }
 
 }

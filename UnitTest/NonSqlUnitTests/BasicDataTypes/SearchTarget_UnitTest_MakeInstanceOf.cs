@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace NonSqlUnitTests.BasicDataTypes
 {
-    public class SearchTarget_UnitTest_StateMaintain
+    public class SearchTarget_UnitTest_MakeInstanceOf
     {
     }
 }

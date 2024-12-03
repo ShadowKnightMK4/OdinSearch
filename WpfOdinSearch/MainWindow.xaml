@@ -5,8 +5,44 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WpfOdinSearch"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        
-    </Grid>
+        Title="MainWindow" Height="500" Width="800">
+    <StackPanel>
+        <DockPanel>
+            <Menu DockPanel.Dock="Top">
+                <MenuItem Header="File">
+                    <MenuItem Header="Exit"/>
+                </MenuItem>
+                <MenuItem Header="Edit">
+                    <MenuItem Header="Copy"/>
+                    <MenuItem Header="Select All"/>
+                </MenuItem>
+                <MenuItem Header="Search">
+                    <MenuItem Header="Start a new Search"/>
+                    <MenuItem Header="Export Selected Results"/>
+                    <MenuItem Header="Hard Stop"/>
+                </MenuItem>
+                <MenuItem Header="Help">
+                    <MenuItem Header="Show Help"/>
+                </MenuItem>
+            </Menu>
+        </DockPanel>
+        <DockPanel>
+            <Grid x>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"></ColumnDefinition>
+                <ColumnDefinition Width="*"></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+        <TreeView x:Name="TreeViewSelectFolder" DockPanel.Dock="Left" Width="400">
+            <Button Content="Button1"/>
+            <Button Content="Button 12312"/>
+        </TreeView>
+        <ListView x:Name="ListViewDisplayFolder" DockPanel.Dock="Right" Margin="0,0,400,0">
+                <ListBoxItem Content="Item 1"/>
+                <ListBoxItem Content="Item 2"/>
+                <ListBoxItem Content="Item 3"/>
+                <ListBoxItem Content="Item 4"/>
+            </ListView>
+        </Grid>
+    </DockPanel>
+    </StackPanel>
 </Window>

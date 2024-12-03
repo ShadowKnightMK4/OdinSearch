@@ -84,6 +84,21 @@ namespace NonSqlUnitTests.BasicDataTypes
         }
 
 
+        [DataTestMethod]
+        [DataRow(OdinSearch_DupCheck_Mode.Default)]
+        [DataRow(OdinSearch_DupCheck_Mode.OnlyHints)]
+        [DataRow(OdinSearch_DupCheck_Mode.Everything)]
+        public void OdinSearch_UnitTest_DupMode_ValidEnum_Check(OdinSearch_DupCheck_Mode mode)
+        {
+            OdinSearch TestMe = new();
+            Assert.IsNotNull(TestMe);
+
+
+            TestMe.DupMode = mode;
+            Assert.AreEqual(TestMe.DupMode, mode);
+        }
+
+
         [TestMethod]
         public void OdinSearch_UnitTest_DupMode_Starts_AsDefault_enum()
         {
@@ -93,35 +108,6 @@ namespace NonSqlUnitTests.BasicDataTypes
 
             Assert.AreEqual(TestMe.DupMode, OdinSearch_DupCheck_Mode.Default);
         }
-
-        [TestMethod]
-        public void OdinSearch_UnitTest_DupMode_CanAssign_Everything_enum()
-        {
-            OdinSearch TestMe = new();
-            Assert.IsNotNull(TestMe);
-
-
-            Assert.AreEqual(TestMe.DupMode, OdinSearch_DupCheck_Mode.Default);
-
-            TestMe.DupMode = OdinSearch_DupCheck_Mode.Everything;
-            Assert.AreEqual(TestMe.DupMode, OdinSearch_DupCheck_Mode.Everything);
-        }
-
-
-        [TestMethod]
-        public void OdinSearch_UnitTest_DupMode_CanAssign_Hints_enum()
-        {
-            OdinSearch TestMe = new();
-            Assert.IsNotNull(TestMe);
-
-
-            Assert.AreEqual(TestMe.DupMode, OdinSearch_DupCheck_Mode.Default);
-
-            TestMe.DupMode = OdinSearch_DupCheck_Mode.OnlyHints;
-            Assert.AreEqual(TestMe.DupMode, OdinSearch_DupCheck_Mode.OnlyHints);
-        }
-
-
 
         [TestMethod]
         [ExpectedException(typeof(InvalidEnumArgumentException))]
@@ -149,7 +135,7 @@ namespace NonSqlUnitTests.BasicDataTypes
             TestMe.SkipSanityCheck = false;
             Assert.IsFalse(TestMe.SkipSanityCheck);
         }
-
+        //99$ b                        C-202407303977    "El - Fraud person name" #ph
 
         [TestMethod]
         public void OdinSearch_UnitTest_WorkerThreadCount_Zero_OutsideOf_Search()

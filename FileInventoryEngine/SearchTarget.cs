@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection.Metadata.Ecma335;
@@ -473,7 +474,7 @@ namespace OdinSearchEngine
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(AccessAnchorCheck1.InnerText, out ret.AccessAnchorCheck1))
+                if (!Enum.TryParse<MatchStyleDateTime>(AccessAnchorCheck1.InnerText, out ret.AccessAnchor1_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -486,7 +487,7 @@ namespace OdinSearchEngine
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(AccessAnchorCheck2.InnerText, out ret.AccessAnchorCheck2))
+                if (!Enum.TryParse<MatchStyleDateTime>(AccessAnchorCheck2.InnerText, out ret.AccessAnchor2_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -549,12 +550,12 @@ namespace OdinSearchEngine
 
             if (CreationAnchor1 != null)
             {
-                if (!DateTime.TryParse(CreationAnchor1.InnerText, out ret.CreationAnchor))
+                if (!DateTime.TryParse(CreationAnchor1.InnerText, out ret.CreationAnchor1_Backing))
                 {
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(CreationAnchor1Check.InnerText, out ret.CreationAnchorCheck1))
+                if (!Enum.TryParse<MatchStyleDateTime>(CreationAnchor1Check.InnerText, out ret.CreationAnchor1_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -568,7 +569,7 @@ namespace OdinSearchEngine
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(CreationAnchor2Check.InnerText, out ret.CreationAnchorCheck2))
+                if (!Enum.TryParse<MatchStyleDateTime>(CreationAnchor2Check.InnerText, out ret.CreationAnchor2_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -669,7 +670,7 @@ namespace OdinSearchEngine
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(WriteAnchorCheck1.InnerText, out ret.WriteAnchorCheck1))
+                if (!Enum.TryParse<MatchStyleDateTime>(WriteAnchorCheck1.InnerText, out ret.WriteAnchor1_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -682,7 +683,7 @@ namespace OdinSearchEngine
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(WriteAnchorCheck2.InnerText, out ret.WriteAnchorCheck2))
+                if (!Enum.TryParse<MatchStyleDateTime>(WriteAnchorCheck2.InnerText, out ret.WriteAnchor2_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -832,6 +833,13 @@ namespace OdinSearchEngine
         #region BACKING_VALUES
         protected FileAttributes Attrib1_Backing = 0;
         protected FileAttributes Attrib2_Backing = FileAttributes.Normal;
+        protected DateTime CreationAnchor1_Backing;
+        protected MatchStyleDateTime CreationAnchor1_MatchStyleBacking = MatchStyleDateTime.Disable;
+        protected MatchStyleDateTime CreationAnchor2_MatchStyleBacking = MatchStyleDateTime.Disable;
+        protected MatchStyleDateTime AccessAnchor1_MatchStyleBacking = MatchStyleDateTime.Disable;
+        protected MatchStyleDateTime AccessAnchor2_MatchStyleBacking = MatchStyleDateTime.Disable;
+        protected MatchStyleDateTime WriteAnchor1_MatchStyleBacking = MatchStyleDateTime.Disable;
+        protected MatchStyleDateTime WriteAnchor2_MatchStyleBacking = MatchStyleDateTime.Disable;
         #endregion
         #region INTERNAL_CONSTS
         /// <summary>
@@ -872,31 +880,97 @@ namespace OdinSearchEngine
         /// <summary>
         /// Indicate what do do with <see cref="CreationAnchor"/>
         /// </summary>
-        public MatchStyleDateTime CreationAnchorCheck1 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime CreationAnchorCheck1
+        {
+            get => CreationAnchor1_MatchStyleBacking;
+            set
+            {
+                if ( (value < MatchStyleDateTime.Disable)  || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                CreationAnchor1_MatchStyleBacking = value;
+            } 
+        }
         /// <summary>
         /// Indicate what do do with <see cref="CreationAnchor2"/>
         /// </summary>
-        public MatchStyleDateTime CreationAnchorCheck2 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime CreationAnchorCheck2
+        {
+            get => CreationAnchor2_MatchStyleBacking;
+            set
+            {
+                if ((value < MatchStyleDateTime.Disable) || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                CreationAnchor2_MatchStyleBacking = value;
+            }
+        }
 
         /// <summary>
         /// Indicate what do do with <see cref="AccessAnchor"/>
         /// </summary>
-        public MatchStyleDateTime AccessAnchorCheck1 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime AccessAnchorCheck1
+        {
+            get => AccessAnchor1_MatchStyleBacking;
+            set
+            {
+                if ((value < MatchStyleDateTime.Disable) || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                AccessAnchor1_MatchStyleBacking = value;
+            }
+        }
         /// <summary>
         /// Indicate what do do with <see cref="AccessAnchor2"/>
         /// </summary>
-        public MatchStyleDateTime AccessAnchorCheck2 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime AccessAnchorCheck2
+        {
+            get => AccessAnchor2_MatchStyleBacking;
+            set
+            {
+                if ((value < MatchStyleDateTime.Disable) || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                AccessAnchor2_MatchStyleBacking = value;
+            }
+        }
 
         /// <summary>
         /// Indicate what do do with <see cref="WriteAnchor"/>
         /// </summary>
-        public MatchStyleDateTime WriteAnchorCheck1 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime WriteAnchorCheck1
+        {
+            get => WriteAnchor1_MatchStyleBacking;
+            set
+            {
+                if ((value < MatchStyleDateTime.Disable) || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                WriteAnchor1_MatchStyleBacking = value;
+            }
+        }
 
 
         /// <summary>
         /// Indicate what do do with <see cref="WriteAnchor"/>
         /// </summary>
-        public MatchStyleDateTime WriteAnchorCheck2 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime WriteAnchorCheck2
+        {
+            get => WriteAnchor2_MatchStyleBacking;
+            set
+            {
+                if ((value < MatchStyleDateTime.Disable) || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                WriteAnchor2_MatchStyleBacking = value;
+            }
+        }
 
         /// <summary>
         /// A REGEX express that will be compared againt the <see cref="FileInfoExtract.Name"/>
@@ -930,7 +1004,7 @@ namespace OdinSearchEngine
             }
             set
             {
-                if (value >= (FileAttributes)SearchTarget.OneOffFileAttrib)
+                if ( ( (value >= (FileAttributes)SearchTarget.OneOffFileAttrib) || (value < (FileAttributes)1)) && (value != 0))
                 {
                     throw new InvalidEnumArgumentException();
                 }
