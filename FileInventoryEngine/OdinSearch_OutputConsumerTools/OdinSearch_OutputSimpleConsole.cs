@@ -148,6 +148,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                 try
                 {
                     result = (bool)this[FlushAlways];
+                    this.FlushAlwaysFlag = result;
                 }
                 catch (Exception e)
                 {

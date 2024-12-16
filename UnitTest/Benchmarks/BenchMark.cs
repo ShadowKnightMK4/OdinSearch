@@ -15,6 +15,9 @@ using DeepDirPrune;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Diagnostics.Tracing.Extensions;
 using BenchmarkDotNet.Toolchains.InProcess.Emit;
+using Perfolizer.Horology;
+using BenchmarkDotNet.Diagnosers;
+using BenchmarkDotNet.Loggers;
 
 namespace Benchmarks
 {
@@ -22,12 +25,29 @@ public class AntiVirusFriendlyConfig : ManualConfig
 {
     public AntiVirusFriendlyConfig()
     {
-          //  AddJob(InProcessEmitToolchain.Instance())
-        //AddJob(Job.MediumRun
-          //  .WithToolchain(Process));
+           
     }
 }
 }
+
+public class SearchThreadedTestConfig : ManualConfig
+{
+    public SearchThreadedTestConfig()
+    {
+        AddJob(Job.Default
+            .WithToolchain(InProcessNoEmitToolchain.Instance) // Prevent JIT optimizations from affecting results
+            .WithIterationTime(TimeInterval.FromMilliseconds(5 * 60 * 1000)) // Set a maximum time for each benchmark run. Note, this does not stop it if it is longer.
+            .WithInvocationCount(1) // Run each benchmark method once per iteration
+            .WithIterationCount(1) // Run only 1 iteration
+            .WithWarmupCount(0) // Disable warmup
+            .WithUnrollFactor(1)
+        );
+        WithOptions(ConfigOptions.DisableOptimizationsValidator); // Disable optimizations validator
+        AddDiagnoser(MemoryDiagnoser.Default);
+        AddLogger(ConsoleLogger.Default);
+    }
+}
+
 
 
 namespace varients
@@ -252,16 +272,118 @@ namespace Benchmarks
             //DeepDirTracking_CommonCode(typeof(varients.BasicList), "Using a list instead of the standard");
         }
 
+    }
 
+    
+    [MemoryDiagnoser]
+    public class SearchThreadedTest
+    {
+        void CommonCode(OdinSearch_SyncMode mode)
+        {
+            Task x = Task.Run(() =>
+            {
+                OdinSearch Search = new();
+                Search.SynchMode = mode;
+                SearchTarget x = SearchTarget.AllFiles;
+                SearchAnchor start = new SearchAnchor(@"C:\Windows");
+                //start.AddAnchor(@"C:\Windows\system32");
+                start.AddAnchor(@"C:\Windows\system");
+                start.AddAnchor(@"C:\Euphoria");
+                start.AddAnchor(@"F:\HOSP");
+                start.AddAnchor(@"R:\ISO");
+                start.EnumSubFolders = true;
+                //var Process = new OdinSearchEngine.OdinSearch_OutputConsumerTools.OdinSearch_OutputSimpleConsole();
+                var Process = new OdinSearchEngine.OdinSearch_OutputConsumerTools.DebugOnly.OdinSearch_OutputConsumerBaseNull();
+                //Process[OdinSearchEngine.OdinSearch_OutputConsumerTools.OdinSearch_OutputSimpleConsole.FlushAlways] = true;
+                Search.AddSearchAnchor(start);
+                Search.AddSearchTarget(x);
+                Search.Search(Process);
+                while (Search.HasActiveSearchThreads)
+                {
+                    Thread.Sleep(2000);
+                }
+            });
+            //if (!x.Wait(MaxMS))
+            x.Wait(); return;
+            {
+                throw new TimeoutException("Ran out of time");
+            }
+        }
+        /*
+         * 
+         */
+        [Benchmark]
+        public void WindowsSearchSync()
+        {
+            CommonCode(OdinSearch_SyncMode.Sync);
+        }
+        public static int MaxMS = 30 * 1000;
+        [Benchmark]
+        public void WindowsSearchNoSync()
+        {
+            CommonCode(OdinSearch_SyncMode.NoWait);
+            /*
+             * with the thread class
+             * SearchThreadedTest.WindowsSearch: Job-SGEEIX(Toolchain=InProcessNoEmitToolchain)
+Runtime = ; GC =
+Mean = 432.334 us, StdErr = 2.359 us (0.55%), N = 36, StdDev = 14.151 us
+Min = 391.214 us, Q1 = 424.471 us, Median = 435.960 us, Q3 = 440.063 us, Max = 457.669 us
+IQR = 15.592 us, LowerFence = 401.083 us, UpperFence = 463.452 us
+ConfidenceInterval = [423.864 us; 440.804 us] (CI 99.9%), Margin = 8.470 us (1.96% of Mean)
+Skewness = -0.85, Kurtosis = 3.66, MValue = 2
+-------------------- Histogram --------------------
+[389.931 us ; 401.181 us) | @@
+[401.181 us ; 415.131 us) | @@
+[415.131 us ; 426.381 us) | @@@@@@@
+[426.381 us ; 441.155 us) | @@@@@@@@@@@@@@@@@@
+[441.155 us ; 452.897 us) | @@@@@@
+[452.897 us ; 463.294 us) | @
+---------------------------------------------------
+
+// * Summary *
+
+BenchmarkDotNet v0.13.12, Windows 10 (10.0.19045.5131/22H2/2022Update)
+AMD Ryzen 7 2700X, 1 CPU, 16 logical and 8 physical cores
+.NET SDK 8.0.404
+  [Host] : .NET 7.0.20 (7.0.2024.26716), X64 RyuJIT AVX2
+
+Toolchain=InProcessNoEmitToolchain
+
+| Method        | Mean     | Error   | StdDev   | Allocated |
+|-------------- |---------:|--------:|---------:|----------:|
+| WindowsSearch | 432.3 us | 8.47 us | 14.15 us |   5.07 KB |
+
+// console coms,
+            Match call direct and not threadaed.
+
+            | Method        | Mean    | Error    | StdDev   | Allocated |
+|-------------- |--------:|---------:|---------:|----------:|
+| WindowsSearch | 2.009 s | 0.0031 s | 0.0029 s |  34.28 KB |
+
+// console coms
+                threaded no wait
+            Toolchain=InProcessNoEmitToolchain
+
+| Method        | Mean    | Error    | StdDev   | Median  | Allocated |
+|-------------- |--------:|---------:|---------:|--------:|----------:|
+| WindowsSearch | 1.787 s | 0.2137 s | 0.6301 s | 2.006 s |  37.69 KB |
+
+// * Warnings *
+            */
+            
+        }
     }
     internal class BenchMark
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("This benchmark tests the DeepDirTracking, comparing memory usage and runtime between that and one that uses a simple list.");
-            
-            var summery = BenchmarkRunner.Run(typeof(SearchAddStuff));
-            Console.WriteLine(summery.ToString());
+
+            // Set up the benchmark config with the InProcessEmitToolchain
+            var summary = BenchmarkRunner.Run<SearchThreadedTest>(
+              new SearchThreadedTestConfig());
+
+            Console.Read();
+
         }
     }
 }

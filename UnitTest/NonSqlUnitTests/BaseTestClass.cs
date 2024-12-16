@@ -29,7 +29,14 @@ namespace NonSqlUnitTests
         /// </summary>
         protected List<FileSystemInfo> fileSystemInfos;
 
-        
+        /// <summary>
+        /// return full bath where we store our test data
+        /// </summary>
+        /// <returns></returns>
+        public string GetRootLocation()
+        {
+            return RootBath;
+        }
         /// <summary>
         /// Anitialize this based off the passed type. Note type name should be a value system folder name
         /// </summary>

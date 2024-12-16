@@ -16,6 +16,7 @@ using System.Collections.Concurrent;
 using OdinSearchEngine.SearchSupport;
 using DeepDirPrune;
 using System.ComponentModel;
+using System.Net.Security;
 
 namespace OdinSearchEngine
 {
@@ -68,6 +69,90 @@ namespace OdinSearchEngine
         /// </summary>
         Everything
     }
+
+    /// <summary>
+    /// when the thread search class gets a match, it gets added here.
+    /// </summary>
+    /// <remarks>This class in marked internal for a reason. It likely isn't gonna be static</remarks>
+    internal class OdinSearch_MatchProcessor
+    {
+        
+        readonly ConcurrentQueue<FileSystemInfo>  MatchBuffer = new ();
+        public void AddNewEntry(FileSystemInfo x)
+        {
+            MatchBuffer.Enqueue(x);
+        }
+
+        
+
+        public void ClearEntries()
+        {
+            MatchBuffer.Clear();
+        }
+
+        OdinSearch_OutputConsumerBase Processor;
+        CancellationToken? CancelMe;
+        Thread? ProcessorThread;
+        /// <summary>
+        /// TODO: balk at not terminating the processor thread if already
+        /// </summary>
+        public void BeginProcessing()
+        {
+            if (ProcessorThread is not null)
+            {
+                throw new InvalidOperationException("Already Processing");
+            }
+            ProcessorThread = new Thread(p =>
+            {
+                CancelMe = new CancellationToken(false);
+
+                while (!CancelMe.Value.IsCancellationRequested)
+                {
+                    FileSystemInfo Info = null ;
+                    if (CancelMe.Value.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        if (MatchBuffer.TryDequeue(out Info))
+                        {
+                            lock (Processor)
+                            {
+                                Processor.Match(Info);
+                            }
+                        }
+                        else
+                        {
+                            if (MatchBuffer.IsEmpty)
+                            {
+                                Thread.Sleep(100);
+                            }
+                        }
+                    }
+                }
+            });
+            ProcessorThread.Start();
+        }
+        public void EndProcessing()
+        {
+            throw new NotImplementedException();
+        }
+        public void AssignMatchProcessor(OdinSearch_OutputConsumerBase Processor)
+        {
+            this.Processor = Processor;
+        }
+    }
+
+    public enum OdinSearch_SyncMode
+    {
+        // we wait for the coms base to call back from match before feeding results
+        Sync = 1,
+        // we push the results to a query that's feed to the comsbase and keep on trucking.
+        NoWait = 2
+    }
+
+    
     /// <summary>
     /// Search the local system for files/folders 
     /// </summary>
@@ -110,6 +195,10 @@ namespace OdinSearchEngine
         #endregion
         #region Public Class Variables and Properties
 
+        /// <summary>
+        /// decide how commucation to coms class will work.
+        /// </summary>
+        public OdinSearch_SyncMode SynchMode = OdinSearch_SyncMode.NoWait;
         /// <summary>
         /// If true, when any match is file, we end the search.  
         /// </summary>
@@ -450,6 +539,19 @@ namespace OdinSearchEngine
         /// <param name="Args">This is an instance of <see cref="WorkerThreadArgs"/> boxed in an object</param>
         void WorkerThreadProc(object Args)
         {
+            /*
+             * new plan. We move the wait to a thread that feeds the matcher.
+             */
+            OdinSearch_MatchProcessor MatchProcessor;
+            if (SynchMode == OdinSearch_SyncMode.NoWait)
+            {
+                MatchProcessor = new();
+            }
+            else
+            {
+                // not strickyl needed. Default is null. 
+                MatchProcessor = null; 
+            }
             
 
             if (Args == null) throw new ArgumentNullException(nameof(Args));
@@ -462,7 +564,8 @@ namespace OdinSearchEngine
             
             WorkerThreadArgs TrueArgs = Args as WorkerThreadArgs;
 
-
+            MatchProcessor?.AssignMatchProcessor(TrueArgs.Coms);
+            MatchProcessor?.BeginProcessing();
             // how this thread cancels.
             void BailingOutIfRequested(bool Cancel, string msg = null)
             {
@@ -664,7 +767,16 @@ namespace OdinSearchEngine
 
                                                     if (!ThreadSynchResults)
                                                     {
-                                                        TrueArgs.Coms.Match(Possible);
+                                                        if(MatchProcessor is null)
+                                                        {
+                                                            {
+                                                                TrueArgs.Coms.Match(Possible);
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            MatchProcessor.AddNewEntry(Possible);
+                                                        }
                                                         if (isMatched && TrueArgs.SoleMatchFlag)
                                                         {
                                                             BailingOutIfRequested(true, "Bailing out due to finding a match with SoleMatch set to true.");
@@ -674,9 +786,15 @@ namespace OdinSearchEngine
                                                     {
                                                         try
                                                         {
-                                                            lock (TrueArgs.ComTalk)
+                                                            if(MatchProcessor is null)
                                                             {
-                                                                TrueArgs.Coms.Match(Possible);
+                                                                {
+                                                                    TrueArgs.Coms.Match(Possible);
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                MatchProcessor.AddNewEntry(Possible);
                                                             }
                                                         }
                                                         finally
@@ -725,9 +843,15 @@ namespace OdinSearchEngine
 
                                                         try
                                                         {
-                                                            lock (TrueArgs.ComTalk)
+                                                            if (MatchProcessor is null)
                                                             {
-                                                                TrueArgs.Coms.Match(Possible);
+                                                                {
+                                                                    TrueArgs.Coms.Match(Possible);
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                MatchProcessor.AddNewEntry(Possible);
                                                             }
                                                         }
                                                         finally
@@ -741,9 +865,16 @@ namespace OdinSearchEngine
                                                     }
                                                     else
                                                     {
-                                                        lock (TrueArgs.ComTalk)
+
+                                                        if (MatchProcessor is null)
                                                         {
-                                                            TrueArgs.Coms.Match(Possible);
+                                                            {
+                                                                TrueArgs.Coms.Match(Possible);
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            MatchProcessor.AddNewEntry(Possible);
                                                         }
                                                         if (isMatched && TrueArgs.SoleMatchFlag)
                                                         {

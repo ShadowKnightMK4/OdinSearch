@@ -25,6 +25,7 @@ namespace NonSqlUnitTests.BasicDataTypes
             FileCache.SetupState(typeof(OdinSearch_UnitTest_AssignsBase));
         }
 
+        
         [TestMethod]
         public void OdinSearch_UnitTest_CanReadWrite_SoleMatch_bool()
         {
