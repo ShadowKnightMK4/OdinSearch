@@ -146,79 +146,82 @@ namespace FileIventoryConsole
             //            var SearchDeal = new OdinSearch_OutputConsumer_ExternUnmangedPlugin();
 
 
-            OdinSearch_OutputConsumerBase SearchDeal;
-            Search.AddSearchAnchor(ArgHandling.SearchAnchor);
-            Search.AddSearchTarget(ArgHandling.SearchTarget);
-
-            if (ArgHandling.DesiredPlugin == null)
+            OdinSearch_OutputConsumerBase SearchDeal = null;
+            try
             {
-                Console.WriteLine("Fatal Error: No valid consumer was set.");
-                Console.Write("Quitting...\r\n");
-                Environment.Exit(-1);
-                return;
-            }
-            else
-            {
-                SearchDeal = ArgHandling.DesiredPlugin;
-            }
+                Search.AddSearchAnchor(ArgHandling.SearchAnchor);
+                Search.AddSearchTarget(ArgHandling.SearchTarget);
 
-
-            /*
-            if (ArgHandling.DesiredPlugin == null)
-            {
-                Console.WriteLine("No Handler specified.  Defaulting to showing matching results to stdout via OdinSearch_OutputSimpleConsole.");
-                SearchDeal = new OdinSearch_OutputSimpleConsole();
-                SearchDeal[OdinSearch_OutputSimpleConsole.OutputOnlyFileName] = true;   
-            }
-            else
-            {
-                SearchDeal = ArgHandling.DesiredPlugin;
-                Console.WriteLine("Handler " + ArgHandling.DesiredPlugin.GetType().Name + " in use");
-            }
-            Console.WriteLine("Searching for things, this may take a while.");*/
-
-            Console.Write("Searching for things, this may take a while.    ");
-
-            var CursorPOs = Console.GetCursorPosition();
-            string[] GUISTUFF = new string[] { "-", "\\", "|", "/", "*" };
-            int tick = 0;
-            DateTime Start = DateTime.Now;
-            Search.Search(SearchDeal);
-            while(true)
-            {
-                Console.SetCursorPosition(CursorPOs.Left, CursorPOs.Top);
-                Console.WriteLine(GUISTUFF[tick]);
-                tick++;
-                if (tick > GUISTUFF.Length - 1)
+                if (ArgHandling.DesiredPlugin == null)
                 {
-                    tick = 0;
+                    Console.WriteLine("Fatal Error: No valid consumer was set.");
+                    Console.Write("Quitting...\r\n");
+                    Environment.Exit(-1);
+                    return;
                 }
-                Console.WriteLine("Elapsed Time: " + (DateTime.Now - Start).ToString());
-                Thread.Sleep(100); // thread
-                //Search.WorkerThreadJoin();
-                if (!Search.HasActiveSearchThreads)
+                else
                 {
-                    if (Search.IsZombied)
+                    SearchDeal = ArgHandling.DesiredPlugin;
+                }
+
+
+                /*
+                if (ArgHandling.DesiredPlugin == null)
+                {
+                    Console.WriteLine("No Handler specified.  Defaulting to showing matching results to stdout via OdinSearch_OutputSimpleConsole.");
+                    SearchDeal = new OdinSearch_OutputSimpleConsole();
+                    SearchDeal[OdinSearch_OutputSimpleConsole.OutputOnlyFileName] = true;   
+                }
+                else
+                {
+                    SearchDeal = ArgHandling.DesiredPlugin;
+                    Console.WriteLine("Handler " + ArgHandling.DesiredPlugin.GetType().Name + " in use");
+                }
+                Console.WriteLine("Searching for things, this may take a while.");*/
+
+                Console.Write("Searching for things, this may take a while.    ");
+
+                var CursorPOs = Console.GetCursorPosition();
+                string[] GUISTUFF = new string[] { "-", "\\", "|", "/", "*" };
+                int tick = 0;
+                DateTime Start = DateTime.Now;
+                Search.Search(SearchDeal);
+                while (true)
+                {
+                    Console.SetCursorPosition(CursorPOs.Left, CursorPOs.Top);
+                    Console.WriteLine(GUISTUFF[tick]);
+                    tick++;
+                    if (tick > GUISTUFF.Length - 1)
                     {
-                        Search.WorkerThread_ResolveComs();
+                        tick = 0;
+                    }
+                    Console.WriteLine("Elapsed Time: " + (DateTime.Now - Start).ToString());
+                    Thread.Sleep(100); // thread
+                                       //Search.WorkerThreadJoin();
+                    if (!Search.HasActiveSearchThreads)
+                    {
+                        if (Search.IsZombied)
+                        {
+                            Search.WorkerThread_ResolveComs();
+                            break;
+                        }
                         break;
                     }
-                    break;
                 }
+                Console.WriteLine();
+                Console.WriteLine("Search is finished....");
+                Console.WriteLine(string.Format("You have {0} file system items that matched.", SearchDeal.TimesMatchCalled));
+                if (File.Exists(ArgHandling.TargetStream.Name))
+                {
+                    Console.WriteLine($"Results located: {ArgHandling.TargetStream.Name}");
+                }
+
             }
-            Console.WriteLine();
-            Console.WriteLine("Search is finished....");
-            Console.WriteLine(string.Format("You have {0} file system items that matched.", SearchDeal.TimesMatchCalled));
-            if (SearchDeal.TimesMatchCalled > int.MaxValue)
+            finally
             {
-                Environment.Exit(int.MaxValue);
+                SearchDeal?.Dispose();
             }
-            else
-            {
-                Environment.Exit((int)SearchDeal.TimesMatchCalled);
-            }
-            Debugger.Break();
-            SearchDeal.Dispose();
+            
             return;
         }
     }

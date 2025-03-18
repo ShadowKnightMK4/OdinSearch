@@ -18,8 +18,18 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBase
     /// The stream writer class houses some common stuff begin <see cref="OdinSearch_OutputSimpleConsole"/> and <see cref="OdinSearch_OutputSimpleCSVWriter"/>.
     /// IT also can search as a base
     /// </summary>
+    /// <remarks>This please a little loose with <see cref="IDisposable"/>.  The underling streams it caches to function are tracked yes. The class itself tracks how many times <see cref="OdinSearch_OutputConsumerBase.SearchBegin(DateTime)"/> is called ticking up a value. When disposal is called, it gets ticked down, and if less than zero THEN we dispoe of the streams. THIS MEANS subclasses should CALL the base method of this when overriding <see cref="SearchBegin(DateTime)"/>. Skipping that = streams cleaned early</remarks>
     public class OdinSearch_OutputConsumerStreamWriter : OdinSearch_OutputConsumerBase
     {
+        /// <summary>
+        /// Exception thrown when attempting to write to a null stream with <see cref="WriteToErrStream(string)"/> or <see cref="WriteToOutStream(string)"/> after validation and the stream is null. 
+        /// </summary>
+        class PrematureDisposeException : Exception
+        {
+            public PrematureDisposeException() :  base($"A subclass of {nameof(OdinSearch_OutputConsumerStreamWriter)} did not implement correctly. Dev message: \"It should skip the call to the base {nameof(SearchBegin)} class or reture TRUE")
+             { }
+            public PrematureDisposeException(string message) : base(message) { }
+        }
         /// <summary>
         /// Set the argument to a string to place output to that file in unicode. If a stream or TestWriter, writes directly to that.
         /// </summary>
@@ -40,6 +50,14 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBase
         public const string CharEncoding = "CharEncoding";
 
 #pragma warning disable IDE0052 // Remove unread private members
+        /// <summary>
+        /// If we accept the streams in validation page -set to true.
+        /// </summary>
+        bool StreamsValidated = false;
+        /// <summary>
+        /// We count the number of times <see cref="SearchBegin(DateTime)"/> is called, tick by one.  When we dispose, we tick this by 1 and if 0, actually dispoe
+        /// </summary>
+        protected int SearchReferenceCounter { get;  private set; } = 0;
         // Suppression due to the noise, these hold the streams that stdout and stderr deal with
         /// <summary>
         /// If a valid stream, we output here on matches. Should both this and stdout be set, stdout wins
@@ -193,7 +211,11 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBase
             {
                 TargetEncoding = Encoding.UTF8;
             }
-            return base.SearchBegin(Start);
+            // tick up reference
+            this.SearchReferenceCounter++;
+            // we made it this far, we're good to assume streams are ok for the lifespace
+            this.StreamsValidated = true;
+            return true;
 
         }
 
@@ -243,20 +265,27 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBase
             {
                 if (disposing)
                 {
-                    if (DisposeOutStream)
+                    // reduce the reference count. If <= 0, dispoe and clear stream
+                    SearchReferenceCounter--;
+                    if (SearchReferenceCounter <= 0)
                     {
-                        outstream?.Dispose();
-                    }
+                        if (DisposeOutStream)
+                        {
+                            outstream?.Dispose();
+                        }
 
-                    if (DisploseErrStream)
-                    {
-                        errstream?.Dispose();
+                        if (DisploseErrStream)
+                        {
+                            errstream?.Dispose();
+                        }
+                        errstream = outstream = null;
                     }
-                    errstream = outstream = null;
+                    base.Dispose(disposing);
+                    GC.SuppressFinalize(this);
                 }
+
             }
-            base.Dispose(disposing);
-            GC.SuppressFinalize(this);
+            
         }
         ~OdinSearch_OutputConsumerStreamWriter()
         {
@@ -269,14 +298,20 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBase
         /// <param name="data">string to write. If TargetStream is used, will be encoding with <see cref="TargetEncoding"/></param>
         /// <param name="TW">If null, we write with TargetStream, otherwise we write to this and add a newline</param>
         /// <param name="TargetStream"></param>
+        /// <remarks>Throws <see cref="PrematureDisposeException"/> if both TW and TargetStream are null</remarks>
         void WriteToUnderlyingStreamBase(string data, TextWriter TW, Stream TargetStream)
         {
+            if ((TW is null) && (TargetStream is null))
+            {
+                throw new PrematureDisposeException();
+            }   
             if (TW != null)
             {
                 TW.WriteLine(data);
             }
             else
             {
+                
                 byte[] b = TargetEncoding.GetBytes(data);
                 TargetStream.Write(b, 0, b.Length);
                 if (FlushAlwaysFlag)
@@ -290,15 +325,21 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools.StreamWriterCommonBase
         /// Use this to write to the Match Result stream in your class. uses <see cref"TargetEncoding"/> as the format
         /// </summary>
         /// <param name="data">string to write</param>
+   
+         /// <exception cref="PrematureDisposeException">This can be thrown if the tracked private streams become null.  That means it's likely <see cref="SearchBegin(DateTime)"/>'s base call was not skipped. To Fix: have child class return true;</exception>
         protected void WriteToOutStream(string data)
         {
-            WriteToUnderlyingStreamBase(data, stdout, outstream);
+           
+                WriteToUnderlyingStreamBase(data, stdout, outstream);
+            
+                
         }
 
         /// <summary>
         /// Use this to write to the blocked result or error result in your class.uses <see cref"TargetEncoding"/> as the format
         /// </summary>
         /// <param name="data"></param>
+        /// <exception cref="PrematureDisposeException">This can be thrown if the tracked private streams become null.  That means it's likely <see cref="SearchBegin(DateTime)"/>'s base call was not skipped. To Fix: have child class return true;</exception>
         protected void WriteToErrStream(string data)
         {
             WriteToUnderlyingStreamBase(data, stderr, errstream);
