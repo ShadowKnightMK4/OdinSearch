@@ -1606,21 +1606,38 @@ namespace FileInventoryConsole
 
                 if (low_part.Length > 2)
                 {
-                    if ( (low_part[0] == '\"') && (low_part[low_part.Length - 1] == '\"'))
+                    try
                     {
-                        TargetStream = File.OpenWrite(low_part.Substring(1, low_part.Length-2));
-                        TargetStreamHandling = ConsoleLines.NoRedirect;
-                        WasOutStreamSet = true;
-                        return true;
+                        if ((low_part[0] == '\"') && (low_part[low_part.Length - 1] == '\"'))
+                        {
+                            TargetStream = File.OpenWrite(low_part.Substring(1, low_part.Length - 2));
+                            TargetStreamHandling = ConsoleLines.NoRedirect;
+                            WasOutStreamSet = true;
+                            return true;
+                        }
+                        else
+                        {
+                            TargetStream = File.OpenWrite(low_part);
+                            TargetStreamHandling = ConsoleLines.NoRedirect;
+                            WasOutStreamSet = true;
+                            return true;
+                        }
                     }
-                    else
+                    catch (UnauthorizedAccessException e)
                     {
-                        TargetStream = File.OpenWrite(low_part);
-                        TargetStreamHandling = ConsoleLines.NoRedirect;
-                        WasOutStreamSet = true;
-                        return true;
+                                            {
+                        Console.WriteLine($"Error opening {low_part}. Reason: {e.Message}");
+                        WasOutStreamSet = false;
+                        return false;
                     }
 
+                    }
+                    catch (IOException e)
+                    {
+                        Console.WriteLine($"Error opening {low_part}. Reason: {e.Message}");
+                        WasOutStreamSet = false;
+                        return false;
+                    }
                     
                 }
                 return false;

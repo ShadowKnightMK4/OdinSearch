@@ -2,7 +2,7 @@
   "profiles": {
     "D": {
       "commandName": "Project",
-      "commandLineArgs": "/anyfile /explain",
+      "commandLineArgs": "/outformat=csvfile  /anyfile /anchor=C:\\euphoria /outstream=C:\\euphoria\\results2.txt /subfolders /anchor=C:\\Windows",
       "nativeDebugging": false,
       "remoteDebugEnabled": false
     },

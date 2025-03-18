@@ -11,15 +11,14 @@ MatchStyleString -  how your filename and fullname string compares will work and
 important thing to note is that while arguments such as /filename and /FiLeNaMe are case 
 insensitive, specifics to the arguments are NOT.
 
-do not eval this part
-````
+
 There are some special data types to be aware of for this app. Each once has its own set of values 
 and format; however, this help file is intended to let someone pick it up quickly. The 4 main data 
 types are File Attributes, MatchStyleFileAttributes, MatchStyleString and the Date Time string. There
 are a few extra data types beyond this, but hopefully they are self explanatory in this file. The 
 table below lists the data types and defines what they are. While arguments are case insensitive, 
 your specifics to the arguments are usually not.
-`````
+
 
 -----------------------------------------------------------------------------------------------------
 File Attributes          | These are attributes of the item to search for.       
@@ -380,6 +379,16 @@ Mode specific
 TODO: Custom Settings for Plugins
 -----------------------------------------------------------------------------------------------------
 This feature is currently not supported but there are plans to add it.
+
+-----------------------------------------------------------------------------------------------------
+Errors and Return Values:
+-----------------------------------------------------------------------------------------------------
+If the arguments passed are not correct, unknown or something was forgotten to be included,
+this app will print a message to the console and exist without starting the search. If this
+appens, the app will return -1.  Otherwise it will return how many matches were found. If you have 
+more than the normal system int size of matches, the app will cap it at the system int cap.
+Should /explain be an argument,  this app will return 0.
+
 
 -----------------------------------------------------------------------------------------------------
 Default Settings
