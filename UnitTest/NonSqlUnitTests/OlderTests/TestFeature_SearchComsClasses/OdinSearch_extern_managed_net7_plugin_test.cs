@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace NonSqlUnitTests
+namespace NonSqlUnitTests.OlderTests.TestFeature_SearchComsClasses
 {
     [TestClass]
     public class OdinSearch_extern_managed_net7_plugin_test
@@ -35,7 +35,7 @@ namespace NonSqlUnitTests
             SearchAnchor a = new(false);
 
             SearchTarget b = new();
-            b.FileName.Add(SearchTarget.MatchAnyFile);
+            b.FileName.Add(SearchTarget.MatchAnyFileName);
             a.AddAnchor("C:\\Windows");
             a.EnumSubFolders = false;
             Demo.AddSearchAnchor(a);
@@ -61,11 +61,11 @@ namespace NonSqlUnitTests
             OdinSearch_OutputConsumer_PluginCheck.Init();
             OdinSearch Demo = new OdinSearch();
             OdinSearch_OutputConsumer_ExternManaged Test = new(StaticHardcodedPlugin, null, "OdinSearch_OutputConsumerBaseTest");
-            
+
             SearchAnchor a = new(false);
 
             SearchTarget b = new();
-            b.FileName.Add(SearchTarget.MatchAnyFile);
+            b.FileName.Add(SearchTarget.MatchAnyFileName);
             a.AddAnchor("C:\\Windows");
             a.EnumSubFolders = false;
             Demo.AddSearchAnchor(a);

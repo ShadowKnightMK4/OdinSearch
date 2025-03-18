@@ -3,7 +3,7 @@ using System.Reflection;
 using System;
 using OdinSearchEngine;
 
-namespace UnitTest
+namespace NonSqlUnitTests.OlderTests.Basic_DataTypes
 {
     [TestClass]
     public class FileInfoExtractUnitTest
@@ -40,7 +40,7 @@ namespace UnitTest
             Assert.IsNotNull(CanWeFolder);
             Assert.AreEqual(CanWeFolder.SizeBytes, 0);
 
-            
+
             try
             {
                 Assert.IsNotNull(CanWeFile);
@@ -135,11 +135,11 @@ namespace UnitTest
             {
                 var result = CanWeFolder.ParentLocationPath;
             }
-            catch (AssertFailedException e) 
+            catch (AssertFailedException e)
             {
                 throw e;
             }
-            
+
         }
         [TestMethod]
         public void CanWeCall_ParentLocationPath_AsDirectionInfo()

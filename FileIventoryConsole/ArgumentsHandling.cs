@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.ComponentModel.Design;
 using System.Diagnostics;
@@ -85,7 +86,24 @@ namespace FileInventoryConsole
             ExplainDateTimeMatch(SearchTarget, ExplainDateTimeFlag.Modified1);
             ExplainAnchors(SearchAnchor);
             ExplainSize(SearchTarget);
-            ExplainOutputConsumer(that);
+
+            if (that.MoreThanOnConsumerSet)
+            {
+                Console.WriteLine("Error: Please use either the /outstream settings, the /action settings, the /managed setting or the /plugin setting but not more than 1.");
+                Console.WriteLine("This command as it is currently, is not supported.");
+            }
+            else
+            {
+                if ((that.WasActionSet && that.WasOutStreamSet && that.WasNetPluginSet && that.WasUnmanagedPluginSet) == false)
+                {
+                    Console.WriteLine("\r\nNote: With the lack of /outstream, /plugin, /managed or /action set, ");
+                    Console.Write("this app will default to this: /outstream=stdout /outformat=unicode and no -onlynames flag");
+                }
+                else
+                {
+                    ExplainOutputConsumer(that);
+                }
+            }
         }
 
         static string[] size_strings = { "B", "KB", "MB", "GB", "PB", "EB", "PB" };
@@ -105,6 +123,32 @@ namespace FileInventoryConsole
         {
             if (!that.WasOutStreamSet)
             {
+                if (that.WasActionSet)
+                {
+                    Console.Write("The action ");
+                    switch (that.UserAction)
+                    {
+                        case ArgHandling.ActionCommand.CmdShell:
+                            Console.Write("execute commands with ");
+                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                            {
+                                Console.Write("cmd.exe  ");
+                            }
+                            else
+                            {
+                                Console.Write("with Bash ");
+                            }
+                            break;
+                        case ArgHandling.ActionCommand.PowerShell:
+                            Console.Write("execute commands with PowerShell ");
+                            break;
+                        default:
+                            Console.Write("<ERROR ERRROR> ");
+                            break;
+                    }
+                    Console.WriteLine(string.Format(" will run on matches and execute with this string: \"{0}\"", that.CommandString));
+                    return;
+                }
                 if ( (that.WasNetPluginSet == that.WasUnmanagedPluginSet) && (that.WasNetPluginSet == true))
                 {
                     Console.WriteLine("The match can't proceed due to setting multiple plugins with /managed and /plugin. Pick one please.");
@@ -194,8 +238,17 @@ namespace FileInventoryConsole
                         Console.Write(", ");
                     }
                 }
-                Console.WriteLine(")");
+                Console.Write(") ");
+                if (!Anchor.EnumSubFolders)
+                {
+                    Console.WriteLine("and does not look in subfolders");
+                }
+                else
+                {
+                    Console.WriteLine("and DOES look in subfolders.");
+                }
 
+                    
 
             }
         }
@@ -290,7 +343,7 @@ namespace FileInventoryConsole
             if (Target.AttribMatching1Style.HasFlag(SearchTarget.MatchStyleFileAttributes.Skip) ||
                 ((Target.AttributeMatching1 == FileAttributes.Normal) || (Target.AttributeMatching1 == 0)))
             {
-                Console.Write("file or directories with no special attributes set.");
+                Console.WriteLine("file or directories with no special attributes considered.");
             }
             else
             {
@@ -326,7 +379,7 @@ namespace FileInventoryConsole
             }
             if ((GenStyle == SearchTarget.MatchStyleString.Skip) ||
                 (GenMatch.Count == 0) ||
-                (GenMatch.Contains(SearchTarget.MatchAnyFile)))
+                (GenMatch.Contains(SearchTarget.MatchAnyFileName)))
             {
                 Console.Write("The match does not care about comparing something ");
                 if (String == ExplainStringMatchFlag.FileMode)
@@ -335,7 +388,7 @@ namespace FileInventoryConsole
                 }
                 else
                 {
-                    Console.WriteLine("against the file sytem item's exact location and name at all.");
+                    Console.WriteLine("against the file system item's exact location and name at all.");
                 }
             }
             else
@@ -411,6 +464,8 @@ namespace FileInventoryConsole
      /// </summary>
     public class ArgHandling
     {
+        internal Dictionary<string, object> ArgsBacking = new();
+        internal Dictionary<string, object> PluginArgs = new();   
         
         #region STATIC TOOLS
 
@@ -473,6 +528,7 @@ namespace FileInventoryConsole
         const string FlagEnumSubfolder = "/subfolders";
         #endregion
 
+        const string FlagCommand = "/command=";
         const string FlagSetAction = "/action=";
         /// <summary>
         /// This string is used set if <see cref="OdinSearch_OutputConsole"/> will output only the name. Ignored if not using that class. Currently only for outputing as unicode text
@@ -781,6 +837,32 @@ namespace FileInventoryConsole
 #endif
 
         /// <summary>
+        /// For us: a consumer is an /action, /plugin, /managed or /outstream
+        /// </summary>
+        public bool MoreThanOnConsumerSet
+        {
+            get
+            {
+                 {
+                    int count=0;
+                    if (WasActionSet)
+                        count++;
+
+                    if (WasNetPluginSet)
+                        count++;
+
+                    if (WasUnmanagedPluginSet) 
+                            count++;
+
+                    if (WasOutStreamSet)
+                        count++;
+
+                    return count > 1;
+                }
+                
+            }
+        }
+        /// <summary>
         /// did the user note they want only just the matching location?
         /// </summary>
         public bool FlagJustFileName { get; private set; }
@@ -800,7 +882,12 @@ namespace FileInventoryConsole
         ///  Does the user want an explaination of settings?
         /// </summary>
         public bool WantUserExplaination { get; private set; }
-        
+
+        /// <summary>
+        /// If an action needs a string, it does here via the /commmand
+        /// </summary>
+        public string CommandString { get; private set; }
+
 
 
 
@@ -1078,11 +1165,20 @@ namespace FileInventoryConsole
 
                 return false;
             }
-           /* this attacks the ussue by first attempting to try parsing.
+
+            bool DefaultWithCommandString(out string target, string source)
+            {
+                target = string.Empty;
+                source = source.Replace("\\\"", "\"");
+                target = source;
+
+                return true;
+            }
+           /* this attacks the issue by first attempting to try parsing.
              * Should this fail, we resort to just case insensitive matching hardcoded enum values.
                 */
 
-            
+
             bool DealWithFileAttribEnum(string EnumString, out FileAttributes Result, bool MimicDirFallback)
             {
                 object tmp = 0;
@@ -1510,21 +1606,38 @@ namespace FileInventoryConsole
 
                 if (low_part.Length > 2)
                 {
-                    if ( (low_part[0] == '\"') && (low_part[low_part.Length - 1] == '\"'))
+                    try
                     {
-                        TargetStream = File.OpenWrite(low_part.Substring(1, low_part.Length-2));
-                        TargetStreamHandling = ConsoleLines.NoRedirect;
-                        WasOutStreamSet = true;
-                        return true;
+                        if ((low_part[0] == '\"') && (low_part[low_part.Length - 1] == '\"'))
+                        {
+                            TargetStream = File.OpenWrite(low_part.Substring(1, low_part.Length - 2));
+                            TargetStreamHandling = ConsoleLines.NoRedirect;
+                            WasOutStreamSet = true;
+                            return true;
+                        }
+                        else
+                        {
+                            TargetStream = File.OpenWrite(low_part);
+                            TargetStreamHandling = ConsoleLines.NoRedirect;
+                            WasOutStreamSet = true;
+                            return true;
+                        }
                     }
-                    else
+                    catch (UnauthorizedAccessException e)
                     {
-                        TargetStream = File.OpenWrite(low_part);
-                        TargetStreamHandling = ConsoleLines.NoRedirect;
-                        WasOutStreamSet = true;
-                        return true;
+                                            {
+                        Console.WriteLine($"Error opening {low_part}. Reason: {e.Message}");
+                        WasOutStreamSet = false;
+                        return false;
                     }
 
+                    }
+                    catch (IOException e)
+                    {
+                        Console.WriteLine($"Error opening {low_part}. Reason: {e.Message}");
+                        WasOutStreamSet = false;
+                        return false;
+                    }
                     
                 }
                 return false;
@@ -1672,9 +1785,11 @@ namespace FileInventoryConsole
             }
             if (low.StartsWith(FlagToSetFileAttributes))
             {
+                FileAttributes tmp = 0;
                 string low_part = arg[step].Substring(FlagToSetFileAttributes.Length);
-                if (DealWithFileAttribEnum(low_part, out SearchTarget.AttributeMatching1, false))
+                if (DealWithFileAttribEnum(low_part, out tmp, false))
                 {
+                    SearchTarget.AttributeMatching1 = tmp;
                     was_fileattribs_set = true;
                     return true;
                 }
@@ -1812,9 +1927,11 @@ namespace FileInventoryConsole
              * */
             if (low.StartsWith(FlagToSetFileAttributeViaDir) && (low.Contains(FlagSetAnchor) == false))
             {
+                FileAttributes tmp;
                 string low_part = arg[step].Substring(FlagToSetFileAttributeViaDir.Length);
-                if (DealWithFileAttribEnum(low_part, out SearchTarget.AttributeMatching1, true))
+                if (DealWithFileAttribEnum(low_part, out tmp, true))
                 {
+                    SearchTarget.AttributeMatching1 = tmp;
                     was_fileattribs_set = true;
                     return true;
                 }
@@ -1829,7 +1946,18 @@ namespace FileInventoryConsole
                     WasActionSet = true;
                     return true;
                 }
+            }
 
+            if (low.StartsWith(FlagCommand))
+            {
+                string low_part = arg[step].Substring(FlagCommand.Length);
+                if (DefaultWithCommandString(out string ret, low_part))
+                {
+                    this.CommandString = ret;
+                    return true;
+                }
+
+                
             }
             return false;
         }
@@ -1861,13 +1989,32 @@ namespace FileInventoryConsole
             {
                 if (WasActionSet)
                 {
+
                     switch (UserAction)
                     {
                         case ActionCommand.CmdShell:
+                            if (CommandString == null)
+                            {
+                                ret = null;
+                                break;
+                            }
                             ret = new OdinSearch_OutputConsumer_CmdProcessor();
+                            (ret as OdinSearch_OutputConsumer_CmdProcessor).CommandToExecute = this.CommandString;
                             break;
                         case ActionCommand.PowerShell:
-                            ret = new OdinSearch_OutputConsumer_PowerShell();
+                            ret = null;
+                            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                            {
+                                ret = new OdinSearch_OutputConsumer_PowerShell();
+
+                                if (CommandString == null)
+                                {
+                                    ret.Dispose();
+                                    ret = null;
+                                    break;
+                                }
+                              (ret as OdinSearch_OutputConsumer_PowerShell).CommandToExecute = this.CommandString;
+                            }
                             break;
                         default:
                             return null;
@@ -1954,7 +2101,7 @@ namespace FileInventoryConsole
 
                 if (!WasFileNameSet)
                 {
-                    SearchTarget.FileName.Add(SearchTarget.MatchAnyFile);
+                    SearchTarget.FileName.Add(SearchTarget.MatchAnyFileName);
                 }
 
                 if (!was_fileattribs_set)
@@ -1992,7 +2139,7 @@ namespace FileInventoryConsole
 
                 if (!WasFileCompareSet)
                 {
-                    if (SearchTarget.FileName.Contains(SearchTarget.MatchAnyFile) == false)
+                    if (SearchTarget.FileName.Contains(SearchTarget.MatchAnyFileName) == false)
                     {
                         if (SearchTarget.FileName.Count > 1)
                         {
@@ -2010,6 +2157,9 @@ namespace FileInventoryConsole
             }*/
             else
             {
+                SearchTarget = SearchTarget.AllFiles;
+                /// this code is not part of SearchTarget.AllFiles
+                /*
                 SearchTarget = new SearchTarget();
                 SearchTarget.FileName.Add(SearchTarget.MatchAnyFile);
                 SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
@@ -2020,7 +2170,7 @@ namespace FileInventoryConsole
                 SearchTarget.WriteAnchorCheck1 = SearchTarget.WriteAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
                 SearchTarget.CreationAnchorCheck1 = SearchTarget.CreationAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
                 SearchTarget.CheckFileSize = false;
-                SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
+                SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;*/
             }
           
             if (!WasOutStreamSet)

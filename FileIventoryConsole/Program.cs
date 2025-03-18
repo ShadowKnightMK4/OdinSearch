@@ -12,6 +12,7 @@ using System.ComponentModel.Design;
 using System.Security.Cryptography.X509Certificates;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools.ExternalBased;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools.CmdProcessorTools;
+using System.Diagnostics;
 
 namespace FileIventoryConsole
 {   
@@ -22,9 +23,10 @@ namespace FileIventoryConsole
     {
         static void DisplayArguments(string[] args)
         {
+            Console.WriteLine("Arguments Seen:");
             foreach (string arg in args)
             {
-                Console.WriteLine(arg);
+                Console.WriteLine($"\t{arg}");
             }
         }
 
@@ -35,11 +37,12 @@ namespace FileIventoryConsole
 #endif
         static void Main(string[] args)
         {
-
+            
 
             #region scracth pad
             #endregion
 
+            
             OdinSearch_OutputConsumer_PluginCheck.Init();
             if (IsDebugMode)
             {
@@ -48,6 +51,7 @@ namespace FileIventoryConsole
                 Console.WriteLine("Status Messages follow:");
                 Console.WriteLine("Plugin cert signed only status: " + OdinSearch_OutputConsumer_PluginCheck.WeAreSigned);
                 Console.WriteLine("END DEBUG INFO:");
+                System.Diagnostics.Debugger.Launch();
             }
             ArgHandling ArgHandling = new();
             ArgHandling.DisplayBannerText();
@@ -56,6 +60,7 @@ namespace FileIventoryConsole
                 if (!ArgHandling.DoTheThing(args))
                 {
                     Console.Write("Quitting...\r\n");
+                    Environment.Exit(-1);
                     return;
                 }
                 else
@@ -69,6 +74,19 @@ namespace FileIventoryConsole
                         OdinSearch_OutputConsumer_PluginCheck.CheckAgainstThis?.Dispose();
                         OdinSearch_OutputConsumer_PluginCheck.CheckAgainstThis = null;
                     }
+
+                    if (ArgHandling.WasActionSet)
+                    {
+                        if ( (ArgHandling.CommandString == null) && (ArgHandling.DesiredPlugin == null))
+                        {
+                            Console.WriteLine("*******************");
+                            Console.WriteLine("Error: This command needed a function string set with the /command flag");
+                            Console.WriteLine("*******************");
+                            Environment.Exit(-1);
+                            return;
+
+                        }
+                    }
                     if (!ArgHandling.WantUserExplaination)
                     {
                         if ((ArgHandling.WasStartPointSet == false) && (ArgHandling.WasWholeMachineSet == false))
@@ -78,6 +96,7 @@ namespace FileIventoryConsole
                             Console.WriteLine("*******************");
                             Console.WriteLine("Error: Please specify a starting point via /anchor= or /anywhere");
                             Console.WriteLine("*******************");
+                            Environment.Exit(-1);
                             return;
                         }
 
@@ -87,25 +106,30 @@ namespace FileIventoryConsole
                             Console.WriteLine("*******************");
                             Console.WriteLine("Error: Please specify a classname to use out of the NET plugin set by /managed= by using /class=");
                             Console.WriteLine("*******************");
+                            Environment.Exit(-1);
                         }
 
-                        if (!(ArgHandling.WasOutStreamSet ^ ArgHandling.WasActionSet ^ ArgHandling.WasNetPluginSet ^ ArgHandling.WasUnmanagedPluginSet))
+                        if ((ArgHandling.MoreThanOnConsumerSet))
                         {
                             ArgHandling.Usage();
                             Console.WriteLine("*******************");
-                            Console.WriteLine("Error: Please use either the /outstream settings, the /action settings the /managed setting or the /plugin setting but not more than 1");
+                            Console.WriteLine("Error: Please use either the /outstream settings, the /action settings, the /managed setting or the /plugin setting but not more than 1.");
                             Console.WriteLine("*******************");
+                            Environment.Exit(-1);
                         }
                     }
                     else
                     {
+                        Console.WriteLine("Explanation Mode Active - no search was performed.");
                         Console.WriteLine("*******************");
-                        Console.WriteLine("Arguments were parses as follows with one on each line. If it's weird, check \" chars");
+                        Console.WriteLine("Arguments were parsed as follows with one on each line below. If it's weird, check the quote (\") chars.");
+                        Console.WriteLine("If you are using the /command flag, ensure all \" symbol in your string has a \\ prefix as in \\\".\r\n");
                         DisplayArguments(args);
                         Console.WriteLine("*******************");
                         Console.WriteLine("Explaining what the arguments will do. To execute the commands drop the /explain flag");
                         Console.WriteLine("*******************\r\n");
                         ArgHandling.DisplayExplain();
+                        Environment.Exit(0);
                         return;
                     }
                 }
@@ -113,6 +137,7 @@ namespace FileIventoryConsole
             else
             {
                 ArgHandling.Usage();
+                Environment.Exit(0);
                 return;
             }
             OdinSearch Search = new OdinSearch();
@@ -127,8 +152,9 @@ namespace FileIventoryConsole
 
             if (ArgHandling.DesiredPlugin == null)
             {
-                Console.WriteLine("Fatal Error: No output was set. Note this should not be reached in normal execution.");
+                Console.WriteLine("Fatal Error: No valid consumer was set.");
                 Console.Write("Quitting...\r\n");
+                Environment.Exit(-1);
                 return;
             }
             else
@@ -151,11 +177,25 @@ namespace FileIventoryConsole
             }
             Console.WriteLine("Searching for things, this may take a while.");*/
 
-            Console.WriteLine("Searching for things, this may take a while.");
+            Console.Write("Searching for things, this may take a while.    ");
+
+            var CursorPOs = Console.GetCursorPosition();
+            string[] GUISTUFF = new string[] { "-", "\\", "|", "/", "*" };
+            int tick = 0;
+            DateTime Start = DateTime.Now;
             Search.Search(SearchDeal);
             while(true)
             {
-                Search.WorkerThreadJoin();
+                Console.SetCursorPosition(CursorPOs.Left, CursorPOs.Top);
+                Console.WriteLine(GUISTUFF[tick]);
+                tick++;
+                if (tick > GUISTUFF.Length - 1)
+                {
+                    tick = 0;
+                }
+                Console.WriteLine("Elapsed Time: " + (DateTime.Now - Start).ToString());
+                Thread.Sleep(100); // thread
+                //Search.WorkerThreadJoin();
                 if (!Search.HasActiveSearchThreads)
                 {
                     if (Search.IsZombied)
@@ -166,76 +206,20 @@ namespace FileIventoryConsole
                     break;
                 }
             }
-
+            Console.WriteLine();
             Console.WriteLine("Search is finished....");
             Console.WriteLine(string.Format("You have {0} file system items that matched.", SearchDeal.TimesMatchCalled));
+            if (SearchDeal.TimesMatchCalled > int.MaxValue)
+            {
+                Environment.Exit(int.MaxValue);
+            }
+            else
+            {
+                Environment.Exit((int)SearchDeal.TimesMatchCalled);
+            }
+            Debugger.Break();
             SearchDeal.Dispose();
             return;
-            OdinSearch SearchThis = new OdinSearch();
-            SearchAnchor Desktop = new SearchAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
-
-            SearchTarget AnyThing = new SearchTarget();
-            AnyThing.FileName.Add(SearchTarget.MatchAnyFile);
-
-            SearchThis.AddSearchAnchor(Desktop);
-            SearchThis.AddSearchTarget(AnyThing);
-
-            var Comsclass = new OdinSearch_SymbolicLinkSort();
-            Comsclass[OdinSearch_SymbolicLinkSort.OutputFolderArgument] = "C:\\Results\\";
-            // currently unsured but is a required setting. It always creates subfolders
-            Comsclass[OdinSearch_SymbolicLinkSort.CreateSubfoldersOption] = null;
-            // default works, but if one wants to customize, they set like below with their implementation of a OdinSearch_SymbolicLinkSort.OdinSearch_SymbolicLinkSort_FileSystemHelp class
-            //Comsclass[OdinSearch_SymbolicLinkSort.LinkSearchHelperClass] = new OdinSearch_SymbolicLinkSort.OdinSearch_SymbolicLinkSort_FileSystemHelp();
-            SearchThis.Search(Comsclass);
-            while (SearchThis.HasActiveSearchThreads)
-            {
-                Thread.Sleep(1000);
-                SearchThis.WorkerThreadJoin();
-
-            }
-
-
-            Console.WriteLine("{0} Files and Folders matched. {1} files and folders did not match.", Comsclass.TimesMatchCalled, Comsclass.TimesNoMatchCalled);
-            //Console.WriteLine("Out of the matched files, {0} failed the filter check and were excluded.", results.FilteredResults);
-            return;
-        
         }
     }
 }
-/*
- * 
- * 
-                if (SearchThis.IsZombied)
-                {
-                    Console.WriteLine("Almost done. All that's left is to process filter");
-                    SearchThis.WorkerThread_ResolveComs();
-                    break;
-                }
-
-
- *   // Thread.Sleep(1000);
-                //runme.WorkerThreadJoin();
-            //    results.CheckFileFilter();
-            Console.WriteLine("Done. Showing results now");
-            //foreach (var result in results.MatchedResults) 
-            {
-              //  Console.WriteLine(result.FullName.ToString());
-            }
- *       
-            SearchTarget ProgramFiles = new SearchTarget();
-            ProgramFiles.FileName.Add("*.EXE");
-            ProgramFiles.FileName.Add("*.DLL");
-            ProgramFiles.FileNameMatching = SearchTarget.MatchStyleString.MatchAny;
-            
-
-            SearchAnchor LocalStorage = new SearchAnchor();
-            OdinSearch SearchThis = new OdinSearch();
-            SearchThis.AddSearchAnchor(LocalStorage);
-            SearchThis.AddSearchTarget(ProgramFiles);
-
-            LocalStorage.EnumSubFolders = true;
-           // var results = new OdinSearch_OutputSimpleConsole();
-            //             results = new OdinSearchOutputConsumer_FilterCheck_CertExample();
-            // results.WantTrusted = false;
-
-            SearchThis.Search(results);*/

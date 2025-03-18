@@ -13,125 +13,13 @@ using System.Diagnostics;
 using static OdinSearchEngine.SearchTarget;
 using System.Security.Cryptography.X509Certificates;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+using NonSqlUnitTests.OlderTests.TestTools;
 
-namespace NonSqlUnitTests
+namespace NonSqlUnitTests.OlderTests.TestChalice_RunTheGautlet
 {
-    /// <summary>
-    /// folder / file cache to purge things created as needed for the unit tests. Disospoe() or Purge() triggers cleanup
-    /// </summary>
-    sealed class FileItemCache: IDisposable
-    {
-        /// <summary>
-        /// Any item added to this is set to file attribute normal before deletion.
-        /// </summary>
-        public List<FileSystemInfo> Items = new();
-        public void Purge()
-        {
-            List<FileSystemInfo> Folders = new();
-            List<FileSystemInfo> FileDeletes = new();
-            foreach (FileSystemInfo item in Items)
-            {
-                if (item.Attributes.HasFlag(FileAttributes.Directory) == false)
-                {
-                    File.SetAttributes(item.FullName, FileAttributes.Normal);
-                    FileDeletes.Add(item);
-                }
-                else
-                {
-                    Folders.Add(item);
-                }
-            }
-
-            foreach (FileSystemInfo item in FileDeletes)
-            {
-                File.Delete(item.FullName);
-            }
 
 
-            foreach (FileSystemInfo item in Folders)
-            {
-                try
-                {
-                    Directory.Delete(item.FullName, true);
-                }
-                catch (DirectoryNotFoundException)
-                {
-                    // it's probably fine.  Its possible it was just deleted by another delete. The scrub folder location should also be deleted at class cleanup automatically too by unit test classes
-                }
-            }
-        }
-        #region Creation Tools
-        /// <summary>
-        /// Make a folder and add it our  list of cleanup items
-        /// </summary>
-        /// <param name="path1"></param>
-        /// <param name="path2"></param>
-        public void MakeFolder(string path1, string path2)
-        {
-            MakeFolder(path1, path2, FileAttributes.Directory);
-        }
-
-        /// <summary>
-        /// Make a folder and add it our  list of cleanup items
-        /// </summary>
-        /// <param name="path1"></param>
-        /// <param name="path2"></param>
-        /// <param name="attributes">set folder's attributes</param>
-        public void MakeFolder(string path1, string path2, FileAttributes attributes)
-        {
-            string targ = Path.Combine(path1, path2);
-            Directory.CreateDirectory(targ);
-
-            File.SetAttributes(targ, attributes);
-            Items.Add(new DirectoryInfo(targ));
-            
-        }
-
-        /// <summary>
-        /// Make a file and set its attributes. Sets length to 0
-        /// </summary>
-        /// <param name="path1"></param>
-        /// <param name="path2"></param>
-        /// <param name="attributes"></param>
-        public void MakeFile(string path1, string path2, FileAttributes attributes)
-        {
-            MakeFile(path1, path2, attributes, 0);
-        }
-
-        /// <summary>
-        /// Make a file, set attributes amnd length
-        /// </summary>
-        /// <param name="path1"></param>
-        /// <param name="path2"></param>
-        /// <param name="attributes"></param>
-        /// <param name="len"></param>
-        public void MakeFile(string path1, string path2, FileAttributes attributes, int len)
-        {
-            string targ = Path.Combine(path1, path2);
-            using (var fn = File.OpenWrite(targ))
-            {
-                fn.SetLength(len);
-            }
-            File.SetAttributes(targ, attributes);
-            Items.Add(new FileInfo(targ));
-        }
-
-        
-        /// <summary>
-        /// If this is a file or folder, it's deleted at dispoe
-        /// </summary>
-        /// <param name="Location"></param>
-        public void AddItem(string Location)
-        {
-
-        }
-        void IDisposable.Dispose()
-        {
-            Purge();
-            Items.Clear();
-        }
-        #endregion
-    }
     /// <summary>
     /// The Chalice tests are indented to put the class library OdinSearch thru passes
     /// to ensure it actually supporst the flags, settings, features beyond just can we
@@ -146,7 +34,7 @@ namespace NonSqlUnitTests
 
             SearchAnchor Start = new SearchAnchor(false);
             SearchTarget Target = new SearchTarget();
-            Target.FileName.Add(SearchTarget.MatchAnyFile);
+            Target.FileName.Add(MatchAnyFileName);
             Start.AddAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
             OdinSearch_OutputSimpleConsole TestOutput = new OdinSearch_OutputSimpleConsole();
             TestOutput[OdinSearch_SymbolicLinkSort.OutputFolderArgument] = "C:\\TestScrubLocation\\SymbolicSearch";
@@ -166,7 +54,7 @@ namespace NonSqlUnitTests
         {
             SearchAnchor Start = new SearchAnchor(false);
             SearchTarget Target = new SearchTarget();
-            Target.FileName.Add(SearchTarget.MatchAnyFile);
+            Target.FileName.Add(MatchAnyFileName);
             Start.AddAnchor(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
             OdinSearch_SymbolicLinkSort TestOutput = new OdinSearch_SymbolicLinkSort();
             TestOutput[OdinSearch_SymbolicLinkSort.OutputFolderArgument] = "C:\\TestScrubLocation\\SymbolicSearch";
@@ -190,7 +78,7 @@ namespace NonSqlUnitTests
     [TestClass]
     public class UnitTest_OdinSearch_ChaliceTests
     {
-        
+
         // Test creates files/folders there and then cleans up at the end of the run. Each test is reposible for making an FileItemCache that clears itself up.
         string TestFolderFullLocation;
         const string TestScrubFolderName = "TestScrubLocation";
@@ -225,8 +113,8 @@ namespace NonSqlUnitTests
             }
         }
         #endregion
-        
-#endregion
+
+        #endregion
 
         #region test scenerio population
         /// <summary>
@@ -255,14 +143,14 @@ namespace NonSqlUnitTests
         /// </summary>
         void test2_populate(FileItemCache cache, string scrublocation)
         {
-            
+
             string targ = scrublocation;
             //string copysource = Path.Combine(Environment.GetEnvironmentVariable("%WINDIR%"),"\\");
             cache.MakeFolder(targ, "test2");
             test2_filetolookfor_name = Path.Combine(targ, "test2", "bob.tmp");
             cache.MakeFile(string.Empty, test2_filetolookfor_name, FileAttributes.Temporary);
 
-            
+
         }
 
         /// <summary>
@@ -290,13 +178,13 @@ namespace NonSqlUnitTests
             cache.MakeFile(string.Empty, file3, FileAttributes.Archive | FileAttributes.Hidden);
 
             // match should not find this file
-            string file4 = Path.Combine(targ, "test3","nonameDONTmatch2.dat");
+            string file4 = Path.Combine(targ, "test3", "nonameDONTmatch2.dat");
             cache.MakeFile(string.Empty, file4, FileAttributes.Archive | FileAttributes.Hidden);
 
-            
+
         }
 
-       
+
 
         /// <summary>
         /// Test scenerio ran with <see cref="TEST4_FindFilesMatching_ArchiveAndHidden__EXACTING_flag_set"/>.  We create 4 very similar files.  and look for 1 of the 4 files that match the specified exacting attribute
@@ -318,14 +206,14 @@ namespace NonSqlUnitTests
             // this file closley but does NOT match the test
             string file3 = Path.Combine(targ, "test4", "AlsomostMatchButNo.dat");
             cache.MakeFile(string.Empty, file3, FileAttributes.Archive | FileAttributes.Hidden | FileAttributes.ReadOnly);
-            
+
 
 
             // the test should only match this file
             string file4 = Path.Combine(targ, "test4", "MatchThis.dat");
             cache.MakeFile(string.Empty, file4, FileAttributes.Archive | FileAttributes.Hidden);
 
-           
+
 
 
         }
@@ -405,7 +293,7 @@ namespace NonSqlUnitTests
 
                 lookfor.CreationAnchorCheck1 = MatchStyleDateTime.Disable;
             }
-            
+
 
         }
         #endregion
@@ -484,6 +372,85 @@ namespace NonSqlUnitTests
 
         #region FileName Tests
 
+        [TestMethod]
+        public void TestNULL_BackRegEx_OnInput_bad_pattern_SafetyOn()
+        {
+            try
+            {
+                TestNULL_BackRegEx_OnInput_bad_pattern_private(true);
+            }
+            catch (RegexParseException ex)
+            {
+                Assert.IsNotNull(ex);
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("Sucessfully caught the regex error before starting the search");
+                return;
+            }
+
+        }
+        [TestMethod]
+        public void TestNULL_BackRegEx_OnInput_bad_pattern_SafetyOff()
+        {
+            try
+            {
+                TestNULL_BackRegEx_OnInput_bad_pattern_private(false);
+            }
+            catch (RegexParseException ex)
+            {
+                Assert.IsNotNull(ex);
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("Sucessfully caught the regex error before starting the search");
+                return;
+            }
+        }
+        void TestNULL_BackRegEx_OnInput_bad_pattern_private(bool RegExSafety)
+        {
+            bool AutoNotify_called = false;
+            void err(Thread t, Exception e)
+            {
+                AutoNotify_called = true;
+                Console.WriteLine("Auto Notify called: " + e.Message);
+            }
+            const string offend = @"[";
+            var Demo = new OdinSearch();
+            OdinSearch_OutputConsumerGatherResults testresults = new OdinSearch_OutputConsumerGatherResults();
+            SearchTarget target = new SearchTarget();
+            target.FileName.Add(offend);
+            target.RegSaftyMode = false;
+            target.FileNameMatching = MatchStyleString.RawRegExMode;
+            Demo.AddSearchTarget(target);
+            Demo.AddSearchAnchor(new SearchAnchor(false));
+            Demo.GetSearchAnchorsAsArray()[0].roots.Add(new DirectoryInfo("C:\\"));
+
+            Demo.Search(testresults, err);
+            //var test = Demo.GetWorkerThreadList();
+
+
+            Demo.WorkerThreadJoin();
+
+            //Assert.IsTrue(Demo.WorkerThreadCount == 1);
+
+            var testme = Demo.GetWorkerThreadException();
+
+            if (target.RegSaftyMode)
+            {
+                Console.WriteLine("RegSaftyMode on: That usings Regex.Escape() to help prevent bad Regex reaching worker threads.");
+                Assert.IsTrue(Demo.WorkerThreadCrashed == false);
+                Assert.IsTrue(testme.Keys.Count == 0);
+                Console.WriteLine("The worker thread didn't crash. Callback error routine not needed");
+            }
+            else
+            {
+                Console.WriteLine("RegSaftyMode off: Regex is passed as is to the worker thread from the caller without validation. This should trigger it crashing.");
+                Assert.IsTrue(Demo.WorkerThreadCrashed == true);
+                Assert.IsTrue(testme.Keys.Count == 1);
+                var keyo = testme.Keys.First();
+                Assert.IsTrue(testme[keyo].Count == 1);
+                Console.WriteLine($"The worker thread crashed. Call back routine called  \"{AutoNotify_called}\"");
+            }
+            return;
+        }
+
         [TestCategory("FileName Tests")]
         [TestMethod]
         public void TEST5_FileMatchingFiles_in_One_Branch_BUT_not_other()
@@ -501,7 +468,7 @@ namespace NonSqlUnitTests
                 start.EnumSubFolders = true;
                 start.AddAnchor(Path.Combine(TestFolderFullLocation, "test5"));
                 SearchTarget lookfor = new SearchTarget();
-                lookfor.FileName.Add(SearchTarget.MatchAnyFile); // match any.
+                lookfor.FileName.Add(MatchAnyFileName); // match any.
                 lookfor.DirectoryPath.Add("*NopePath*");
                 lookfor.DirectoryMatching = MatchStyleString.Invert;
 
@@ -512,7 +479,7 @@ namespace NonSqlUnitTests
 
                 Assert.IsTrue(testresults.Results.Count == 5);
             }
-            
+
 
         }
 
@@ -539,7 +506,7 @@ namespace NonSqlUnitTests
 
                 Assert.IsTrue(testresults.Results.Count == 3);
             }
-            
+
         }
         #endregion
         /*

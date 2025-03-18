@@ -7,12 +7,32 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OdinSearchEngine;
 
-namespace NonSqlUnitTests
+namespace NonSqlUnitTests.OlderTests.Basic_DataTypes
 {
     [TestClass]
     public class UnitTest_SearchTarget
     {
+        [TestMethod]
+        public void SearchTarget_AnyFileTest_TriggrAndCompare()
+        {
+            // anyfile original
+            var SearchTarget = new SearchTarget();
+            SearchTarget.FileName.Add(SearchTarget.MatchAnyFileName);
+            SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
+            SearchTarget.FileNameMatching = SearchTarget.MatchStyleString.Skip;
+            SearchTarget.AttributeMatching1 = SearchTarget.AttributeMatching2 = FileAttributes.Normal;
+            SearchTarget.AttribMatching1Style = SearchTarget.AttribMatching2Style = SearchTarget.MatchStyleFileAttributes.Skip;
+            SearchTarget.AccessAnchorCheck1 = SearchTarget.AccessAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
+            SearchTarget.WriteAnchorCheck1 = SearchTarget.WriteAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
+            SearchTarget.CreationAnchorCheck1 = SearchTarget.CreationAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
+            SearchTarget.CheckFileSize = false;
+            SearchTarget.DirectoryMatching = SearchTarget.MatchStyleString.Skip;
 
+            Assert.IsNotNull(SearchTarget.AllFiles);
+
+            Assert.AreEqual(SearchTarget, SearchTarget.AllFiles);
+
+        }
         /// <summary>
         /// Will saving and reloading the xml from a file work?
         /// </summary>
@@ -71,10 +91,10 @@ namespace NonSqlUnitTests
             searchTarget.CheckFileSize = true;
 
             searchTarget.AttribMatching1Style = SearchTarget.MatchStyleFileAttributes.MatchAny | SearchTarget.MatchStyleFileAttributes.Exacting;
-            searchTarget.AttributeMatching1 = System.IO.FileAttributes.System | System.IO.FileAttributes.Temporary;
+            searchTarget.AttributeMatching1 = FileAttributes.System | FileAttributes.Temporary;
 
             searchTarget.AttribMatching2Style = SearchTarget.MatchStyleFileAttributes.Invert | SearchTarget.MatchStyleFileAttributes.MatchAll;
-            searchTarget.AttributeMatching2 = System.IO.FileAttributes.Compressed | System.IO.FileAttributes.Hidden;
+            searchTarget.AttributeMatching2 = FileAttributes.Compressed | FileAttributes.Hidden;
 
 
             searchTarget.FileName.Add("*.dll");

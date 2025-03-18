@@ -1,9 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net7.0-windows</TargetFramework>
 
     <IsPackable>false</IsPackable>
+
+    <Configurations>Debug;Release;LinuxDebug</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +17,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\FileInventoryEngine\OdinSearchEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="OlderTests\TestFeature_HintsSystem\" />
   </ItemGroup>
 
 </Project>

@@ -8,13 +8,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 //
 using System.IO.Compression;
 
-namespace NonSqlUnitTests
+namespace NonSqlUnitTests.OlderTests.TestFeature_NOTIMPLEMENTED
 {
     [TestClass]
     public class ContainerTests
     {
         [TestInitialize]
-        public void Init() {
+        public void Init()
+        {
             Directory.CreateDirectory("C:\\TestScrubLocation");
         }
 
@@ -27,7 +28,7 @@ namespace NonSqlUnitTests
             throw new NotImplementedException();
 
 
-             
+
         }
     }
 }

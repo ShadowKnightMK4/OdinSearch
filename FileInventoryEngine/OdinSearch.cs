@@ -12,6 +12,11 @@ using System.Collections;
 using System.Diagnostics;
 using ThreadState = System.Threading.ThreadState;
 using System.ComponentModel.DataAnnotations;
+using System.Collections.Concurrent;
+using OdinSearchEngine.SearchSupport;
+using DeepDirPrune;
+using System.ComponentModel;
+using System.Net.Security;
 
 namespace OdinSearchEngine
 {
@@ -32,11 +37,130 @@ namespace OdinSearchEngine
 
         }
     }
+
+    /// <summary>
+    /// This is thrown if someone calls <see cref="OdinSearch.KillSearch()"/>. It gets logged in the exception tracker and can be safely ignored.
+    /// </summary>
+    public class OdinSearch_WorkerThreadCanceled: Exception
+    {
+        public OdinSearch_WorkerThreadCanceled(string message) : base(message)
+        {
+
+        }
+
+        public OdinSearch_WorkerThreadCanceled(string message, Exception Inner) : base(message, Inner)
+        {
+
+        }
+    }
+
+    public enum OdinSearch_DupCheck_Mode
+    {
+        /// <summary>
+        /// Current released mode. We don't check, duplicates be darned.
+        /// </summary>
+        Default = 0,
+        /// <summary>
+        /// If user indicates hints, we add the hints folders and skip thoses hte next time we add. Otherwise same as off.
+        /// </summary>
+        OnlyHints,
+        /// <summary>
+        /// Find a folder, add to the list.
+        /// </summary>
+        Everything
+    }
+
+    /// <summary>
+    /// when the thread search class gets a match, it gets added here.
+    /// </summary>
+    /// <remarks>This class in marked internal for a reason. It likely isn't gonna be static</remarks>
+    internal class OdinSearch_MatchProcessor
+    {
+        
+        readonly ConcurrentQueue<FileSystemInfo>  MatchBuffer = new ();
+        public void AddNewEntry(FileSystemInfo x)
+        {
+            MatchBuffer.Enqueue(x);
+        }
+
+        
+
+        public void ClearEntries()
+        {
+            MatchBuffer.Clear();
+        }
+
+        OdinSearch_OutputConsumerBase Processor;
+        CancellationToken? CancelMe;
+        Thread? ProcessorThread;
+        /// <summary>
+        /// TODO: balk at not terminating the processor thread if already
+        /// </summary>
+        public void BeginProcessing()
+        {
+            if (ProcessorThread is not null)
+            {
+                throw new InvalidOperationException("Already Processing");
+            }
+            ProcessorThread = new Thread(p =>
+            {
+                CancelMe = new CancellationToken(false);
+
+                while (!CancelMe.Value.IsCancellationRequested)
+                {
+                    FileSystemInfo Info = null ;
+                    if (CancelMe.Value.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        if (MatchBuffer.TryDequeue(out Info))
+                        {
+                            lock (Processor)
+                            {
+                                Processor.Match(Info);
+                            }
+                        }
+                        else
+                        {
+                            if (MatchBuffer.IsEmpty)
+                            {
+                                Thread.Sleep(100);
+                            }
+                        }
+                    }
+                }
+            });
+            ProcessorThread.Start();
+        }
+        public void EndProcessing()
+        {
+            throw new NotImplementedException();
+        }
+        public void AssignMatchProcessor(OdinSearch_OutputConsumerBase Processor)
+        {
+            this.Processor = Processor;
+        }
+    }
+
+    public enum OdinSearch_SyncMode
+    {
+        // we wait for the coms base to call back from match before feeding results
+        Sync = 1,
+        // we push the results to a query that's feed to the comsbase and keep on trucking.
+        NoWait = 2
+    }
+
+    
     /// <summary>
     /// Search the local system for files/folders 
     /// </summary>
     public class OdinSearch
     {
+        #region Static Messages and Strings
+        const string WorkerThread_NullArgMessage = "Worker Thread was called with null argument value. It expects an instance of WorkerThreadArgs wrapped in an object. This shouldn't normally happen.";
+        #endregion
         #region DEBUG_AIDS
 #if DEBUG
         public bool DebugVerboseMode
@@ -53,7 +177,7 @@ namespace OdinSearchEngine
 
         private bool DebugVerboseModeHandle = true;
 #else
-    
+
         public bool DebugVerboseMode
         {
             set
@@ -70,6 +194,35 @@ namespace OdinSearchEngine
 
         #endregion
         #region Public Class Variables and Properties
+
+        /// <summary>
+        /// decide how commucation to coms class will work.
+        /// </summary>
+        public OdinSearch_SyncMode SynchMode = OdinSearch_SyncMode.NoWait;
+        /// <summary>
+        /// If true, when any match is file, we end the search.  
+        /// </summary>
+        /// <remarks>IMPORTANT! Once the search starts, changing this will do nothing.</remarks>
+        public bool SoleMatch { get; set; } = false;
+
+        public OdinSearch_DupCheck_Mode DupMode
+        {
+            get => _BackingDupMode;
+            set
+            {
+                switch (value)
+                {
+                    case OdinSearch_DupCheck_Mode.Default:
+                    case OdinSearch_DupCheck_Mode.OnlyHints:
+                    case OdinSearch_DupCheck_Mode.Everything:
+                        _BackingDupMode = value;
+                        break;
+                    default: throw new InvalidEnumArgumentException();
+                }
+                
+            }
+        }
+        internal OdinSearch_DupCheck_Mode _BackingDupMode = OdinSearch_DupCheck_Mode.Default;
         /// <summary>
         /// False Means we don't lock a object to aid synching when sending output to a <see cref="OdinSearch_OutputConsumerBase"/> based class.  
         /// </summary>
@@ -90,6 +243,13 @@ namespace OdinSearchEngine
         /// </summary>
         public int WorkerThreadCount { get { return WorkerThreads.Count; } }
 
+        
+
+        WorkerThreadExceptionCounter ETracker = new();
+
+
+        
+
         /// <summary>
         /// When starting a search, if this is true, the call to <see cref="SanityChecks(WorkerThreadArgs)"/> is skipped. Currently, that routine does nothing, but is intended to be a way to guard against silly/impossible things such as searching for a file that's also a folder for example
         /// </summary>
@@ -98,6 +258,20 @@ namespace OdinSearchEngine
         #endregion
 
         #region Protected or Private Class Variables / properties
+
+        /// <summary>
+        /// This is used to skip checking the same folder more than once
+        /// </summary>
+        DeepDirTracking SearchPruneCheck = new();
+        OdinSeachHintsSystem HintsSystem = new();
+#if DEBUG
+        /// <summary>
+        /// Only FOR DEBUG BUILDS
+        /// </summary>
+        public DeepDirTracking DEBUGCHECK => SearchPruneCheck;
+
+#endif
+        public bool DebugDisablePrune { get; set; }
 
         /// <summary>
         /// Backing Varible for <see cref="ThreadSynchResults"/>
@@ -127,6 +301,44 @@ namespace OdinSearchEngine
         #endregion
 
         #region Worker Thread Routines
+
+        /// <summary>
+        /// Track Exceptions triggered by the worker threads that are crashing.
+        /// </summary>
+        internal class WorkerThreadExceptionCounter
+        {
+            /// <summary>
+            /// Exceptions are here, and each worker thread shares the tracker class. 
+            /// </summary>
+            public readonly ConcurrentDictionary<Thread, List<Exception>> Errors = new();
+            
+            /// <summary>
+            /// mainly used to be an easy way to add exceptions
+            /// </summary>
+            /// <param name="thread"></param>
+            /// <param name="e"></param>
+            public void AddException(Thread thread, Exception e)
+            {
+                if (Errors.ContainsKey(thread) == false)
+                {
+                    Errors[thread] = new List<Exception> { e };
+                }
+                else
+                {
+                    Errors[thread].Add(e);
+                }
+            }
+        }
+        
+
+        /// <summary>
+        /// Delegate to let the user of OdinSearch.Search() get a notification if a thread crashes.
+        /// </summary>
+        /// <param name="T"></param>
+        /// <param name="e"></param>
+        public delegate void WorkerThreadUserNotifyError(Thread T, Exception e);
+
+
         /// <summary>
         /// Loop thru the worker threads and if any aren't alive, call <see cref="OdinSearch_OutputConsumerBase.ResolvePendingActions"/> on them
         /// </summary>
@@ -183,6 +395,8 @@ namespace OdinSearchEngine
             ClearSearchAnchorList();
             ClearSearchTargetList();
 
+
+            ETracker.Errors.Clear();
             SkipSanityCheck = true;
             ThreadSynchResultsBacking = false;
             SearchCalled = false;
@@ -207,6 +421,7 @@ namespace OdinSearchEngine
         /// </summary>
         internal class SearchTargetPreDoneRegEx
         {
+            
             public SearchTargetPreDoneRegEx(SearchTarget SearchTarget)
             {
                 PreDoneRegExFileName = SearchTarget.ConvertFileNameToRegEx();
@@ -214,8 +429,17 @@ namespace OdinSearchEngine
 
                 PreDoneRegExDirectoryName = SearchTarget.ConvertDirectoryPathToRegEx();
             }
+            /// <summary>
+            /// The SearchTarget used to make the class
+            /// </summary>
             public SearchTarget SearchTarget;
+            /// <summary>
+            /// THe precomputed RegEx for the FileName part of the SerachTarget
+            /// </summary>
             public List<Regex> PreDoneRegExFileName;
+            /// <summary>
+            /// The precompated RegEx for the fullname of the SearchTarget
+            /// </summary>
             public List<Regex> PreDoneRegExDirectoryName;
         }
         /// <summary>
@@ -242,235 +466,447 @@ namespace OdinSearchEngine
 
             public Semaphore ComTalk;
 
-            
+
+            /// <summary>
+            /// If non null, will be called when an error is logged. 
+            /// </summary>
+            public WorkerThreadUserNotifyError AutoNotify = null;
+            /// <summary>
+            /// tracks exceptions.
+            /// </summary>
+            public WorkerThreadExceptionCounter Tracker;
+
+            /// <summary>
+            /// initalized before the worker thread is spawned.
+            /// </summary>
+            public List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
+
+            /// <summary>
+            /// Received from <see cref="OdinSearch.SoleMatch"/> on creation.
+            /// </summary>
+            public bool SoleMatchFlag;
             //public ReadOnlyCollection<OdinSearchContainer_GenericItem> ContainerList { get; internal set; }
         }
         #endregion
 
         #region Worker Thread stuff
 
+        /// <summary>
+        /// Get a list of logged fatal exceptions that happend while the worker threads ran. Note: expected exceptions do NOT appear here.
+        /// </summary>
+        /// <returns></returns>
+        public ReadOnlyDictionary<Thread, List<Exception>> GetWorkerThreadException()
+        {
+            lock(this.ETracker)
+            {
+                return ETracker.Errors.AsReadOnly();    
+            }
+        }
+
+        /// <summary>
+        /// Return if a worker thread crashed while executing. 
+        /// </summary>
+        public bool WorkerThreadCrashed
+        {
+            get
+            {
+                foreach (Thread i in ETracker.Errors.Keys)
+                {
+                    if (ETracker.Errors[i] is not null)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
         #region Worker Thread Routine
 
+        internal void WorkerThreadInitRegEx(WorkerThreadArgs Args)
+        {
+            // prececulate the search target info
+            foreach (SearchTarget Target in Args.Targets)
+            {
+                Args.TargetWithRegEx.Add(new SearchTargetPreDoneRegEx(Target));
+            }
+        }
+
+        
         /// <summary>
         /// Unpack the WorkerThreadArgs and go to work. Not intended to to called without having done by its own thread
         /// </summary>
-        /// <param name="Args"></param>
+        /// <param name="Args">This is an instance of <see cref="WorkerThreadArgs"/> boxed in an object</param>
         void WorkerThreadProc(object Args)
         {
+            /*
+             * new plan. We move the wait to a thread that feeds the matcher.
+             */
+            OdinSearch_MatchProcessor MatchProcessor;
+            if (SynchMode == OdinSearch_SyncMode.NoWait)
+            {
+                MatchProcessor = new();
+            }
+            else
+            {
+                // not strickyl needed. Default is null. 
+                MatchProcessor = null; 
+            }
             
 
-            if (Args == null) throw new ArgumentNullException();
+            if (Args == null) throw new ArgumentNullException(nameof(Args));
             
             Queue<DirectoryInfo> FolderList = new Queue<DirectoryInfo>();
-            //Queue<OdinSearch_ContainerSystemItem> FolderList = new Queue<OdinSearch_ContainerSystemItem>();
 
-            List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
+
+            //Queue<OdinSearch_ContainerSystemItem> FolderList = new Queue<OdinSearch_ContainerSystemItem>();
+            //List<SearchTargetPreDoneRegEx> TargetWithRegEx = new List<SearchTargetPreDoneRegEx>();
+            
             WorkerThreadArgs TrueArgs = Args as WorkerThreadArgs;
-            //Thread.CurrentThread.Name = TrueArgs.StartFrom.roots[0].ToString() + " Scanner";
+
+            MatchProcessor?.AssignMatchProcessor(TrueArgs.Coms);
+            MatchProcessor?.BeginProcessing();
+            // how this thread cancels.
+            void BailingOutIfRequested(bool Cancel, string msg = null)
+            {
+
+                //if (TrueArgs.Token.IsCancellationRequested)
+                if (Cancel)
+                {
+                    if (msg == null)
+                    {
+                        msg = Thread.CurrentThread.Name + $" Thread aborted due to cancel request\r\n";
+                    }
+                    else
+                    {
+                        msg = Thread.CurrentThread.Name + $" Thread finished due to finding match and SoleMatch flag is set\r\n";
+                    }
+#if DEBUG
+                        if (DebugVerboseModeHandle)
+                        Debug.WriteLine(msg);
+#endif
+                    throw new OdinSearch_WorkerThreadCanceled(msg);
+                }
+            }
+            ///Add this exception to the list of exceptions tracked for the thread this is ran on.
+            void RegisterExceptionWithThread(Exception e)
+            {
+#if DEBUG
+                Debug.WriteLine(Thread.CurrentThread.Name + $"logging exception {e.Message} to our tracking class. Can be viewed /interacted with");
+#endif 
+                TrueArgs.Tracker.AddException(Thread.CurrentThread, e);
+                TrueArgs.AutoNotify?.Invoke(Thread.CurrentThread, e);
+            }
 #if DEBUG
             if (DebugVerboseModeHandle)
                 Debug.WriteLine(Thread.CurrentThread.Name + " is working with " + TrueArgs.StartFrom.roots[0]);
 #endif
 
-            if (TrueArgs != null)
+            // this wrapper is not the best in theory. It's there for catching unhandled exceptions that roll outside
+            // of code and saving them to the tracking class so someone can go back and handle it later.
+            try
             {
-                if (TrueArgs.Targets.Count > 0)
+                if (TrueArgs != null)
                 {
-                    if (TrueArgs.StartFrom != null)
+                    if (TrueArgs.Targets.Count > 0)
                     {
-
-                        // prececulate the search target info
-                        foreach (SearchTarget Target in TrueArgs.Targets)
+                        if (TrueArgs.StartFrom != null)
                         {
-                            TargetWithRegEx.Add(new SearchTargetPreDoneRegEx(Target));
-                        }
 
-                        // add root[0] to the queue to pull from
-                        FolderList.Enqueue(TrueArgs.StartFrom.roots[0]);
-
-                    // label is used as a starting point to loop back to for looking at subfolders when we get
-                    // looping
-                    Reset:
-
-
-                        if (FolderList.Count > 0)
-                        {
-                            // should an exception happen during getting folder/file names, this is set
-                            bool ErrorPrune = false;
-
-                            DirectoryInfo CurrentLoc = FolderList.Dequeue();
-
-                            // files in the CurrentLoc
-                            FileInfo[] Files = null;
-                            // folders in the CurrentLoc
-                            DirectoryInfo[] Folders = null;
                             try
                             {
-                                Files = CurrentLoc.GetFiles();
-                                Folders = CurrentLoc.GetDirectories();
-
+                                if (TrueArgs.TargetWithRegEx == null)
+                                {
+                                    WorkerThreadInitRegEx(TrueArgs);
+                                }
                             }
-                            catch (IOException e)
+                            catch (RegexParseException e)
                             {
-                                try
-                                {
-                                    //LockThisAccess(TrueArgs.ComTalk);
-                                    lock (TrueArgs.ComTalk)
-                                    {
-                                        TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason: " + e.Message);
-                                        TrueArgs.Coms.Blocked(CurrentLoc.ToString());
-                                    }
-                                }
-                                finally
-                                {
-                                    //UnlockThisAccess(TrueArgs.ComTalk);
-                                }
-                                ErrorPrune = true;
-                            }
-                            catch (UnauthorizedAccessException)
-                            {
-                                try
-                                {
-                                    //LockThisAccess(TrueArgs.ComTalk);
-                                    lock (TrueArgs.ComTalk)
-                                    {
-                                        TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason Access Denied");
-                                        TrueArgs.Coms.Blocked(CurrentLoc.ToString());
-                                    }
-                                }
-                                finally
-                                {
-                                    //UnlockThisAccess(TrueArgs.ComTalk);
-                                }
-
-                                ErrorPrune = true;
-                            }
-
-
-
-                            if (!ErrorPrune)
-
-                                foreach (SearchTargetPreDoneRegEx Target in TargetWithRegEx)
-                                {
-                                    bool Pruned = false;
-
-                                    // skip this compare if we're  looking for a directory
-
-                                    if (Target.SearchTarget.AttributeMatching1 != 0)
-                                    {
-                                        if (Target.SearchTarget.AttributeMatching1.HasFlag(FileAttributes.Directory))
-                                        {
-                                            Pruned = true;
-                                        }
-                                    }
-
-
-                                    if (!Pruned)
-                                    {
-                                        // file check
-
-
-                                        foreach (FileInfo Possible in Files)
-                                        {
-                                            bool isMatched = MatchThis(Target, Possible);
-                                            if (isMatched)
-                                            {
-                                                if (!ThreadSynchResults)
-                                                {
-                                                    TrueArgs.Coms.Match(Possible);
-                                                }
-                                                else
-                                                {
-                                                    try
-                                                    {
-                                                        lock (TrueArgs.ComTalk)
-                                                        {
-                                                            TrueArgs.Coms.Match(Possible);
-                                                        }
-                                                    }
-                                                    finally
-                                                    {
-
-                                                    }
-
-
-                                                }
-                                            }
-                                        }
-                                    }
-                                    Pruned = false;
-
-                                    if (!Pruned)
-                                    {
-                                        // folder check
-                                        foreach (DirectoryInfo Possible in Folders)
-                                        {
-
-                                            try
-                                            {
+                                RegisterExceptionWithThread((Exception)e);
 #if DEBUG
-                                                if (DebugVerboseModeHandle)
+                                if (DebugVerboseModeHandle)
+                                    Debug.WriteLine(Thread.CurrentThread.Name + $" has failed to start searching due to invalid RegEx received. Exception error {e.Message}\r\n");
+#endif
+
+                                return;
+                            }
+
+                            BailingOutIfRequested(TrueArgs.Token.IsCancellationRequested);
+
+                            // place the hints first
+                            {
+
+                            hintpop:
+                                DirectoryInfo Hints = null;
+                                Hints = HintsSystem.GetNextEntry();
+                                if (Hints != null)
+                                {
+                                    FolderList.Enqueue(Hints);
+                                    goto hintpop;
+                                }
+                            }
+                            // add root[0] to the queue to pull from
+                            FolderList.Enqueue(TrueArgs.StartFrom.roots[0]);
+
+                        // label is used as a starting point to loop back to for looking at subfolders when we get
+                        // looping
+                        Reset:
+
+                            BailingOutIfRequested(TrueArgs.Token.IsCancellationRequested);
+
+
+                            if (FolderList.Count > 0)
+                            {
+                                // should an exception happen during getting folder/file names, this is set
+                                // which triggers an early bailout on comparing.
+                                bool ErrorPrune = false;
+
+                                DirectoryInfo CurrentLoc = FolderList.Dequeue();
+
+                                switch (DupMode)
+                                {
+                                    case OdinSearch_DupCheck_Mode.Default:
+                                        break;
+                                    case OdinSearch_DupCheck_Mode.OnlyHints:
+                                        throw new NotImplementedException();
+                                        break;
+                                    case OdinSearch_DupCheck_Mode.Everything:
+                                        if (SearchPruneCheck.DoesDirPathExist(CurrentLoc.FullName))
+                                            ErrorPrune = true;
+                                        else
+                                        {
+                                            SearchPruneCheck.AddDirPath(CurrentLoc.FullName);
+                                        }
+                                        break;
+                                   }
+                                // files in the CurrentLoc
+                                FileInfo[] Files = null;
+                                // folders in the CurrentLoc
+                                DirectoryInfo[] Folders = null;
+                                try
+                                {
+                                    if (!ErrorPrune)
+                                    {
+                                        Files = CurrentLoc.GetFiles();
+                                        Folders = CurrentLoc.GetDirectories();
+                                    }
+                                    else
+                                    {
+#if DEBUG
+                                        if (DebugVerboseModeHandle)
+                                            Debug.WriteLine($"Thread {Thread.CurrentThread.Name}: ID {Thread.CurrentThread.ManagedThreadId} Searching {CurrentLoc.FullName} has been pruned due to it being in the already visited list\r\n");
+#endif
+
+                                    }
+                                }
+                                catch (IOException e)
+                                {
+                                    try
+                                    {
+                                        //LockThisAccess(TrueArgs.ComTalk);
+                                        lock (TrueArgs.ComTalk)
+                                        {
+                                            TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason: " + e.Message);
+                                            TrueArgs.Coms.Blocked(CurrentLoc.ToString());
+                                        }
+                                    }
+                                    finally
+                                    {
+                                        //UnlockThisAccess(TrueArgs.ComTalk);
+                                    }
+                                    ErrorPrune = true;
+                                }
+                                catch (UnauthorizedAccessException)
+                                {
+                                    try
+                                    {
+                                        //LockThisAccess(TrueArgs.ComTalk);
+                                        lock (TrueArgs.ComTalk)
+                                        {
+                                            TrueArgs.Coms.Messaging("Unable to get file or listing for folder at " + CurrentLoc.FullName + " Reason Access Denied");
+                                            TrueArgs.Coms.Blocked(CurrentLoc.ToString());
+                                        }
+                                    }
+                                    finally
+                                    {
+                                        //UnlockThisAccess(TrueArgs.ComTalk);
+                                    }
+
+                                    ErrorPrune = true;
+                                }
+
+
+
+                                if (!ErrorPrune)
+
+                                    foreach (SearchTargetPreDoneRegEx Target in TrueArgs.TargetWithRegEx)
+                                    {
+                                        bool Pruned = false;
+
+                                        // skip this compare if we're  looking for a directory
+
+                                        if (Target.SearchTarget.AttributeMatching1 != 0)
+                                        {
+                                            if (Target.SearchTarget.AttributeMatching1.HasFlag(FileAttributes.Directory))
+                                            {
+                                                Pruned = true;
+                                            }
+                                        }
+
+
+                                        if (!Pruned)
+                                        {
+                                            // file check
+                                            BailingOutIfRequested(TrueArgs.Token.IsCancellationRequested);
+
+                                            foreach (FileInfo Possible in Files)
+                                            {
+                                                bool isMatched = MatchThis(Target, Possible);
+                                                if (isMatched)
                                                 {
-                                                    lock (TrueArgs.ComTalk)
+
+                                                    if (!ThreadSynchResults)
                                                     {
-                                                        TrueArgs.Coms.Messaging("DEBUG: attempt to match folder " + Targets[0].FileName.ToString() + " against " + Possible.Name);
+                                                        if(MatchProcessor is null)
+                                                        {
+                                                            {
+                                                                TrueArgs.Coms.Match(Possible);
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            MatchProcessor.AddNewEntry(Possible);
+                                                        }
+                                                        if (isMatched && TrueArgs.SoleMatchFlag)
+                                                        {
+                                                            BailingOutIfRequested(true, "Bailing out due to finding a match with SoleMatch set to true.");
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        try
+                                                        {
+                                                            if(MatchProcessor is null)
+                                                            {
+                                                                {
+                                                                    TrueArgs.Coms.Match(Possible);
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                MatchProcessor.AddNewEntry(Possible);
+                                                            }
+                                                        }
+                                                        finally
+                                                        {
+
+                                                        }
+                                                        if (isMatched && TrueArgs.SoleMatchFlag)
+                                                        {
+                                                            BailingOutIfRequested(true, "Bailing out due to finding a match with SoleMatch set to true.");
+                                                        }
                                                     }
                                                 }
-#endif
                                             }
-                                            finally
+                                        }
+                                        Pruned = false;
+
+                                        if (!Pruned)
+                                        {
+                                            // folder check
+                                            foreach (DirectoryInfo Possible in Folders)
                                             {
 
-                                            }
-
-                                            bool isMatched = MatchThis(Target, Possible);
-                                            if (isMatched)
-                                            {
-                                                if (!ThreadSynchResults)
+                                                try
                                                 {
-
-                                                    try
+#if DEBUG
+                                                    if (DebugVerboseModeHandle)
                                                     {
                                                         lock (TrueArgs.ComTalk)
                                                         {
-                                                            TrueArgs.Coms.Match(Possible);
+                                                            TrueArgs.Coms.Messaging("DEBUG: attempt to match folder " + Targets[0].FileName.ToString() + " against " + Possible.Name);
                                                         }
                                                     }
-                                                    finally
-                                                    {
-
-                                                    }
-
-                                                    
+#endif
                                                 }
-                                                else
+                                                finally
                                                 {
-                                                    lock (TrueArgs.ComTalk)
+
+                                                }
+
+                                                bool isMatched = MatchThis(Target, Possible);
+
+                                                if (isMatched)
+                                                {
+                                                    if (!ThreadSynchResults)
                                                     {
-                                                        TrueArgs.Coms.Match(Possible);
+
+                                                        try
+                                                        {
+                                                            if (MatchProcessor is null)
+                                                            {
+                                                                {
+                                                                    TrueArgs.Coms.Match(Possible);
+                                                                }
+                                                            }
+                                                            else
+                                                            {
+                                                                MatchProcessor.AddNewEntry(Possible);
+                                                            }
+                                                        }
+                                                        finally
+                                                        {
+
+                                                        }
+                                                        if (isMatched && TrueArgs.SoleMatchFlag)
+                                                        {
+                                                            BailingOutIfRequested(true, "Bailing out due to finding a match with SoleMatch set to true.");
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+
+                                                        if (MatchProcessor is null)
+                                                        {
+                                                            {
+                                                                TrueArgs.Coms.Match(Possible);
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            MatchProcessor.AddNewEntry(Possible);
+                                                        }
+                                                        if (isMatched && TrueArgs.SoleMatchFlag)
+                                                        {
+                                                            BailingOutIfRequested(true, "Bailing out due to finding a match with SoleMatch set to true.");
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
                                     }
+
+                                if (TrueArgs.StartFrom.EnumSubFolders)
+                                {
+                                    if (!ErrorPrune)
+                                        foreach (DirectoryInfo Folder in Folders)
+                                        {
+                                            FolderList.Enqueue(Folder);
+                                        }
                                 }
-
-                            if (TrueArgs.StartFrom.EnumSubFolders)
-                            {
-                                if (!ErrorPrune)
-                                    foreach (DirectoryInfo Folder in Folders)
-                                    {
-                                        FolderList.Enqueue(Folder);
-                                    }
                             }
-                        }
 
-                        if (FolderList.Count > 0)
-                        {
-                            goto Reset;
+                            if (FolderList.Count > 0)
+                            {
+                                goto Reset;
+                            }
                         }
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                RegisterExceptionWithThread(e);
             }
         }
         #endregion
@@ -493,20 +929,29 @@ namespace OdinSearchEngine
                     KeepGoing = false;
                     for (int step =0; step < WorkerThreads.Count;step++)
                     {
-                        if (WorkerThreads[step].Args.Coms.HasPendingActions())
+                        try
                         {
-                            KeepGoing = true;
-                            WorkerThreads[step].Args.Coms.ResolvePendingActions();
-                        }
-                        else
-                        {
-                            if (WorkerThreads[step].Thread.IsAlive == true)
+                            if (WorkerThreads[step].Args.Coms.HasPendingActions())
                             {
                                 KeepGoing = true;
-                                break;
+                                WorkerThreads[step].Args.Coms.ResolvePendingActions();
+                            }
+                            else
+                            {
+                                if (WorkerThreads[step].Thread.IsAlive == true)
+                                {
+                                    KeepGoing = true;
+                                    break;
+                                }
                             }
                         }
+                        catch (ArgumentOutOfRangeException)
+                        {
+                            if (WorkerThreads.Count == 0)
+                                KeepGoing = false;
+                        }
                     }
+
                 }
             }
 
@@ -559,12 +1004,24 @@ namespace OdinSearchEngine
         List<WorkerThreadWithCancelToken> WorkerThreads = new List<WorkerThreadWithCancelToken>();
 
 
-
+        /// <summary>
+        /// Get a queue of the worker threads. Intented to advoid collection modification exceptions.
+        /// </summary>
+        /// <returns></returns>
+        Queue<WorkerThreadWithCancelToken> GetWorkerThreadsQueue()
+        {
+            Queue<WorkerThreadWithCancelToken> Works = new();
+            for (int i = 0; i < WorkerThreads.Count; i++)
+            {
+                Works.Enqueue(WorkerThreads[i]);
+            }
+            return Works;
+        }
         /// <summary>
         /// Call Thread.Join() for all worker threads spawned in the list. Your code will functionally be awaiting until it is done
         /// </summary>
-        /// <exception cref="ThreadStart">Can potentially trigger if a thread has not started yet.</exception>
-        /// <exception cref=">"
+        /// <exception cref="ThreadStart">Can potentially trigger if a thread has not started yet. This is why the example code in the readme Thread.Sleep(200) in it.</exception>
+        /// <exception cref="InvalidOperationException">Is thrown if calling this without first calling <see cref="Search(OdinSearch_OutputConsumerBase)"/> or the worker thread pool is empty</exception>
         /// <remarks></remarks>
         public void WorkerThreadJoin()
         {
@@ -578,13 +1035,27 @@ namespace OdinSearchEngine
             }
             // This is here to also guard against premature starting and throwing an exception.
             Thread.Sleep(200);
-            WorkerThreads.ForEach(
-                p => {
-                    if (p.Thread.ThreadState == System.Threading.ThreadState.Running)
+
+            // another ready we put them it a queue is to avoid a collection modified exception.
+            Queue<WorkerThreadWithCancelToken> Works = GetWorkerThreadsQueue();
+
+
+            WorkerThreadWithCancelToken pop=null;
+            while (Works.Count > 0)
+            {
+                
+                pop = Works.Dequeue();
+                if (pop != null)
+                {
+                    switch (pop.Thread.ThreadState)
                     {
-                        p.Thread.Join();
+                        case ThreadState.Running:
+                            pop.Thread.Join();
+                            break;
                     }
-                });
+                }    
+            }
+            return;
         }
 
 
@@ -602,14 +1073,19 @@ namespace OdinSearchEngine
         {
             get
             {
+                
                 if (WorkerThreads.Count == 0)
                     return false;
 
                 int running_count = 0;
-                for (int step = 0; step < WorkerThreads.Count; step++)
+                var Threads = GetWorkerThreadsQueue();
+                WorkerThreadWithCancelToken pop = null;
+                while (Threads.Count > 0)
                 {
+                    pop = Threads.Dequeue();
+                    if (pop != null)
                     {
-                        if (!WorkerThreads[step].Thread.IsAlive)
+                        if (pop.Thread.IsAlive)
                         {
                             running_count++;
                             break;
@@ -764,6 +1240,13 @@ namespace OdinSearchEngine
             bool AttribCheck(SearchTarget.MatchStyleFileAttributes HowToCompare, FileAttributes SearchTargetCompare, FileAttributes FileInfoCompare)
             {
                 bool CompareMe = false;
+                if (!HowToCompare.HasFlag(MatchStyleFileAttributes.MatchAll))
+                {
+                    if (!HowToCompare.HasFlag(MatchStyleFileAttributes.MatchAny))
+                    {
+                        HowToCompare |= MatchStyleFileAttributes.MatchAll;
+                    }
+                }
 
                 // treat check if true if no attributeres were specified or normal was
                 if ((HowToCompare == MatchStyleFileAttributes.Skip) || ((SearchTargetCompare == FileAttributes.Normal) || (SearchTargetCompare == 0)))
@@ -1055,6 +1538,34 @@ namespace OdinSearchEngine
 
         #endregion
 
+        #region Code for setting Hints
+        public void AddSearchHint(DirectoryInfo Info)
+        {
+            HintsSystem.AddEntry(Info);
+        }
+
+        public void AddSearchHint(string Info)
+        {
+            HintsSystem.AddEntry(Info);
+        }
+
+        public void AddSearchHint(IEnumerable<DirectoryInfo> Info)
+        {
+            HintsSystem.AddEntry(Info);
+        }
+
+        public void AddSearchHint(SearchAnchor Info)
+        {
+            HintsSystem.AddEntry(Info);
+        }
+
+        public void AddSearchHint(IEnumerable<SearchAnchor> Info)
+        {
+            HintsSystem.AddEntry(Info);
+        }
+
+
+        #endregion
         #region Code for dealing with setting targets
         /// <summary>
         /// Add what to look for here.
@@ -1069,7 +1580,17 @@ namespace OdinSearchEngine
         {
             Targets.Add(target);
         }
+        
+        /// <summary>
+        /// Add Serveral new things to look for.
+        /// </summary>
+        /// <param name="targetlist"></param>
+        public void AddSearchTarget(IEnumerable<SearchTarget> targetlist)
+        {
+            Targets.AddRange(targetlist);
+        }
 
+        
         /// <summary>
         /// Clear the Search target list
         /// </summary>
@@ -1106,6 +1627,10 @@ namespace OdinSearchEngine
         public void AddSearchAnchor(SearchAnchor Anchor)
         {
             Anchors.Add(Anchor);
+        }
+        public void AddSearchAnchor(IEnumerable<SearchAnchor> AnchorList)
+        {
+            Anchors.AddRange(AnchorList);
         }
 
         /// <summary>
@@ -1144,12 +1669,29 @@ namespace OdinSearchEngine
         /// Start the search rolling. 
         /// </summary>
         /// <param name="Coms">This class is how the search communicates with your code. Cannot be null</param>
+        /// <param name="RedAlarm">If a worker thread created from the anchor crashes, this is called.</param>
         /// <exception cref="InvalidOperationException">Is thrown if Search is called while searching. </exception>
         /// <exception cref="ArgumentNullException">Is thrown if the Coms argument is null</exception>
         /// <exception cref="OdinSearch_CommuncationClassException">Thrown by the communcations class if it can't initalize on a call to <see cref="OdinSearch_OutputConsumerBase.SearchBegin(DateTime)"/></exception>
         /// <remarks>Note that the search uses a default class <see cref="OdinSearch_ContainerFileInfo"/> if there's not container class</remarks>
         public void Search(OdinSearch_OutputConsumerBase Coms)
         {
+            Search(Coms, null);
+        }
+
+
+        /// <summary>
+        /// Start the search rolling. 
+        /// </summary>
+        /// <param name="Coms">This class is how the search communicates with your code. Cannot be null</param>
+        /// <param name="RedAlarm">If a worker thread created from the anchor crashes, this is called.</param>
+        /// <exception cref="InvalidOperationException">Is thrown if Search is called while searching. </exception>
+        /// <exception cref="ArgumentNullException">Is thrown if the Coms argument is null</exception>
+        /// <exception cref="OdinSearch_CommuncationClassException">Thrown by the communcations class if it can't initalize on a call to <see cref="OdinSearch_OutputConsumerBase.SearchBegin(DateTime)"/></exception>
+        /// <remarks>Note that the search uses a default class <see cref="OdinSearch_ContainerFileInfo"/> if there's not container class</remarks>
+        public void Search(OdinSearch_OutputConsumerBase Coms, WorkerThreadUserNotifyError RedAlarm)
+        {
+            // before we begin, verify we're in a valid state, check for required non null arg and if we're searching.
             if (Anchors.Count <= 0)
             {
                 throw new InvalidOperationException(EmptyAnchorList);
@@ -1166,17 +1708,19 @@ namespace OdinSearchEngine
                 }
                 else
                 {
+                    // begin init the search.
                     Semaphore LockThis = new(0, 1);
                     WorkerThreadArgs Args = null;
+
                     foreach (SearchAnchor Anchor in Anchors)
                     {
                         var AnchorList = Anchor.SplitRoots();
+                        // crit fail. No starting point.
                         if (AnchorList.Length == 0)
                         {
                             throw new InvalidOperationException(NonEmptyAnchorListEmptySplitRoots);
                         }
                         for (int smallstep = 0; smallstep < AnchorList.Length; smallstep++)
-                        //foreach (SearchAnchor SmallAnchor in AnchorList)
                         {
                             Args = new();
                             Args.StartFrom = AnchorList[smallstep];
@@ -1193,16 +1737,42 @@ namespace OdinSearchEngine
                                 }
                             }
 
+                            // make our class that will deal with the thread.
+                            // thread and rotuine
                             WorkerThreadWithCancelToken Worker = new WorkerThreadWithCancelToken();
-                            //Worker.Thread = new Thread(() => WorkerThreadProc(Args));
                             Worker.Thread = new Thread(WorkerThreadProc);
-                            Worker.Thread.Name = AnchorList[smallstep].roots[0].ToString();
-                            Worker.Token = new CancellationTokenSource();
-                            Worker.Args = Args;
-                            Args.Token = Worker.Token.Token;
-                            Args.ComTalk = LockThis;
 
+                            // assign the thread name to be the location where the search starts
+                            Worker.Thread.Name = AnchorList[smallstep].roots[0].ToString();
+
+                            // create the cancel token
+                            Worker.Token = new CancellationTokenSource();
+
+                            // set the args to be passed to be the Args we want;
+                            Worker.Args = Args;
+
+                            // assign the cancel token
+                            Args.Token = Worker.Token.Token;
+
+                            // assign commincate base, the exception tracker class and the RegAlarm ok.
+                            Args.ComTalk = LockThis;
+                            Args.Tracker = ETracker;
+                            Args.AutoNotify = RedAlarm;
+                            Args.SoleMatchFlag = this.SoleMatch;
+                            // add it to the list.
                             WorkerThreads.Add(Worker);
+
+                            try
+                            {
+                                WorkerThreadInitRegEx(Args);
+                            }
+                            catch (RegexParseException e)
+                            {
+                                throw;
+                            }
+                           // IMPORTANT! Deleting this Args = null code will bring back the bug described
+                           // https://github.com/ShadowKnightMK4/OdinSearch/issues/1 which to briefly state
+                           //  adding multiple starting points such as C:\ D:\ E:\ Z:\ would ONLY use "Z:\"
                             Args = null;
                         }
                     }
@@ -1243,8 +1813,26 @@ namespace OdinSearchEngine
             {
                 foreach (var workerThread in WorkerThreads)
                 {
-                    workerThread.Token.Cancel();
-                    
+                    if (workerThread.Thread.IsAlive)
+                    {
+#if DEBUG
+        if (DebugVerboseMode)
+                        {
+                            Debug.WriteLine($"Sending Command to ask Thread for {workerThread.Thread.Name} to quit");
+                        }
+#endif
+                        workerThread.Token.Cancel();
+                    }
+                    else
+                    {
+#if DEBUG
+                        if (DebugVerboseMode)
+                        {
+                            Debug.WriteLine($"NOT SENDING Command to ask Thread for {workerThread.Thread.Name} to quit: Reason {workerThread.Thread.ThreadState}");
+                        }
+#endif
+                    }
+
                 }
             }
 
@@ -1252,24 +1840,26 @@ namespace OdinSearchEngine
         }
 
         /// <summary>
-        /// Search specs must pass this before search is go. We are looking to just fail impossible combinations
+        /// Search specs must pass this before search is go. We are looking to just fail impossible combinations. Currently just a place holder to return true
         /// </summary>
-        /// <param name="Arg"></param>
-        /// <returns></returns>
-        /// <remarks>Honstestly just returns true with this current build.</remarks>
+        /// <param name="Arg">TODO: <see cref="WorkerThreadArgs"/> to eval</param>
+        /// <returns>true if it passes and false if not</returns>
+        /// <remarks>Honstestly just returns true with this current build. Use <see cref="SkipSanityCheck"/> to true to skip this call</remarks>
         bool SanityChecks(WorkerThreadArgs _1)
         {
             // TODO:  Ensure conflicting filename and DirectoryName can actually match. For example, we're not attempting to compare contrarray
             //  settings in the filename array and directory path
             // TODO: Ensure we can have allowable file attributes. For example we're not wanting something that's botha file and a file.
+#if DEBUG
             System.Diagnostics.Debug.Write("Add code SanityCheck() routine");
+#endif
             return true;
         }
 
         
 
         
-        #endregion
+#endregion
         #region Container Handling
         /// <summary>
         /// When called, your routine should do what it needs to do to see if there's a class to handle this location.
@@ -1287,13 +1877,24 @@ namespace OdinSearchEngine
         readonly List<ContainerCheckDirectoryCallback> DirectoryContainerList = new();
         readonly List<ContainerCheckFileCallback> FileContainerList = new();
 
+        /// <summary>
+        /// Not implemented
+        /// </summary>
+        /// <param name="ContainerCheckDirectoryCallback"></param>
+        /// <exception cref="NotImplementedException"></exception>
         public void AddFileContainerCallback(ContainerCheckDirectoryCallback ContainerCheckDirectoryCallback)
         {
-            DirectoryContainerList.Add(ContainerCheckDirectoryCallback);
+            throw new NotImplementedException(nameof(AddFileContainerCallback));
         }
+
+        /// <summary>
+        /// Not implemented
+        /// </summary>
+        /// <param name="ContainerCheckFileCallback"></param>
+        /// <exception cref="NotImplementedException"></exception>
         public void AddDirectoryContainerCallback(ContainerCheckFileCallback ContainerCheckFileCallback)
         {
-            FileContainerList.Add(ContainerCheckFileCallback);
+            throw new NotImplementedException(nameof(AddDirectoryContainerCallback));
         }
 
         public void ClearFileContainerCallback()

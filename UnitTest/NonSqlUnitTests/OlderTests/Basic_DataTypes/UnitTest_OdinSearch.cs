@@ -9,45 +9,101 @@ using System.Text;
 using System.Threading.Tasks;
 using OdinSearchEngine.OdinSearch_OutputConsumerTools;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.DataCollector.InProcDataCollector;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Net.WebSockets;
 
-namespace UnitTest
+namespace NonSqlUnitTests.OlderTests.Basic_DataTypes
 {
     /// <summary>
     /// This class ensures we can spawn the search, get data from it and that it can start ok. 
     /// </summary>
     [TestClass]
-    public class UnitTest_OdinSearchBasics
+    public class UnitTest_OdinSearch
     {
+
+
+        [TestMethod]
+        public void OdinSearch_CanWeCancilSearch_AfterStartingARun()
+        {
+            bool found = false;
+            void cal(Thread T, Exception E)
+            {
+                Console.WriteLine($"Thread {T.Name} had a game ending exception.  {E.Message}");
+                found = true;
+            }
+            OdinSearch Demo = new();
+            Assert.IsNotNull(Demo);
+            var sa = new SearchAnchor();
+            sa.EnumSubFolders = true;
+            Demo.AddSearchAnchor(sa);
+            Demo.AddSearchTarget(SearchTarget.AllFiles);
+
+            var discard = new OdinSearch_Output_UnitTesting_class();
+
+            Demo.Search(discard, cal);
+
+            for (int i = 0; i < 3; i++)
+            {
+                Thread.Sleep(2000);
+                if (found)
+                    break;
+                else
+                {
+                    Demo.KillSearch();
+                }
+            }
+
+            //Demo.KillSearch();
+
+            var dbg = Demo.GetWorkerThreadException();
+            Assert.IsTrue(found);
+
+
+
+        }
         OdinSearch Demo = null;
         [TestInitialize]
         public void Init()
-        { 
+        {
             Demo = new OdinSearch();
         }
         [TestMethod]
         public void OdinSearch_CanInstance()
         {
+            OdinSearch Demo = new();
             Assert.IsNotNull(Demo);
         }
 
+        [TestMethod]
+        public void OdinSearch_DoesCrashAndBurn_Notify()
+        {
+            OdinSearch Demo = new();
+            OdinSearch_Output_UnitTesting_class Coms = new OdinSearch_Output_UnitTesting_class();
+            Assert.IsNotNull(Demo);
+            Demo.Reset();
+            Demo.AddSearchTarget(new SearchTarget());
+
+
+        }
         /// <summary>
         /// used for testing. It sets various public bools when doing 
         /// </summary>
-        internal class OdinSearch_Output_UnitTesting_class: OdinSearch_OutputConsumerBase
+        internal class OdinSearch_Output_UnitTesting_class : OdinSearch_OutputConsumerBase
         {
             public bool WasMatchCalled = false;
             public bool WasBlockedCalled = false;
             public bool WasMessagingCalled = false;
             public bool WasItemNotMatchingCalled = false;
-            
+
             public override void Blocked(string Blocked)
             {
-                
+
             }
 
             public override void Messaging(string Message)
             {
-                
+
             }
 
             public override void Match(FileSystemInfo info)
@@ -79,7 +135,7 @@ namespace UnitTest
 
             Assert.AreEqual(TestAnchor.roots.Count, Demo.WorkerThreadCount);
 
-            
+
         }
 
 
@@ -103,8 +159,8 @@ namespace UnitTest
             {
                 Demo.WorkerThreadJoin();
             }
-  
-            
+
+
 
             if (coms.SearchOver == false)
             {
@@ -139,7 +195,7 @@ namespace UnitTest
 
             Demo.AddSearchAnchor(TestAnchor);
             Demo.AddSearchTarget(TestSearch);
-            TestSearch.FileName.Add(SearchTarget.MatchAnyFile);
+            TestSearch.FileName.Add(SearchTarget.MatchAnyFileName);
 
             try
             {
@@ -150,7 +206,7 @@ namespace UnitTest
                 // its ok
                 Demo.Search(coms);
 
-                
+
                 {
                     Demo.WorkerThreadJoin();
                     if (coms.SearchOver == false)
@@ -177,7 +233,7 @@ namespace UnitTest
         /// Does the <see cref="OdinSearch_OutputConsumerBase.AllDone"/> fire ok when enuming folders?
         /// </summary>
 
-        
+
         public void OdinSearch_WasAllDoneCalled_EnumSubFolders()
         {
             common_WasAllDone(true,
@@ -197,12 +253,12 @@ namespace UnitTest
             OdinSearch_Output_UnitTesting_class coms = new OdinSearch_Output_UnitTesting_class();
             Assert.IsNotNull(Demo);
             Demo.Reset();
-            
+
             var TestAnchor = new SearchAnchor(false);
-            
+
 
             var TestSearch = new SearchTarget();
-            
+
             Demo.AddSearchAnchor(TestAnchor);
             Demo.AddSearchTarget(TestSearch);
 
@@ -211,7 +267,7 @@ namespace UnitTest
             TestSearch.FileNameMatching = SearchTarget.MatchStyleString.MatchAny;
             Demo.Search(coms);
 
-            
+
             {
                 Demo.WorkerThreadJoin();
             }

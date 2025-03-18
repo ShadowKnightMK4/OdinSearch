@@ -1,2 +1,3 @@
-﻿{0}.{1}.{2}.{3}  Release Candidate for milestone at https://github.com/ShadowKnightMK4/OdinSearch/milestone/1
+﻿{0}.{1}.{2}.{3}  Build Available  at https://github.com/ShadowKnightMK4/OdinSearch
+
 

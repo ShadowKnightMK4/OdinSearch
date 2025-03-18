@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection.Metadata.Ecma335;
 using System.Text;
@@ -14,13 +17,45 @@ namespace OdinSearchEngine
     /// <summary>
     /// Indicate what will be searched for.
     /// </summary>
-    public class SearchTarget: IEquatable<SearchTarget>
+    public class SearchTarget : IEquatable<SearchTarget>
     {
         /// <summary>
-        /// When added to <see cref="FileName"/> as in item, causes the compare to match sucessfully against any file.
+        /// from the /anyfile flag in the CLI app, this is a shorthand way to turn off all file system item compares and just feed seen file system items to the consumer class.
+        /// </summary>
+        public static SearchTarget AllFiles
+        {
+            get
+            {
+                return AllFilesBackup;
+            }
+        }
+        private static readonly SearchTarget AllFilesBackup;
+        static SearchTarget()
+        {
+            AllFilesBackup = new SearchTarget();
+            AllFilesBackup.FileName.Add(MatchAnyFileName);
+            AllFilesBackup.DirectoryMatching = MatchStyleString.Skip;
+            AllFilesBackup.FileNameMatching = MatchStyleString.Skip;
+            AllFilesBackup.AttributeMatching1 = AllFilesBackup.AttributeMatching2 = FileAttributes.Normal;
+            AllFilesBackup.AttribMatching1Style = AllFilesBackup.AttribMatching2Style = MatchStyleFileAttributes.Skip;
+            AllFilesBackup.AccessAnchorCheck1 = AllFilesBackup.AccessAnchorCheck2 = SearchTarget.MatchStyleDateTime.Disable;
+            AllFilesBackup.WriteAnchorCheck1 = AllFilesBackup.WriteAnchorCheck2 = MatchStyleDateTime.Disable;
+            AllFilesBackup.CreationAnchorCheck1 = AllFilesBackup.CreationAnchorCheck2 = MatchStyleDateTime.Disable;
+            AllFilesBackup.CheckFileSize = false;
+            AllFilesBackup.DirectoryMatching = MatchStyleString.Skip;
+        }
+
+
+        [Obsolete("Please use MatchAnyFileName.  They are the same but with the adding of the AnyFile static SearchTarget, this string may be ambigious. There is the possibility of this being removed.")]
+        /// <summary>
+        /// When added to <see cref="FileName"/> as in item, causes the compare to match sucessfully against any file name.
         /// </summary>
         public const string MatchAnyFile = "*";
-
+        /// <summary>
+        /// When added to <see cref="FileName"/> as in item, causes the compare to match sucessfully against any file name.
+        /// </summary>
+        public const string MatchAnyFileName = "*";
+        
         internal enum ConvertToRegExMode
         {
             WantFileNameRegs = 1,
@@ -28,6 +63,26 @@ namespace OdinSearchEngine
         }
 
 
+#if DEBUG
+        /// <summary>
+        /// This is used in DEBUG unit testing. clearing this to false disables a call to <see cref="Regex.Escape(string)"/>. Note For Release Builds, this CANNOT be turned off.
+        /// </summary>
+        public bool RegSaftyMode
+        {
+            get => SafetyMode;
+            set => SafetyMode = value;   
+        }
+#else
+        /// <summary>
+        /// This is used in DEBUG unit testing. clearing this to false disables a call to <see cref="Regex.Escape(string)"/>.  RELEASE MODE DOES NOT GIVE PUBLIC ability to set to false.
+        /// </summary>
+        public bool RegSaftyMode 
+        {
+            get => SafetyMode;
+            set => throw new InvalidOperationException("Not supported in RELEASE BUILD.");
+        }
+#endif
+        internal bool SafetyMode = true;
         /// <summary>
         ///  internal class used to convert lists of strings to lists of predone REGEX expresses. 
         /// </summary>
@@ -36,24 +91,50 @@ namespace OdinSearchEngine
         /// <returns></returns>
         internal static List<Regex> ConvertToRegEx(SearchTarget Target, ConvertToRegExMode mode)
         {
+            string pattern_prep(string pattern, MatchStyleString mode)
+            {
+                string ret;
+                if (!mode.HasFlag(MatchStyleString.RawRegExMode))
+                {
+                    ret = "^" + Regex.Escape(pattern) + "$";
+                    ret = ret.Replace("\\*", ".*").Replace("\\?", ".");
+                    
+                }
+                else
+                {
+                    if (Target.RegSaftyMode)
+                        ret = Regex.Escape(pattern);
+                    else
+                        ret = pattern;
+                }
+                return ret;
+            }
             List<string> loopthru = null;
-            
+            MatchStyleString modethru = 0;
             if ((mode & ConvertToRegExMode.WantFileNameRegs | ConvertToRegExMode.WantDirectoryNameRegs) == 0)
             {
                 throw new InvalidOperationException("Internal ConverToRegEx() with unspecified mode");
             }
             if (mode.HasFlag(ConvertToRegExMode.WantFileNameRegs))
+            {
                 loopthru = Target.FileName;
+                modethru = Target.FileNameMatching;
+            }
             if (mode.HasFlag(ConvertToRegExMode.WantDirectoryNameRegs))
+            {
                 loopthru = Target.DirectoryPath;
+                modethru = Target.DirectoryMatching;
+            }
 
             var ret = new List<Regex>();
             foreach (string s in loopthru)
             {
                 string pattern;
 
-                pattern = "^" + Regex.Escape(s) + "$";
-                pattern = pattern.Replace("\\*", ".*").Replace("\\?", ".");
+
+                pattern = pattern_prep(s, modethru);
+                //pattern = "^" + Regex.Escape(s) + "$";
+                //pattern = pattern.Replace("\\*", ".*").Replace("\\?", ".");
                 /* this is the match anything regexpression for.
                  * This is hard coded to returning a clear regex list. The code that does the searching treats
                  * it skipping the compare and treating it as a positive match.
@@ -393,7 +474,7 @@ namespace OdinSearchEngine
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(AccessAnchorCheck1.InnerText, out ret.AccessAnchorCheck1))
+                if (!Enum.TryParse<MatchStyleDateTime>(AccessAnchorCheck1.InnerText, out ret.AccessAnchor1_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -406,7 +487,7 @@ namespace OdinSearchEngine
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(AccessAnchorCheck2.InnerText, out ret.AccessAnchorCheck2))
+                if (!Enum.TryParse<MatchStyleDateTime>(AccessAnchorCheck2.InnerText, out ret.AccessAnchor2_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -420,7 +501,7 @@ namespace OdinSearchEngine
 
             if (AttribMatch1 != null)
             {
-                if (!Enum.TryParse<FileAttributes>(AttribMatch1.InnerText, out ret.AttributeMatching1))
+                if (!Enum.TryParse<FileAttributes>(AttribMatch1.InnerText, out ret.Attrib1_Backing))
                 {
                     throw new ArgumentException();
                 }
@@ -436,7 +517,7 @@ namespace OdinSearchEngine
 
             if (AttribMatch2 != null)
             {
-                if (!Enum.TryParse<FileAttributes>(AttribMatch2.InnerText, out ret.AttributeMatching2))
+                if (!Enum.TryParse<FileAttributes>(AttribMatch2.InnerText, out ret.Attrib2_Backing))
                 {
                     throw new ArgumentException();
                 }
@@ -469,12 +550,12 @@ namespace OdinSearchEngine
 
             if (CreationAnchor1 != null)
             {
-                if (!DateTime.TryParse(CreationAnchor1.InnerText, out ret.CreationAnchor))
+                if (!DateTime.TryParse(CreationAnchor1.InnerText, out ret.CreationAnchor1_Backing))
                 {
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(CreationAnchor1Check.InnerText, out ret.CreationAnchorCheck1))
+                if (!Enum.TryParse<MatchStyleDateTime>(CreationAnchor1Check.InnerText, out ret.CreationAnchor1_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -488,7 +569,7 @@ namespace OdinSearchEngine
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(CreationAnchor2Check.InnerText, out ret.CreationAnchorCheck2))
+                if (!Enum.TryParse<MatchStyleDateTime>(CreationAnchor2Check.InnerText, out ret.CreationAnchor2_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -589,7 +670,7 @@ namespace OdinSearchEngine
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(WriteAnchorCheck1.InnerText, out ret.WriteAnchorCheck1))
+                if (!Enum.TryParse<MatchStyleDateTime>(WriteAnchorCheck1.InnerText, out ret.WriteAnchor1_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -602,7 +683,7 @@ namespace OdinSearchEngine
                     throw new ArgumentException();
                 }
 
-                if (!Enum.TryParse<MatchStyleDateTime>(WriteAnchorCheck2.InnerText, out ret.WriteAnchorCheck2))
+                if (!Enum.TryParse<MatchStyleDateTime>(WriteAnchorCheck2.InnerText, out ret.WriteAnchor2_MatchStyleBacking))
                 {
                     throw new ArgumentException();
                 }
@@ -749,6 +830,23 @@ namespace OdinSearchEngine
 
         }
 
+        #region BACKING_VALUES
+        protected FileAttributes Attrib1_Backing = 0;
+        protected FileAttributes Attrib2_Backing = FileAttributes.Normal;
+        protected DateTime CreationAnchor1_Backing;
+        protected MatchStyleDateTime CreationAnchor1_MatchStyleBacking = MatchStyleDateTime.Disable;
+        protected MatchStyleDateTime CreationAnchor2_MatchStyleBacking = MatchStyleDateTime.Disable;
+        protected MatchStyleDateTime AccessAnchor1_MatchStyleBacking = MatchStyleDateTime.Disable;
+        protected MatchStyleDateTime AccessAnchor2_MatchStyleBacking = MatchStyleDateTime.Disable;
+        protected MatchStyleDateTime WriteAnchor1_MatchStyleBacking = MatchStyleDateTime.Disable;
+        protected MatchStyleDateTime WriteAnchor2_MatchStyleBacking = MatchStyleDateTime.Disable;
+        #endregion
+        #region INTERNAL_CONSTS
+        /// <summary>
+        /// used as the upper valid limit for file attributes
+        /// </summary>
+        private const int OneOffFileAttrib = 262144;
+        #endregion
         /// <summary>
         /// Check against <see cref="FileSystemInfo.CreationTime"/>
         /// </summary>
@@ -782,57 +880,163 @@ namespace OdinSearchEngine
         /// <summary>
         /// Indicate what do do with <see cref="CreationAnchor"/>
         /// </summary>
-        public MatchStyleDateTime CreationAnchorCheck1 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime CreationAnchorCheck1
+        {
+            get => CreationAnchor1_MatchStyleBacking;
+            set
+            {
+                if ( (value < MatchStyleDateTime.Disable)  || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                CreationAnchor1_MatchStyleBacking = value;
+            } 
+        }
         /// <summary>
         /// Indicate what do do with <see cref="CreationAnchor2"/>
         /// </summary>
-        public MatchStyleDateTime CreationAnchorCheck2 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime CreationAnchorCheck2
+        {
+            get => CreationAnchor2_MatchStyleBacking;
+            set
+            {
+                if ((value < MatchStyleDateTime.Disable) || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                CreationAnchor2_MatchStyleBacking = value;
+            }
+        }
 
         /// <summary>
         /// Indicate what do do with <see cref="AccessAnchor"/>
         /// </summary>
-        public MatchStyleDateTime AccessAnchorCheck1 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime AccessAnchorCheck1
+        {
+            get => AccessAnchor1_MatchStyleBacking;
+            set
+            {
+                if ((value < MatchStyleDateTime.Disable) || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                AccessAnchor1_MatchStyleBacking = value;
+            }
+        }
         /// <summary>
         /// Indicate what do do with <see cref="AccessAnchor2"/>
         /// </summary>
-        public MatchStyleDateTime AccessAnchorCheck2 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime AccessAnchorCheck2
+        {
+            get => AccessAnchor2_MatchStyleBacking;
+            set
+            {
+                if ((value < MatchStyleDateTime.Disable) || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                AccessAnchor2_MatchStyleBacking = value;
+            }
+        }
 
         /// <summary>
         /// Indicate what do do with <see cref="WriteAnchor"/>
         /// </summary>
-        public MatchStyleDateTime WriteAnchorCheck1 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime WriteAnchorCheck1
+        {
+            get => WriteAnchor1_MatchStyleBacking;
+            set
+            {
+                if ((value < MatchStyleDateTime.Disable) || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                WriteAnchor1_MatchStyleBacking = value;
+            }
+        }
 
 
         /// <summary>
         /// Indicate what do do with <see cref="WriteAnchor"/>
         /// </summary>
-        public MatchStyleDateTime WriteAnchorCheck2 = MatchStyleDateTime.Disable;
+        public MatchStyleDateTime WriteAnchorCheck2
+        {
+            get => WriteAnchor2_MatchStyleBacking;
+            set
+            {
+                if ((value < MatchStyleDateTime.Disable) || (value > MatchStyleDateTime.NoLaterThanThis))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                WriteAnchor2_MatchStyleBacking = value;
+            }
+        }
 
         /// <summary>
         /// A REGEX express that will be compared againt the <see cref="FileInfoExtract.Name"/>
         /// </summary>
         public readonly List<string> FileName = new List<string>();
+        /// <summary>
+        /// Determines how will will be comparing input file names against the filters at <see cref="FileName"/>
+        /// </summary>
+        /// <example>Consider C:\\Windows\\notepad.exe.  The string compared would be notepad.exe.</example>
         public MatchStyleString FileNameMatching = MatchStyleString.MatchAny;
 
         /// <summary>
         /// REGEX expressthat that's compared against <see cref="FileInfoExtract.FullName"/>
         /// </summary>
         public readonly List<string> DirectoryPath = new List<string>() ;
+
+        /// <summary>
+        /// Determines how will will be comparing input complate file location and names against the filters at <see cref="FileName"/>
+        /// </summary>
+        /// <example>Consider C:\\Windows\\notepad.exe.  The string compared would be C:\\Windows\\notepad.exe.</example>
         public MatchStyleString DirectoryMatching = MatchStyleString.MatchAny;
 
         /// <summary>
         /// expression that's compared against <see cref="FileInfoExtract.FileAttributes"/>.  If equal to zero or <see cref="FileAttributes.Normal"/>, the compare is skipped
         /// </summary>
-        public FileAttributes AttributeMatching1 = 0;
+        public FileAttributes AttributeMatching1
+        {
+            get
+            {
+                return Attrib1_Backing;
+            }
+            set
+            {
+                if ( ( (value >= (FileAttributes)SearchTarget.OneOffFileAttrib) || (value < (FileAttributes)1)) && (value != 0))
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                Attrib1_Backing = value;
+            }
+        }
         /// <summary>
-        /// How to comare <see cref="AttributeMatching1"/> with possible entries
+        /// How to compare <see cref="AttributeMatching1"/> with possible entries
         /// </summary>
         public MatchStyleFileAttributes AttribMatching1Style = MatchStyleFileAttributes.Skip;
 
         /// <summary>
         /// Expression that's (by default) compared to be LACKING in <see cref="FileInfoExtract.FileAttributes"/>
         /// </summary>
-        public FileAttributes AttributeMatching2 =  FileAttributes.Normal;
+        public FileAttributes AttributeMatching2
+        {
+            get
+            {
+                return Attrib2_Backing;
+            }
+            set
+            {
+                if (value >= (FileAttributes)OneOffFileAttrib)
+                {
+                    throw new InvalidEnumArgumentException();
+                }
+                Attrib2_Backing = value;
+            }
+        }
+        /// <summary>
+        /// How to compare <see cref="AttributeMatching2"/> with possible entries
+        /// </summary>
         public MatchStyleFileAttributes AttribMatching2Style = MatchStyleFileAttributes.Invert | MatchStyleFileAttributes.Skip;
 
 
@@ -849,19 +1053,6 @@ namespace OdinSearchEngine
         /// If true we compare the <see cref="FileSizeMax"/> and <see cref="FileSizeMax"/>. This does involve casting the generic <see cref="FileSystemInfo"/> to a <see cref="FileInfo"/>
         /// </summary>
         public bool CheckFileSize = false;
-
-        /// <summary>
-        /// Additional checks are points one can add for additional checks / x
-        /// </summary>
-
-        /*
-        public readonly List<CustomizedCheck> AdditionalChecks1 = new List<CustomizedCheck>();
-        public MatchStyleString AdditionalChecks1Matching = MatchStyleString.MatchAny;
-
-
-
-        public readonly List<CustomizedCheck> AdditionalChecks2 = new List<CustomizedCheck>();
-        public MatchStyleString AdditionalChecks2Matching = MatchStyleString.MatchAny | MatchStyleString.Invert;*/
 
         /// <summary>
         /// Tell the search what do do with the same times specified
@@ -917,7 +1108,7 @@ namespace OdinSearchEngine
         /// <returns>true if it's a valid combo and false if not</returns>
         public static bool VerifyMatchStyleStringValue(MatchStyleString e)
         {
-            return (e is >= (MatchStyleString)1 and <= (MatchStyleString)64) && (e.HasFlag( MatchStyleString.ReservedUnused) == false);
+            return (e is >= (MatchStyleString)1 and <= (MatchStyleString)128) && (e.HasFlag( MatchStyleString.ReservedUnused) == false);
         }
 
         /// <summary>
@@ -949,11 +1140,9 @@ namespace OdinSearchEngine
             /// A sucessful match to the target fails the compaire i.e. now this part of the <see cref="SearchTarget"/> specifies what it must NOT match
             /// </summary>
             Invert = 4,
-            [Obsolete("Not Implemented")]
-            /// <summary>
-            /// Reserved for future. Currently not used for this enum.
+            /// This causes your string to be passed to the regex compare without assuming it's a file. Note. you need to ensure proper RegEx encoding or Worker threads may crash.
             /// </summary>
-            ReservedUnused = 8,
+            RawRegExMode= 8,
             /// <summary>
             /// Disable this matching.. 
             /// </summary>
@@ -961,7 +1150,11 @@ namespace OdinSearchEngine
             /// <summary>
             /// Add to make the search string case sensitive.
             /// </summary>
-            CaseImportant = 32
+            CaseImportant = 32,
+            /// <summary>
+            /// Reserved for future. Currently not used for this enum beyond a cap in the sanit ychecvk
+            /// </summary>
+            ReservedUnused = 64
         }
     }
 }

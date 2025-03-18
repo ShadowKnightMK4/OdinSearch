@@ -4,6 +4,7 @@ using System.Text;
 using System.IO;
 using System.Xml;
 using System.Xml.Linq;
+using System.Runtime.ExceptionServices;
 
 namespace OdinSearchEngine
 {
@@ -59,10 +60,10 @@ namespace OdinSearchEngine
 
 
         /// <summary>
-        /// Make instance with this as the location start.  
+        /// Make instance with this as the location start.  Use ';' to seperate multiple ones. 
         /// </summary>
         /// <param name="AnchorLocation">start location</param>
-        /// <exception cref="IOException">This can be thrown if the passed location is offline/not ready.</exception>
+        /// <exception cref="IOException">This can be thrown if the passed location is offline/not ready/not existing</exception>
         public SearchAnchor(string AnchorLocation)
         {
             AddAnchor(AnchorLocation);            
@@ -161,10 +162,26 @@ namespace OdinSearchEngine
         /// <exception cref="ArgumentException">Thrown if for some other reason this routine cant make instance of <see cref="DirectoryInfo"/> pointing to your location</exception>
         /// <exception cref="PathTooLongException">Thrown if this routine can't make a  <see cref="DirectoryInfo"/> due to path being too long</exception>
         /// <exception cref="System.Security.SecurityException"> Thrown if <see cref="DirectoryInfo"/></exception> throw it
+
         public bool AddAnchor(string location)
         {
-            DirectoryInfo ReadyTest = new DirectoryInfo(location);
-            return AddAnchorCommonRoute(ReadyTest, true);
+            if (!location.Contains(";"))
+            {
+                DirectoryInfo ReadyTest = new DirectoryInfo(location);
+                return AddAnchorCommonRoute(ReadyTest, true);
+            }
+            else
+            {
+                string[] parts = location.Split(";", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < parts.Length;i++)
+                {
+                    if (!AddAnchorCommonRoute(new DirectoryInfo(parts[i]), true))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
         }
 
         /// <summary>

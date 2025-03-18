@@ -148,6 +148,7 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                 try
                 {
                     result = (bool)this[FlushAlways];
+                    this.FlushAlwaysFlag = result;
                 }
                 catch (Exception e)
                 {
@@ -226,12 +227,13 @@ namespace OdinSearchEngine.OdinSearch_OutputConsumerTools
                     errstream?.Dispose();
                 }
             }
+
             base.Dispose(disposing);
         }
         ~OdinSearch_OutputSimpleConsole()
         {
             Dispose(true);
-            GC.SuppressFinalize(this);
+            
         }
     }
 }

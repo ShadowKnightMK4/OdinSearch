@@ -1,12 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0-windows</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <AssemblyVersion>1.0.0.2</AssemblyVersion>
+    <FileVersion>1.0.0.2</FileVersion>
+    <Configurations>Debug;Release;LinuxDebug</Configurations>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
+    <ProjectReference Include="..\DeepDirPrune\DeepDirPrune.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="ConsumerBaseTests\" />
   </ItemGroup>
 
 </Project>
